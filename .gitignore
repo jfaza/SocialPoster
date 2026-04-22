@@ -1,0 +1,24 @@
+.DS_Store
+Thumbs.db
+
+# Editor state
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Local environment/secrets
+.env
+.env.*
+!.env.example
+
+# Dependency/build output if this addon gains tooling later
+node_modules/
+vendor/
+dist/
+build/
+
+# Runtime/log/temp files
+*.log
+tmp/
+cache/
