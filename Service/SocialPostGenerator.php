@@ -4,6 +4,8 @@ namespace JavidFazaeli\SocialPoster\Service;
 
 class SocialPostGenerator
 {
+    private const DEFAULT_TEXT_MODEL = 'gpt-5.4';
+
     private OpenAiClient $openai;
     private ImageStorage $imageStorage;
 
@@ -19,10 +21,18 @@ class SocialPostGenerator
             'api_key' => '',
             'admin_api_key' => '',
             'openai_project_id' => '',
-            'text_model' => 'gpt-5.4-mini',
+            'text_model' => self::DEFAULT_TEXT_MODEL,
             'image_model' => 'gpt-image-1.5',
             'image_size' => '1024x1024',
             'image_quality' => 'medium',
+        ];
+    }
+
+    public function textModels(): array
+    {
+        return [
+            'gpt-5.4' => 'GPT-5.4',
+            'gpt-5.4-mini' => 'GPT-5.4 Mini',
         ];
     }
 
@@ -83,7 +93,7 @@ class SocialPostGenerator
                 ? $adminApiKey
                 : $current['admin_api_key'],
             'openai_project_id' => trim((string) ($input['openai_project_id'] ?? $current['openai_project_id'])),
-            'text_model' => trim((string) ($input['text_model'] ?? 'gpt-5.4-mini')) ?: 'gpt-5.4-mini',
+            'text_model' => trim((string) ($input['text_model'] ?? self::DEFAULT_TEXT_MODEL)) ?: self::DEFAULT_TEXT_MODEL,
             'image_model' => array_key_exists(($input['image_model'] ?? ''), $this->imageModels())
                 ? (string) $input['image_model']
                 : 'gpt-image-1.5',

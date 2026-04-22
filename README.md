@@ -25,7 +25,7 @@ ExpressionEngine control panel.
 
 Default models are configured in `Service/SocialPostGenerator.php`:
 
-- Text: `gpt-5.4-mini`
+- Text: `gpt-5.4`
 - Image: `gpt-image-1.5`
 
 ## Installation
@@ -52,7 +52,7 @@ Open the SocialPoster settings screen in the ExpressionEngine control panel and
 configure:
 
 - OpenAI API key
-- Text model
+- Text model, including `gpt-5.4` and `gpt-5.4-mini`
 - Image model, including `gpt-image-2`
 - Image size
 - Image quality

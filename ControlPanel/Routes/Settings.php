@@ -65,6 +65,7 @@ class Settings extends AbstractRoute
             'index_url' => ee('CP/URL')->make('addons/settings/socialposter')->compile(),
             'history_url' => ee('CP/URL')->make('addons/settings/socialposter/history')->compile(),
             'settings' => $settings,
+            'text_models' => $generator->textModels(),
             'image_models' => $generator->imageModels(),
             'api_key_saved' => $settings['api_key'] !== '',
             'admin_api_key_saved' => $settings['admin_api_key'] !== '',

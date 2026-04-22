@@ -1,6 +1,7 @@
 <?php
 ee()->load->helper('form');
 $h = fn($value) => htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
+$textModel = $settings['text_model'] ?? 'gpt-5.4';
 $imageModel = $settings['image_model'] ?? 'gpt-image-1.5';
 $imageSize = $settings['image_size'] ?? '1024x1024';
 $quality = $settings['image_quality'] ?? 'medium';
@@ -47,7 +48,14 @@ $mask = function ($value) {
 
     <div class="sp-field">
       <label for="text_model">Text Model</label>
-      <input type="text" id="text_model" name="text_model" value="<?= $h($settings['text_model'] ?? 'gpt-5.4-mini') ?>">
+      <select id="text_model" name="text_model">
+        <?php foreach (($text_models ?? []) as $model => $label): ?>
+          <option value="<?= $h($model) ?>" <?= $textModel === $model ? 'selected' : '' ?>><?= $h($label) ?> (<?= $h($model) ?>)</option>
+        <?php endforeach; ?>
+        <?php if ($textModel !== '' && ! array_key_exists($textModel, ($text_models ?? []))): ?>
+          <option value="<?= $h($textModel) ?>" selected><?= $h($textModel) ?> (Current)</option>
+        <?php endif; ?>
+      </select>
     </div>
 
     <div class="sp-field">
