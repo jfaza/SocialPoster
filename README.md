@@ -53,7 +53,7 @@ configure:
 
 - OpenAI API key
 - Text model
-- Image model
+- Image model, including `gpt-image-2`
 - Image size
 - Image quality
 

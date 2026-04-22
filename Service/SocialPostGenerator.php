@@ -29,6 +29,7 @@ class SocialPostGenerator
     public function imageModels(): array
     {
         return [
+            'gpt-image-2' => 'GPT Image 2',
             'gpt-image-1.5' => 'GPT Image 1.5',
             'chatgpt-image-latest' => 'ChatGPT Image Latest',
             'gpt-image-1' => 'GPT Image 1',
@@ -827,6 +828,13 @@ class SocialPostGenerator
 
     private function composeImagePrompt(string $imagePrompt, string $imageBrief): string
     {
+        $realisticDirection = implode("\n", [
+            'Generate a realistic, photorealistic image suitable for a professional social post or blog hero.',
+            'Use natural lighting, believable materials, authentic environments, and real-world perspective.',
+            'Avoid illustrations, vector art, infographics, diagrams, quote cards, UI mockups, rendered text, logos, watermarks, and decorative typography unless the user explicitly requests visible text.',
+        ]);
+        $imagePrompt = trim($realisticDirection . "\n\nSubject and composition:\n" . $imagePrompt);
+
         if ($imageBrief === '') {
             return $imagePrompt;
         }
