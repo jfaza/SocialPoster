@@ -17,6 +17,8 @@ class SocialPostGenerator
     {
         return [
             'api_key' => '',
+            'admin_api_key' => '',
+            'openai_project_id' => '',
             'text_model' => 'gpt-5.4-mini',
             'image_model' => 'gpt-image-1.5',
             'image_size' => '1024x1024',
@@ -38,20 +40,26 @@ class SocialPostGenerator
         $settings = $this->defaultSettings();
 
         if (! ee()->db->table_exists('socialposter_settings')) {
-            return $settings;
+            return $this->applyConfigOverrides($settings);
         }
 
         $query = ee()->db->get('socialposter_settings');
         foreach ($query->result_array() as $row) {
             $key = (string) $row['setting_key'];
-            if ($key === 'api_key') {
+            if (in_array($key, ['api_key', 'admin_api_key'], true)) {
                 $settings[$key] = $this->decrypt((string) $row['setting_value']);
             } elseif (array_key_exists($key, $settings)) {
                 $settings[$key] = (string) $row['setting_value'];
             }
         }
 
-        return $settings;
+        foreach (['api_key', 'admin_api_key'] as $key) {
+            if ($this->looksLikePlaceholderSecret($settings[$key])) {
+                $settings[$key] = '';
+            }
+        }
+
+        return $this->applyConfigOverrides($settings);
     }
 
     public function saveSettings(array $input): array
@@ -61,10 +69,19 @@ class SocialPostGenerator
         }
 
         $current = $this->getSettings();
+        $apiKey = trim((string) ($input['api_key'] ?? ''));
+        $adminApiKey = trim((string) ($input['admin_api_key'] ?? ''));
+        $this->validateSecretInput($apiKey, 'OpenAI API Key');
+        $this->validateSecretInput($adminApiKey, 'OpenAI Admin API Key');
+
         $settings = [
-            'api_key' => trim((string) ($input['api_key'] ?? '')) !== ''
-                ? trim((string) $input['api_key'])
+            'api_key' => $apiKey !== ''
+                ? $apiKey
                 : $current['api_key'],
+            'admin_api_key' => $adminApiKey !== ''
+                ? $adminApiKey
+                : $current['admin_api_key'],
+            'openai_project_id' => trim((string) ($input['openai_project_id'] ?? $current['openai_project_id'])),
             'text_model' => trim((string) ($input['text_model'] ?? 'gpt-5.4-mini')) ?: 'gpt-5.4-mini',
             'image_model' => array_key_exists(($input['image_model'] ?? ''), $this->imageModels())
                 ? (string) $input['image_model']
@@ -77,8 +94,16 @@ class SocialPostGenerator
                 : 'medium',
         ];
 
+        if ($settings['admin_api_key'] !== '' && str_starts_with($settings['admin_api_key'], 'proj_')) {
+            throw new \InvalidArgumentException('OpenAI Admin API Key contains a project ID. Paste the admin key secret into that field and put the proj_ value in OpenAI Project ID.');
+        }
+
+        if ($settings['admin_api_key'] !== '' && $settings['openai_project_id'] !== '' && hash_equals($settings['admin_api_key'], $settings['openai_project_id'])) {
+            throw new \InvalidArgumentException('OpenAI Admin API Key and OpenAI Project ID cannot be the same value.');
+        }
+
         foreach ($settings as $key => $value) {
-            $stored = $key === 'api_key' ? $this->encrypt($value) : $value;
+            $stored = in_array($key, ['api_key', 'admin_api_key'], true) ? $this->encrypt($value) : $value;
             $exists = ee()->db->where('setting_key', $key)->count_all_results('socialposter_settings') > 0;
             $row = [
                 'setting_key' => $key,
@@ -95,6 +120,61 @@ class SocialPostGenerator
         }
 
         return $settings;
+    }
+
+    private function applyConfigOverrides(array $settings): array
+    {
+        $overrides = [
+            'api_key' => ['socialposter_openai_api_key', 'openai_api_key'],
+            'admin_api_key' => ['socialposter_openai_admin_api_key', 'openai_admin_api_key'],
+            'openai_project_id' => ['socialposter_openai_project_id', 'openai_project_id'],
+        ];
+
+        foreach ($overrides as $setting => $configKeys) {
+            foreach ($configKeys as $configKey) {
+                $value = $this->configString($configKey);
+                if ($value !== '') {
+                    $settings[$setting] = $value;
+                    break;
+                }
+            }
+        }
+
+        return $settings;
+    }
+
+    private function configString(string $key): string
+    {
+        $value = ee()->config->item($key);
+        return is_scalar($value) ? trim((string) $value) : '';
+    }
+
+    private function validateSecretInput(string $value, string $label): void
+    {
+        if ($value === '') {
+            return;
+        }
+
+        if ($this->looksLikePlaceholderSecret($value)) {
+            throw new \InvalidArgumentException($label . ' must be the actual key secret, not the field label or placeholder text.');
+        }
+    }
+
+    private function looksLikePlaceholderSecret(string $value): bool
+    {
+        $normalized = strtolower(trim($value));
+        if ($normalized === '') {
+            return false;
+        }
+
+        return in_array($normalized, [
+            'openai api key',
+            'openai admin api key',
+            'api key',
+            'admin api key',
+            'sk-...',
+            'sk-admin-...',
+        ], true);
     }
 
     public function generate(string $prompt, array $meta = []): array
@@ -173,6 +253,12 @@ class SocialPostGenerator
             $record['template_id'] = $templateId;
         }
 
+        foreach (['image_model', 'image_size', 'image_quality'] as $field) {
+            if (ee()->db->field_exists($field, 'socialposter_generations')) {
+                $record[$field] = (string) $settings[$field];
+            }
+        }
+
         ee()->db->insert('socialposter_generations', $record);
         $record['id'] = (int) ee()->db->insert_id();
 
@@ -192,6 +278,60 @@ class SocialPostGenerator
             ->result_array();
 
         return array_map([$this, 'normalizeRecord'], $rows);
+    }
+
+    public function tokenUsage(int $limit = 100): array
+    {
+        $summary = [
+            'requests' => 0,
+            'input_tokens' => 0,
+            'output_tokens' => 0,
+            'total_tokens' => 0,
+            'cached_tokens' => 0,
+            'reasoning_tokens' => 0,
+        ];
+
+        if (! ee()->db->table_exists('socialposter_generations')) {
+            return [
+                'summary' => $summary,
+                'rows' => [],
+                'costs' => $this->actualOpenAiCosts(),
+            ];
+        }
+
+        $select = ['id', 'title', 'raw_response', 'created_at', 'image_path'];
+        foreach (['source', 'template_id', 'image_model', 'image_size', 'image_quality'] as $field) {
+            if (ee()->db->field_exists($field, 'socialposter_generations')) {
+                $select[] = $field;
+            }
+        }
+
+        $rows = ee()->db
+            ->select($select)
+            ->order_by('created_at', 'DESC')
+            ->limit($limit)
+            ->get('socialposter_generations')
+            ->result_array();
+
+        $usageRows = [];
+        foreach ($rows as $row) {
+            $usage = $this->usageFromRawResponse((string) ($row['raw_response'] ?? ''));
+            if ($usage['total_tokens'] > 0) {
+                $summary['requests']++;
+            }
+
+            foreach (['input_tokens', 'output_tokens', 'total_tokens', 'cached_tokens', 'reasoning_tokens'] as $key) {
+                $summary[$key] += $usage[$key];
+            }
+
+            $usageRows[] = array_merge($row, $usage);
+        }
+
+        return [
+            'summary' => $summary,
+            'rows' => $usageRows,
+            'costs' => $this->actualOpenAiCosts(),
+        ];
     }
 
     public function find(int $id): ?array
@@ -275,7 +415,7 @@ class SocialPostGenerator
             'image_brief' => $imageBrief,
             'image_prompt' => $composedPrompt,
             'image_path' => $imagePath,
-        ]);
+        ] + $this->imageSettingsRecord($settings));
 
         return $this->find($id);
     }
@@ -320,6 +460,136 @@ class SocialPostGenerator
         $record['hashtags'] = $this->decodeList($record['hashtags'] ?? []);
         $record['recommended_topics'] = $this->decodeList($record['recommended_topics'] ?? []);
         $record['image_url'] = ! empty($record['image_path']) ? '/' . ltrim((string) $record['image_path'], '/') : '';
+        $record['internal_link_title'] = $this->internalLinkTitle((string) ($record['internal_link'] ?? ''));
+        return $record;
+    }
+
+    private function usageFromRawResponse(string $rawResponse): array
+    {
+        $usage = [
+            'input_tokens' => 0,
+            'output_tokens' => 0,
+            'total_tokens' => 0,
+            'cached_tokens' => 0,
+            'reasoning_tokens' => 0,
+            'model' => '',
+        ];
+
+        $decoded = json_decode($rawResponse, true);
+        if (! is_array($decoded)) {
+            return $usage;
+        }
+
+        $usage['model'] = (string) ($decoded['model'] ?? '');
+
+        $responseUsage = $decoded['usage'] ?? [];
+        if (! is_array($responseUsage)) {
+            return $usage;
+        }
+
+        $usage['input_tokens'] = (int) ($responseUsage['input_tokens'] ?? $responseUsage['prompt_tokens'] ?? 0);
+        $usage['output_tokens'] = (int) ($responseUsage['output_tokens'] ?? $responseUsage['completion_tokens'] ?? 0);
+        $usage['total_tokens'] = (int) ($responseUsage['total_tokens'] ?? ($usage['input_tokens'] + $usage['output_tokens']));
+
+        $inputDetails = $responseUsage['input_tokens_details'] ?? $responseUsage['prompt_tokens_details'] ?? [];
+        if (is_array($inputDetails)) {
+            $usage['cached_tokens'] = (int) ($inputDetails['cached_tokens'] ?? 0);
+        }
+
+        $outputDetails = $responseUsage['output_tokens_details'] ?? $responseUsage['completion_tokens_details'] ?? [];
+        if (is_array($outputDetails)) {
+            $usage['reasoning_tokens'] = (int) ($outputDetails['reasoning_tokens'] ?? 0);
+        }
+
+        return $usage;
+    }
+
+    private function actualOpenAiCosts(): array
+    {
+        $settings = $this->getSettings();
+        if (trim($settings['admin_api_key']) === '') {
+            return [
+                'available' => false,
+                'error' => 'Add an OpenAI Admin API key in Settings to load actual billed costs.',
+                'total' => 0.0,
+                'currency' => 'usd',
+                'line_items' => [],
+                'buckets' => [],
+            ];
+        }
+
+        $end = ee()->localize->now;
+        $start = strtotime('today UTC', $end) - (30 * 86400);
+
+        try {
+            $response = $this->openai->organizationCosts(
+                $settings['admin_api_key'],
+                $start,
+                $end,
+                trim((string) $settings['openai_project_id'])
+            );
+        } catch (\Throwable $e) {
+            return [
+                'available' => false,
+                'error' => $e->getMessage(),
+                'total' => 0.0,
+                'currency' => 'usd',
+                'line_items' => [],
+                'buckets' => [],
+            ];
+        }
+
+        return $this->normalizeCostsResponse($response);
+    }
+
+    private function normalizeCostsResponse(array $response): array
+    {
+        $total = 0.0;
+        $currency = 'usd';
+        $lineItems = [];
+        $buckets = [];
+
+        foreach (($response['data'] ?? []) as $bucket) {
+            $bucketTotal = 0.0;
+            foreach (($bucket['results'] ?? []) as $result) {
+                $amount = $result['amount'] ?? [];
+                $value = (float) ($amount['value'] ?? 0);
+                $currency = (string) ($amount['currency'] ?? $currency);
+                $lineItem = (string) ($result['line_item'] ?? 'Other');
+
+                $total += $value;
+                $bucketTotal += $value;
+                $lineItems[$lineItem] = ($lineItems[$lineItem] ?? 0.0) + $value;
+            }
+
+            $buckets[] = [
+                'start_time' => (int) ($bucket['start_time'] ?? 0),
+                'end_time' => (int) ($bucket['end_time'] ?? 0),
+                'amount' => $bucketTotal,
+            ];
+        }
+
+        arsort($lineItems);
+
+        return [
+            'available' => true,
+            'error' => '',
+            'total' => $total,
+            'currency' => $currency,
+            'line_items' => $lineItems,
+            'buckets' => $buckets,
+        ];
+    }
+
+    private function imageSettingsRecord(array $settings): array
+    {
+        $record = [];
+        foreach (['image_model', 'image_size', 'image_quality'] as $field) {
+            if (ee()->db->field_exists($field, 'socialposter_generations')) {
+                $record[$field] = (string) $settings[$field];
+            }
+        }
+
         return $record;
     }
 
@@ -469,6 +739,54 @@ class SocialPostGenerator
         }
 
         return $links;
+    }
+
+    private function internalLinkTitle(string $url): string
+    {
+        $urlTitle = $this->blogUrlTitleFromUrl($url);
+        $channelId = $this->blogChannelId();
+        if ($urlTitle === '' || $channelId < 1) {
+            return '';
+        }
+
+        $row = ee()->db
+            ->select('title')
+            ->from('channel_titles')
+            ->where('channel_id', $channelId)
+            ->where('url_title', $urlTitle)
+            ->limit(1)
+            ->get()
+            ->row_array();
+
+        return trim((string) ($row['title'] ?? ''));
+    }
+
+    private function blogChannelId(): int
+    {
+        $channel = ee('Model')->get('Channel')
+            ->filter('channel_name', 'blog')
+            ->first();
+
+        return $channel ? (int) $channel->channel_id : 0;
+    }
+
+    private function blogUrlTitleFromUrl(string $url): string
+    {
+        $url = trim($url);
+        if ($url === '') {
+            return '';
+        }
+
+        $path = strpos($url, '/') === 0 ? $url : (string) parse_url($url, PHP_URL_PATH);
+        if ($path === '') {
+            return '';
+        }
+
+        if (! preg_match('~/blog/article/([^/?#]+)~', $path, $match)) {
+            return '';
+        }
+
+        return trim((string) $match[1]);
     }
 
     private function decodeList($value): array

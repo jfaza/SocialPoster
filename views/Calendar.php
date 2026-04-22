@@ -17,13 +17,81 @@ $weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
   <div class="tab-wrap sp-native-tabs">
     <div class="tab-bar">
       <div class="tab-bar__tabs">
-        <button type="button" class="tab-bar__tab js-tab-button active" rel="t-0">Create Schedule</button>
-        <button type="button" class="tab-bar__tab js-tab-button" rel="t-1">Schedules</button>
-        <button type="button" class="tab-bar__tab js-tab-button" rel="t-2">Calendar</button>
+        <button type="button" class="tab-bar__tab js-tab-button active" rel="t-0">Calendar</button>
+        <button type="button" class="tab-bar__tab js-tab-button" rel="t-1">Create Schedule</button>
+        <button type="button" class="tab-bar__tab js-tab-button" rel="t-2">Schedules</button>
       </div>
     </div>
 
     <section class="sp-card tab t-0 tab-open">
+      <div class="sp-actions sp-calendar-head">
+        <a class="button button--default" href="<?= $h($prev_url) ?>#tab=t-0">Previous</a>
+        <h2 class="sp-month-title"><?= $h($month_label) ?></h2>
+        <a class="button button--default" href="<?= $h($next_url) ?>#tab=t-0">Next</a>
+      </div>
+      <table class="sp-calendar">
+        <thead>
+          <tr>
+            <?php foreach ($weekdays as $day): ?><th><?= $h($day) ?></th><?php endforeach; ?>
+          </tr>
+        </thead>
+        <tbody>
+          <?php foreach ($weeks as $week): ?>
+            <tr>
+              <?php foreach ($week as $cell): ?>
+                <td>
+                  <?php if (! empty($cell['day'])): ?>
+                    <div class="sp-day"><?= (int) $cell['day'] ?></div>
+                    <?php foreach ($cell['events'] as $event): ?>
+                      <?php if (! empty($event['url'])): ?>
+                        <a class="sp-event <?= $h($event['type']) ?> <?= empty($event['active']) ? 'inactive' : '' ?>" href="<?= $h($event['url']) ?>">
+                          <?= $h($event['time']) ?> · <?= $h($event['title']) ?>
+                        </a>
+                      <?php else: ?>
+                        <span class="sp-event <?= $h($event['type']) ?> <?= empty($event['active']) ? 'inactive' : '' ?>">
+                          <?= $h($event['time']) ?> · <?= $h($event['title']) ?>
+                        </span>
+                      <?php endif; ?>
+                    <?php endforeach; ?>
+                  <?php endif; ?>
+                </td>
+              <?php endforeach; ?>
+            </tr>
+          <?php endforeach; ?>
+        </tbody>
+      </table>
+      <div class="sp-calendar-list">
+        <?php $hasCalendarEvents = false; ?>
+        <?php foreach ($weeks as $week): ?>
+          <?php foreach ($week as $cell): ?>
+            <?php if (! empty($cell['day']) && ! empty($cell['events'])): ?>
+              <?php $hasCalendarEvents = true; ?>
+              <section class="sp-calendar-list-day">
+                <h3><?= $h(date('D, M j', strtotime((string) $cell['date']))) ?></h3>
+                <?php foreach ($cell['events'] as $event): ?>
+                  <?php if (! empty($event['url'])): ?>
+                    <a class="sp-event <?= $h($event['type']) ?> <?= empty($event['active']) ? 'inactive' : '' ?>" href="<?= $h($event['url']) ?>">
+                      <strong><?= $h($event['time']) ?></strong>
+                      <span><?= $h($event['title']) ?></span>
+                    </a>
+                  <?php else: ?>
+                    <span class="sp-event <?= $h($event['type']) ?> <?= empty($event['active']) ? 'inactive' : '' ?>">
+                      <strong><?= $h($event['time']) ?></strong>
+                      <span><?= $h($event['title']) ?></span>
+                    </span>
+                  <?php endif; ?>
+                <?php endforeach; ?>
+              </section>
+            <?php endif; ?>
+          <?php endforeach; ?>
+        <?php endforeach; ?>
+        <?php if (! $hasCalendarEvents): ?>
+          <p class="sp-muted">No calendar items this month.</p>
+        <?php endif; ?>
+      </div>
+    </section>
+
+    <section class="sp-card tab t-1">
       <h2>Schedule Generation</h2>
       <p class="sp-muted">Choose a generation template, set the cadence, and SocialPoster will create each post from that template.</p>
       <?= form_open($calendar_url) ?>
@@ -64,7 +132,7 @@ $weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
       <?= form_close() ?>
     </section>
 
-    <section class="sp-card tab t-1">
+    <section class="sp-card tab t-2">
       <h3>Schedules</h3>
       <?php if (empty($schedules)): ?>
         <p class="sp-muted">No schedules yet.</p>
@@ -95,45 +163,6 @@ $weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
           </div>
         </div>
       <?php endforeach; ?>
-    </section>
-
-    <section class="sp-card tab t-2">
-      <div class="sp-actions sp-calendar-head">
-        <a class="button button--default" href="<?= $h($prev_url) ?>#tab=t-2">Previous</a>
-        <h2 class="sp-month-title"><?= $h($month_label) ?></h2>
-        <a class="button button--default" href="<?= $h($next_url) ?>#tab=t-2">Next</a>
-      </div>
-      <table class="sp-calendar">
-        <thead>
-          <tr>
-            <?php foreach ($weekdays as $day): ?><th><?= $h($day) ?></th><?php endforeach; ?>
-          </tr>
-        </thead>
-        <tbody>
-          <?php foreach ($weeks as $week): ?>
-            <tr>
-              <?php foreach ($week as $cell): ?>
-                <td>
-                  <?php if (! empty($cell['day'])): ?>
-                    <div class="sp-day"><?= (int) $cell['day'] ?></div>
-                    <?php foreach ($cell['events'] as $event): ?>
-                      <?php if (! empty($event['url'])): ?>
-                        <a class="sp-event <?= $h($event['type']) ?> <?= empty($event['active']) ? 'inactive' : '' ?>" href="<?= $h($event['url']) ?>">
-                          <?= $h($event['time']) ?> · <?= $h($event['title']) ?>
-                        </a>
-                      <?php else: ?>
-                        <span class="sp-event <?= $h($event['type']) ?> <?= empty($event['active']) ? 'inactive' : '' ?>">
-                          <?= $h($event['time']) ?> · <?= $h($event['title']) ?>
-                        </span>
-                      <?php endif; ?>
-                    <?php endforeach; ?>
-                  <?php endif; ?>
-                </td>
-              <?php endforeach; ?>
-            </tr>
-          <?php endforeach; ?>
-        </tbody>
-      </table>
     </section>
   </div>
 </div>

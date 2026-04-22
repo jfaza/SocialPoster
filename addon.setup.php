@@ -61,6 +61,7 @@ return [
         },
     ],
     'commands' => [
+        'socialposter:costs' => JavidFazaeli\SocialPoster\Commands\CommandCosts::class,
         'socialposter:run-schedule' => JavidFazaeli\SocialPoster\Commands\CommandRunSchedule::class,
     ],
  

@@ -116,6 +116,74 @@ class OpenAiClient
         throw new \RuntimeException('OpenAI did not return image data.');
     }
 
+    public function organizationCosts(string $adminApiKey, int $startTime, int $endTime, string $projectId = ''): array
+    {
+        $query = [
+            'start_time' => $startTime,
+            'end_time' => $endTime,
+            'bucket_width' => '1d',
+            'group_by' => ['line_item'],
+            'limit' => 31,
+        ];
+
+        if ($projectId !== '') {
+            $query['project_ids'] = [$projectId];
+        }
+
+        return $this->getJson('/organization/costs', $adminApiKey, $query);
+    }
+
+    private function getJson(string $path, string $apiKey, array $query = []): array
+    {
+        $url = $this->baseUrl . $path;
+        if ($query) {
+            $url .= '?' . $this->buildQuery($query);
+        }
+
+        $ch = curl_init($url);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_HTTPHEADER => [
+                'Authorization: Bearer ' . $apiKey,
+                'Content-Type: application/json',
+            ],
+            CURLOPT_TIMEOUT => 120,
+        ]);
+
+        $body = curl_exec($ch);
+        $error = curl_error($ch);
+        $status = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        if ($body === false) {
+            throw new \RuntimeException('OpenAI request failed: ' . $error);
+        }
+
+        $decoded = json_decode((string) $body, true);
+        if (! is_array($decoded)) {
+            throw new \RuntimeException('OpenAI returned a non-JSON response.');
+        }
+
+        if ($status < 200 || $status >= 300) {
+            $message = $decoded['error']['message'] ?? ('OpenAI request failed with HTTP ' . $status);
+            throw new \RuntimeException($message);
+        }
+
+        return $decoded;
+    }
+
+    private function buildQuery(array $query): string
+    {
+        $parts = [];
+        foreach ($query as $key => $value) {
+            foreach ((array) $value as $item) {
+                $parts[] = rawurlencode((string) $key) . '=' . rawurlencode((string) $item);
+            }
+        }
+
+        return implode('&', $parts);
+    }
+
     private function postJson(string $path, string $apiKey, array $payload): array
     {
         $ch = curl_init($this->baseUrl . $path);

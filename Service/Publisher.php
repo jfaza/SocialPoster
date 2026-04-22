@@ -460,10 +460,50 @@ class Publisher
                 continue;
             }
 
-            $items[] = '<li>' . $this->escapeHtml($label) . ': <a href="' . $this->escapeAttr($this->href($url)) . '" target="_blank" rel="noopener">' . $this->escapeHtml($url) . '</a></li>';
+            $linkText = strtolower($label) === 'internal' ? $this->internalLinkTitle($url) : '';
+            $items[] = '<li>' . $this->escapeHtml($label) . ': <a href="' . $this->escapeAttr($this->href($url)) . '" target="_blank" rel="noopener">' . $this->escapeHtml($linkText ?: $url) . '</a></li>';
         }
 
         return '<h2 id="links">Links</h2>' . "\n" . '<ul>' . "\n" . implode("\n", $items) . "\n" . '</ul>';
+    }
+
+    private function internalLinkTitle(string $url): string
+    {
+        $urlTitle = $this->blogUrlTitleFromUrl($url);
+        $channel = $this->blogChannel();
+        if ($urlTitle === '' || ! $channel) {
+            return '';
+        }
+
+        $row = ee()->db
+            ->select('title')
+            ->from('channel_titles')
+            ->where('channel_id', (int) $channel->channel_id)
+            ->where('url_title', $urlTitle)
+            ->limit(1)
+            ->get()
+            ->row_array();
+
+        return trim((string) ($row['title'] ?? ''));
+    }
+
+    private function blogUrlTitleFromUrl(string $url): string
+    {
+        $url = trim($url);
+        if ($url === '') {
+            return '';
+        }
+
+        $path = strpos($url, '/') === 0 ? $url : (string) parse_url($url, PHP_URL_PATH);
+        if ($path === '') {
+            return '';
+        }
+
+        if (! preg_match('~/blog/article/([^/?#]+)~', $path, $match)) {
+            return '';
+        }
+
+        return trim((string) $match[1]);
     }
 
     private function splitLinkLabel(string $link): array

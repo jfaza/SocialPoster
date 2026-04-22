@@ -223,12 +223,13 @@ class Scheduler
 
             foreach ($rows as $row) {
                 $time = (int) $row['created_at'];
+                $id = (int) $row['id'];
                 $events[date('Y-m-d', $time)][] = [
                     'type' => 'generated',
-                    'title' => $row['title'] ?: 'Generated post',
+                    'title' => $this->calendarPostTitle((string) ($row['title'] ?: 'Generated post'), $id),
                     'time' => date('g:ia', $time),
                     'active' => true,
-                    'url' => ee('CP/URL')->make('addons/settings/socialposter/history/' . (int) $row['id'])->compile(),
+                    'url' => ee('CP/URL')->make('addons/settings/socialposter/history/' . $id)->compile(),
                 ];
             }
         }
@@ -265,6 +266,16 @@ class Scheduler
         }
 
         return (string) ($schedule['title'] ?: 'Scheduled generation');
+    }
+
+    private function calendarPostTitle(string $title, int $id): string
+    {
+        $title = trim(preg_replace('/\s+/', ' ', $title) ?: '');
+        if (strlen($title) > 18) {
+            $title = rtrim(substr($title, 0, 18)) . '...';
+        }
+
+        return '#' . $id . ' ' . ($title !== '' ? $title : 'Generated post');
     }
 
     private function promptWithTopic(string $prompt, string $topic): string

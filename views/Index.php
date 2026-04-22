@@ -108,6 +108,21 @@ $h = fn($value) => htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
     });
   }
 
+  function setInternalLink(url, title) {
+    const el = document.getElementById('sp-internal');
+    el.innerHTML = '';
+    if (!url) {
+      return;
+    }
+
+    const a = document.createElement('a');
+    a.href = url;
+    a.textContent = title || url;
+    a.target = '_blank';
+    a.rel = 'noopener';
+    el.appendChild(a);
+  }
+
   document.querySelectorAll('.sp-prompt-chip').forEach(function (button) {
     button.addEventListener('click', function () {
       prompt.value = button.dataset.prompt || '';
@@ -168,7 +183,7 @@ $h = fn($value) => htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
         document.getElementById('sp-category').textContent = result.category || '';
         document.getElementById('sp-hashtags').textContent = (result.hashtags || []).join(' ');
         document.getElementById('sp-external').textContent = result.external_link || '';
-        document.getElementById('sp-internal').textContent = result.internal_link || '';
+        setInternalLink(result.internal_link || '', result.internal_link_title || '');
         document.getElementById('sp-image-brief').value = result.image_brief || '';
         setList('sp-toc', result.table_of_contents);
         setList('sp-topics', result.recommended_topics);
