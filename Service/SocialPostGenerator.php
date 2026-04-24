@@ -226,6 +226,7 @@ class SocialPostGenerator
         );
 
         $imagePath = $this->imageStorage->saveBase64Png($imageBase64, (string) ($content['title'] ?? 'social-post'));
+        $this->assertStoredImageExists($imagePath);
 
         $record = [
             'site_id' => (int) ee()->config->item('site_id'),
@@ -421,6 +422,7 @@ class SocialPostGenerator
         );
 
         $imagePath = $this->imageStorage->saveBase64Png($imageBase64, (string) ($row['title'] ?? 'social-post'));
+        $this->assertStoredImageExists($imagePath);
 
         ee()->db->where('id', $id)->update('socialposter_generations', [
             'image_brief' => $imageBrief,
@@ -470,9 +472,29 @@ class SocialPostGenerator
         $record['keywords'] = $this->decodeList($record['keywords'] ?? []);
         $record['hashtags'] = $this->decodeList($record['hashtags'] ?? []);
         $record['recommended_topics'] = $this->decodeList($record['recommended_topics'] ?? []);
-        $record['image_url'] = ! empty($record['image_path']) ? '/' . ltrim((string) $record['image_path'], '/') : '';
+        $record['image_url'] = $this->imageUrlForPath((string) ($record['image_path'] ?? ''));
+        $record['image_missing'] = trim((string) ($record['image_path'] ?? '')) !== '' && $record['image_url'] === '';
         $record['internal_link_title'] = $this->internalLinkTitle((string) ($record['internal_link'] ?? ''));
         return $record;
+    }
+
+    private function assertStoredImageExists(string $imagePath): void
+    {
+        $path = FCPATH . ltrim(trim($imagePath), '/');
+        if ($imagePath === '' || ! is_file($path) || ! is_readable($path) || filesize($path) < 1) {
+            throw new \RuntimeException('Generated image file was not saved correctly.');
+        }
+    }
+
+    private function imageUrlForPath(string $imagePath): string
+    {
+        $imagePath = trim($imagePath);
+        if ($imagePath === '') {
+            return '';
+        }
+
+        $path = FCPATH . ltrim($imagePath, '/');
+        return is_file($path) ? '/' . ltrim($imagePath, '/') : '';
     }
 
     private function usageFromRawResponse(string $rawResponse): array

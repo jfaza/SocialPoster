@@ -41,6 +41,12 @@ $h = fn($value) => htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
         </div>
       <?php endif; ?>
 
+      <?php if (! empty($post['image_missing'])): ?>
+        <div class="alert inline warn">
+          <p>Image file is missing for this generated post. Use Regenerate Image to repair it before publishing.</p>
+        </div>
+      <?php endif; ?>
+
       <?php if (! empty($post['image_url'])): ?>
         <p><img src="<?= $h($post['image_url']) ?>" alt="" class="sp-preview"></p>
       <?php endif; ?>
@@ -172,6 +178,9 @@ $h = fn($value) => htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
             <p class="sp-muted">
               #<?= (int) $row['id'] ?> · <?= $h(date('M j, Y g:ia', (int) $row['created_at'])) ?><?= ! empty($row['source']) ? ' · ' . $h($row['source']) : '' ?><?= $templateLabel !== '' ? ' · ' . $h($templateLabel) : '' ?>
             </p>
+            <?php if (! empty($row['image_missing'])): ?>
+              <p class="sp-danger-text">Image file missing. Open this post and regenerate the image before publishing.</p>
+            <?php endif; ?>
             <?php if ($intro !== ''): ?>
               <p class="sp-history-excerpt"><?= $h(strlen($intro) > 220 ? substr($intro, 0, 217) . '...' : $intro) ?></p>
             <?php endif; ?>

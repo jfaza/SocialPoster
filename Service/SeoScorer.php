@@ -14,6 +14,9 @@ class SeoScorer
         $text = trim($title . ' ' . $intro . ' ' . $body);
         $wordCount = $this->wordCount($body);
         $primaryKeyword = $keywords[0] ?? '';
+        $hasImageBrief = trim((string) ($post['image_brief'] ?? '')) !== '';
+        $hasImagePrompt = trim((string) ($post['image_prompt'] ?? '')) !== '';
+        $hasImagePath = $this->hasSavedImage($post);
 
         $checks = [
             $this->check(
@@ -90,11 +93,11 @@ class SeoScorer
             ),
             $this->check(
                 'Image SEO',
-                trim((string) ($post['image_brief'] ?? '')) !== '' && trim((string) ($post['image_prompt'] ?? '')) !== '',
-                (trim((string) ($post['image_brief'] ?? '')) !== '' ? 4 : 0) + (trim((string) ($post['image_prompt'] ?? '')) !== '' ? 3 : 0),
+                $hasImagePath && $hasImageBrief && $hasImagePrompt,
+                ($hasImagePath ? 3 : 0) + ($hasImageBrief ? 2 : 0) + ($hasImagePrompt ? 2 : 0),
                 7,
-                trim((string) ($post['image_brief'] ?? '')) !== '' ? 'Briefed' : 'Missing',
-                'Keep an image brief and production prompt for richer publishing.'
+                $hasImagePath ? 'Saved image' : ($hasImageBrief || $hasImagePrompt ? 'Prompted, no saved image' : 'Missing'),
+                'Keep a saved image, image brief, and production prompt for richer publishing.'
             ),
         ];
 
@@ -116,6 +119,20 @@ class SeoScorer
             $post['seo_score'] = $this->score($post);
             return $post;
         }, $posts);
+    }
+
+    private function hasSavedImage(array $post): bool
+    {
+        $imagePath = trim((string) ($post['image_path'] ?? ''));
+        if ($imagePath !== '') {
+            if (defined('FCPATH')) {
+                return is_file(FCPATH . ltrim($imagePath, '/'));
+            }
+
+            return true;
+        }
+
+        return trim((string) ($post['image_url'] ?? '')) !== '';
     }
 
     private function check(string $label, bool $passed, int $points, int $max, string $detail, string $recommendation): array

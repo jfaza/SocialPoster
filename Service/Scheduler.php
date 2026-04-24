@@ -132,6 +132,10 @@ class Scheduler
                     'template_id' => (int) ($row['template_id'] ?? 0),
                 ]);
 
+                if (! empty($result['image_missing'])) {
+                    throw new \RuntimeException('Scheduled generation completed without a usable saved image.');
+                }
+
                 $update = [
                     'last_run_at' => $now,
                     'next_run_at' => $this->nextRun((int) $row['next_run_at'], (string) $row['frequency']),
