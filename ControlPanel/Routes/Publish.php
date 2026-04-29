@@ -14,13 +14,27 @@ class Publish extends AbstractRoute
     public function process($id = false)
     {
         $this->addBreadcrumb('index', 'SocialPoster');
-        $this->addBreadcrumb('publish', 'Publish');
+        $this->addBreadcrumb('publish', 'Publish Blog');
         $this->loadStyle();
 
         $publisher = ee('socialposter:publisher');
         $result = null;
 
-        if (ee('Request')->post('publish_blog')) {
+        if (ee('Request')->post('publish_selected')) {
+            $selectedTargets = ee()->input->post('publish_targets', true);
+            $selectedTargets = is_array($selectedTargets) ? $selectedTargets : [];
+            $selectedTargets = array_values(array_intersect(array_map('strval', $selectedTargets), array_keys($publisher->targets())));
+
+            if (empty($selectedTargets)) {
+                ee('CP/Alert')->makeBanner('socialposter-publish')
+                    ->asIssue()
+                    ->withTitle('Choose a publish target')
+                    ->addToBody('Select at least one place to publish this generated post.')
+                    ->now();
+            }
+        }
+
+        if (ee('Request')->post('publish_selected') && in_array('blog', $selectedTargets ?? [], true)) {
             try {
                 $result = $publisher->publishToBlog((int) ee()->input->post('generation_id'), [
                     'title' => ee()->input->post('title', true),
@@ -43,23 +57,43 @@ class Publish extends AbstractRoute
             }
         }
 
-        if (ee('Request')->post('delete_blog')) {
-            try {
-                $publisher->deletePublishedBlog((int) ee()->input->post('published_blog_id'));
+        if (ee('Request')->post('publish_selected')) {
+            $notReadyTargets = array_diff($selectedTargets ?? [], ['blog']);
+            if (! empty($notReadyTargets)) {
+                $labels = [];
+                foreach ($publisher->targets() as $key => $target) {
+                    if (in_array($key, $notReadyTargets, true)) {
+                        $labels[] = (string) $target['label'];
+                    }
+                }
 
-                ee('CP/Alert')->makeBanner('socialposter-publish')
-                    ->asSuccess()
-                    ->withTitle('Deleted blog entry')
-                    ->addToBody('The generated blog entry was deleted.')
-                    ->now();
-            } catch (\Throwable $e) {
-                ee('CP/Alert')->makeBanner('socialposter-publish')
+                ee('CP/Alert')->makeBanner('socialposter-publish-targets')
                     ->asIssue()
-                    ->withTitle('Blog delete failed')
-                    ->addToBody($e->getMessage())
+                    ->withTitle('Some targets are not publishable yet')
+                    ->addToBody(implode(', ', $labels) . ' selected, but direct publishing for those targets is not implemented yet.')
                     ->now();
             }
         }
+
+        $templateMeta = ee('socialposter:templates')->metaById();
+
+        $rows = array_values(array_filter(
+            ee('socialposter:generator')->latest(50),
+            function (array $row) use ($templateMeta) {
+                if ((string) ($row['source'] ?? '') === 'news') {
+                    return false;
+                }
+                $template = $templateMeta[(int) ($row['template_id'] ?? 0)] ?? null;
+                if ($template) {
+                    $platform = strtolower(trim((string) ($template['platform'] ?? '')));
+                    $title    = strtolower(trim((string) ($template['title'] ?? '')));
+                    if ($platform === 'instagram' || strpos($title, 'instagram carousel') !== false) {
+                        return false;
+                    }
+                }
+                return true;
+            }
+        ));
 
         $this->setBody('Publish', [
             'publish_url' => ee('CP/URL')->make('addons/settings/socialposter/publish')->compile(),
@@ -68,9 +102,9 @@ class Publish extends AbstractRoute
             'targets' => $publisher->targets(),
             'status_options' => $publisher->statusOptions(),
             'category_options' => $publisher->categoryOptions(),
-            'rows' => ee('socialposter:generator')->latest(50),
-            'published_blogs' => $publisher->publishedBlogs(50),
+            'rows' => $rows,
             'result' => $result,
+            'template_meta' => $templateMeta,
         ]);
 
         return $this;

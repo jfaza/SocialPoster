@@ -1,0 +1,114 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "brand",
+    "accent",
+    "template",
+    "style",
+    "caption",
+    "hashtags",
+    "slides"
+  ],
+  "properties": {
+    "brand": {
+      "type": "string"
+    },
+    "accent": {
+      "type": "string"
+    },
+    "template": {
+      "type": "string"
+    },
+    "style": {
+      "type": "string"
+    },
+    "caption": {
+      "type": "string"
+    },
+    "hashtags": {
+      "type": "array",
+      "minItems": 5,
+      "maxItems": 15,
+      "items": {
+        "type": "string"
+      }
+    },
+    "slides": {
+      "type": "array",
+      "minItems": 6,
+      "maxItems": 6,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "type",
+          "tag",
+          "number",
+          "slide_num",
+          "category",
+          "title",
+          "subtitle",
+          "cta",
+          "cta_action",
+          "items"
+        ],
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": ["cover", "content", "list", "outro"]
+          },
+          "tag": {
+            "type": "string"
+          },
+          "number": {
+            "type": "string"
+          },
+          "slide_num": {
+            "type": "string"
+          },
+          "category": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "subtitle": {
+            "type": "string"
+          },
+          "cta": {
+            "type": "string"
+          },
+          "cta_action": {
+            "type": "string"
+          },
+          "items": {
+            "type": "array",
+            "minItems": 0,
+            "maxItems": 3,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "tag",
+                "name",
+                "desc"
+              ],
+              "properties": {
+                "tag": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "desc": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

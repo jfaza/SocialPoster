@@ -1,0 +1,139 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "slides",
+    "brand",
+    "series",
+    "accent",
+    "template",
+    "style",
+    "caption",
+    "hashtags"
+  ],
+  "properties": {
+    "slides": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "type",
+          "kind",
+          "brand",
+          "leftBig",
+          "leftSmall",
+          "eyebrow",
+          "title",
+          "subtitle",
+          "items",
+          "footerLeft",
+          "cta",
+          "id",
+          "slide_num",
+          "category",
+          "cta_action"
+        ],
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "cover",
+              "content",
+              "list",
+              "outro"
+            ]
+          },
+          "kind": {
+            "type": "string"
+          },
+          "brand": {
+            "type": "string"
+          },
+          "leftBig": {
+            "type": "string"
+          },
+          "leftSmall": {
+            "type": "string"
+          },
+          "eyebrow": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "subtitle": {
+            "type": "string"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "label",
+                "text"
+              ],
+              "properties": {
+                "label": {
+                  "type": "string"
+                },
+                "text": {
+                  "type": "string"
+                }
+              }
+            },
+            "minItems": 0,
+            "maxItems": 3
+          },
+          "footerLeft": {
+            "type": "string"
+          },
+          "cta": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "slide_num": {
+            "type": "integer"
+          },
+          "category": {
+            "type": "string"
+          },
+          "cta_action": {
+            "type": "string"
+          }
+        }
+      },
+      "minItems": 6,
+      "maxItems": 6
+    },
+    "brand": {
+      "type": "string"
+    },
+    "series": {
+      "type": "string"
+    },
+    "accent": {
+      "type": "string"
+    },
+    "template": {
+      "type": "string"
+    },
+    "style": {
+      "type": "string"
+    },
+    "caption": {
+      "type": "string"
+    },
+    "hashtags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 5,
+      "maxItems": 15
+    }
+  }
+}

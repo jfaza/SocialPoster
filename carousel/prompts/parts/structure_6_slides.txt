@@ -1,0 +1,8 @@
+﻿Structure:
+- Exactly 6 slides
+- Slide 1: Cover
+- Slides 2–5: Content/list slides
+- Slide 6: Outro
+- Every slide must serve a clear purpose
+- Keep the carousel easy to understand without extra context
+

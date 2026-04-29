@@ -125,11 +125,7 @@ class SeoScorer
     {
         $imagePath = trim((string) ($post['image_path'] ?? ''));
         if ($imagePath !== '') {
-            if (defined('FCPATH')) {
-                return is_file(FCPATH . ltrim($imagePath, '/'));
-            }
-
-            return true;
+            return is_file((new ImageStorage())->publicPath($imagePath));
         }
 
         return trim((string) ($post['image_url'] ?? '')) !== '';

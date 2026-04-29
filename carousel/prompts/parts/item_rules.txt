@@ -1,0 +1,7 @@
+﻿List item rules:
+- Each content slide must have exactly 3 items unless the schema says otherwise
+- item.name should be short and clear
+- item.desc should be concise, max 10–14 words when possible
+- Avoid repeating the same sentence pattern across all items
+- Each item should add a different useful point
+

@@ -1,0 +1,7 @@
+Tone:
+- Precise and technical
+- Assumes developer-level familiarity with the subject
+- No hand-holding or over-explanation
+- Focus on how things work, tradeoffs, and edge cases
+- Short, dense sentences over long ones
+- Avoid marketing language entirely

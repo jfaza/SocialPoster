@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=1080" />
+<title>Minimal List Template</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: #222;
+  font-family: 'DM Sans', Arial, sans-serif;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+  padding: 24px 0;
+}
+.slide {
+  width: 1080px;
+  height: 1080px;
+  position: relative;
+  overflow: hidden;
+  background: #FAFAF8;
+  padding: 72px;
+}
+.title, .subtitle, .cta { white-space: pre-line; }
+.brand { position: absolute; left: 72px; bottom: 48px; color: #A89F97; font-size: 18px; }
+.count { position: absolute; right: 72px; bottom: 48px; color: #C8BFB8; font-size: 16px; }
+.pill { display: inline-block; color: #C65A2E; border: 1.5px solid #C65A2E; padding: 9px 18px; border-radius: 99px; font-size: 16px; font-weight: 600; letter-spacing: .04em; }
+.cover { display: flex; flex-direction: column; justify-content: center; }
+.cover .title { font-size: 86px; line-height: 1.02; letter-spacing: -3px; color: #1A1208; margin-top: 50px; font-weight: 800; max-width: 850px; }
+.cover .subtitle { margin-top: 34px; font-size: 27px; line-height: 1.45; color: #7A6F66; max-width: 650px; }
+.content { padding-left: 96px; }
+.content:before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 9px; background: #C65A2E; }
+.content .top { display: flex; justify-content: space-between; align-items: center; }
+.content .title { font-size: 76px; line-height: 1.05; letter-spacing: -2.5px; color: #1A1208; margin-top: 105px; font-weight: 800; }
+.items { position: absolute; left: 96px; right: 72px; bottom: 118px; display: flex; flex-direction: column; }
+.item { border-top: 1.5px solid #E8E2DC; padding: 24px 0; display: grid; grid-template-columns: 50px 1fr; gap: 24px; }
+.num { width: 48px; height: 48px; background: #C65A2E; color: white; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-weight: 800; }
+.name { font-size: 26px; color: #1A1208; font-weight: 700; }
+.desc { font-size: 20px; color: #8A7F78; line-height: 1.4; margin-top: 4px; }
+.outro { background: #C65A2E; display: flex; flex-direction: column; justify-content: center; }
+.outro .title, .outro .cta { color: white; font-size: 82px; line-height: 1.03; font-weight: 800; letter-spacing: -3px; }
+.outro .subtitle { color: rgba(255,255,255,.78); font-size: 27px; line-height: 1.45; margin-top: 34px; max-width: 690px; }
+.outro .brand, .outro .count { color: rgba(255,255,255,.7); }
+</style>
+</head>
+<body>
+<script>
+function getDataUrl() {
+  const params = new URLSearchParams(window.location.search);
+  return params.get("data") || "./example.json";
+}
+function cleanText(value) {
+  return typeof value === "string" ? value.replace(/\\n/g, "\n") : (value || "");
+}
+function safe(value) {
+  return cleanText(value);
+}
+function renderCover(slide, data, index) {
+  return `
+    <section class="slide cover">
+      <div class="pill">${safe(slide.category || slide.tag)}</div>
+      <h1 class="title">${safe(slide.title)}</h1>
+      <p class="subtitle">${safe(slide.subtitle)}</p>
+      <div class="brand">${safe(data.brand)}</div>
+      <div class="count">${safe(slide.slide_num || `${index + 1} / 6`)}</div>
+    </section>`;
+}
+function renderContent(slide, data, index) {
+  const items = (slide.items || []).map((item, i) => `
+    <div class="item">
+      <div class="num">${String(i + 1).padStart(2, "0")}</div>
+      <div>
+        <div class="name">${safe(item.name)}</div>
+        <div class="desc">${safe(item.desc)}</div>
+      </div>
+    </div>
+  `).join("");
+  return `
+    <section class="slide content">
+      <div class="top">
+        <div class="pill">${safe(slide.category)}</div>
+        <div class="count" style="position:static;">${safe(slide.slide_num || `${index + 1} / 6`)}</div>
+      </div>
+      <h2 class="title">${safe(slide.title)}</h2>
+      <div class="items">${items}</div>
+      <div class="brand">${safe(data.brand)}</div>
+      <div class="count">${safe(slide.slide_num || `${index + 1} / 6`)}</div>
+    </section>`;
+}
+function renderOutro(slide, data, index) {
+  return `
+    <section class="slide outro">
+      <h2 class="cta">${safe(slide.cta || slide.title)}</h2>
+      <p class="subtitle">${safe(slide.subtitle)}</p>
+      <div class="brand">${safe(data.brand)}</div>
+      <div class="count">${safe(slide.slide_num || `${index + 1} / 6`)}</div>
+    </section>`;
+}
+async function render() {
+  const res = await fetch(getDataUrl());
+  const data = await res.json();
+  document.body.innerHTML = data.slides.map((slide, index) => {
+    if (slide.type === "cover") return renderCover(slide, data, index);
+    if (slide.type === "outro") return renderOutro(slide, data, index);
+    return renderContent(slide, data, index);
+  }).join("");
+}
+render().catch(err => {
+  document.body.innerHTML = `<pre style="color:red;padding:40px;">${err.stack || err}</pre>`;
+});
+</script>
+</body>
+</html>

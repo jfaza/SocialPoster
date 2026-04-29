@@ -1,0 +1,166 @@
+{
+  "brand": "ai.tools.daily.lab",
+  "category": "AI tools for developers",
+  "slides": [
+    {
+      "type": "cover",
+      "slide_num": "01",
+      "category": "AI tools for developers",
+      "title": "6 AI tools that speed up shipping",
+      "subtitle": "A premium starter pack for developers who want faster code, clearer docs,\nand fewer repetitive tasks.",
+      "items": [
+        {
+          "title": "Code assistants",
+          "text": "Generate functions, refactor messy logic, and get inline suggestions."
+        },
+        {
+          "title": "Test generators",
+          "text": "Create edge-case coverage from a prompt and reduce manual QA time."
+        },
+        {
+          "title": "Doc builders",
+          "text": "Turn code comments and APIs into readable, shareable documentation."
+        }
+      ],
+      "cta": "Swipe for the stack",
+      "id": "slide-1",
+      "cta_action": ""
+    },
+    {
+      "type": "content",
+      "slide_num": "02",
+      "category": "Build faster",
+      "title": "Start with the tool\nthat removes the biggest bottleneck",
+      "subtitle": "Pick one workflow to automate first. The best ROI usually comes from the task you repeat every day.",
+      "items": [
+        {
+          "title": "Autocompletion",
+          "text": "Useful for boilerplate, API wrappers, and small utility functions."
+        },
+        {
+          "title": "Repo chat",
+          "text": "Ask questions about your codebase without hunting through files."
+        },
+        {
+          "title": "Prompt templates",
+          "text": "Save reusable prompts for code reviews, bug fixes, and migrations."
+        }
+      ],
+      "cta": "Choose one bottleneck",
+      "id": "slide-2",
+      "cta_action": ""
+    },
+    {
+      "type": "content",
+      "slide_num": "03",
+      "category": "Debugging",
+      "title": "Use AI to shorten\nroot-cause analysis",
+      "subtitle": "Paste the error, describe the environment, and let the model suggest likely causes before you dig deeper.",
+      "items": [
+        {
+          "title": "Error summarization",
+          "text": "Translate stack traces into plain-language explanations."
+        },
+        {
+          "title": "Log analysis",
+          "text": "Spot unusual patterns across thousands of lines quickly."
+        },
+        {
+          "title": "Fix hypotheses",
+          "text": "Generate ranked solutions so you can test the most likely ones first."
+        }
+      ],
+      "cta": "Debug with structure",
+      "id": "slide-3",
+      "cta_action": ""
+    },
+    {
+      "type": "content",
+      "slide_num": "04",
+      "category": "Workflow",
+      "title": "Pair AI with your\nexisting dev tools",
+      "subtitle": "The cleanest setup is not a new stack. It is AI layered into the tools you already trust.",
+      "items": [
+        {
+          "title": "IDE integration",
+          "text": "Keep context close to the editor for quicker decisions."
+        },
+        {
+          "title": "Git helpers",
+          "text": "Draft commit messages, PR summaries, and review notes."
+        },
+        {
+          "title": "CLI copilots",
+          "text": "Automate shell commands, scripts, and deployment checks."
+        }
+      ],
+      "cta": "Reduce context switching",
+      "id": "slide-4",
+      "cta_action": ""
+    },
+    {
+      "type": "content",
+      "slide_num": "05",
+      "category": "Team ops",
+      "title": "Make the outputs\nrepeatable for the team",
+      "subtitle": "Build simple templates so everyone gets the same quality of response, no matter who uses the tool.",
+      "items": [
+        {
+          "title": "Shared prompts",
+          "text": "Standardize review and planning prompts across the team."
+        },
+        {
+          "title": "Knowledge base",
+          "text": "Save architecture notes and decisions in a searchable place."
+        },
+        {
+          "title": "Usage rules",
+          "text": "Define what can be pasted into AI tools and what cannot."
+        }
+      ],
+      "cta": "Make it team-wide",
+      "id": "slide-5",
+      "cta_action": ""
+    },
+    {
+      "type": "outro",
+      "slide_num": "06",
+      "category": "Get started",
+      "title": "Build the smallest\nuseful AI workflow",
+      "subtitle": "Pick one repetitive task, automate it this week, and measure the time you get back.",
+      "items": [
+        {
+          "title": "1. Identify",
+          "text": "Choose the task that drains the most focus."
+        },
+        {
+          "title": "2. Template",
+          "text": "Turn the task into a reusable prompt or flow."
+        },
+        {
+          "title": "3. Ship",
+          "text": "Use it daily, then refine from real feedback."
+        },
+        {
+          "title": "4. Share",
+          "text": "Roll it out to the rest of the team."
+        }
+      ],
+      "cta": "Save and implement",
+      "id": "slide-6",
+      "cta_action": ""
+    }
+  ],
+  "series": "Developer Edition",
+  "accent": "#C65A2E",
+  "template": "terminal-dashboard",
+  "style": "base",
+  "caption": "A carousel generated with the terminal-dashboard template.",
+  "hashtags": [
+    "#aitools",
+    "#artificialintelligence",
+    "#developers",
+    "#productivity",
+    "#tech"
+  ]
+}

@@ -28,12 +28,17 @@ class Index extends AbstractRoute
         $this->loadStyle();
 
         $this->setBody('Index', [
+            'page_mode' => 'general',
             'action_url' => ee('socialposter:generator')->actionUrl(),
-            'settings_url' => ee('CP/URL')->make('addons/settings/socialposter/settings')->compile(),
+            'general_settings_url' => ee('CP/URL')->make('addons/settings/socialposter/settings')->compile(),
+            'instagram_generate_url' => ee('CP/URL')->make('addons/settings/socialposter/instagram/generate')->compile(),
             'history_url' => ee('CP/URL')->make('addons/settings/socialposter/history')->compile(),
+            'history_item_url_pattern' => ee('CP/URL')->make('addons/settings/socialposter/history/__ID__')->compile(),
             'publish_url' => ee('CP/URL')->make('addons/settings/socialposter/publish')->compile(),
             'templates_url' => ee('CP/URL')->make('addons/settings/socialposter/templates')->compile(),
-            'template_options' => ee('socialposter:templates')->options(),
+            'template_options' => ee('socialposter:templates')->optionsForPage('general'),
+            'template_meta' => ee('socialposter:templates')->metaByPage('general'),
+            'template_starters' => ee('socialposter:templates')->starterPresetsByPage('general'),
             'csrf_token' => ee('socialposter:generator')->csrfToken(),
         ]);
 

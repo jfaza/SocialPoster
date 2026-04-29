@@ -1,0 +1,7 @@
+@include ../parts/role.txt
+@include ../parts/structure_6_slides.txt
+@include ../parts/content_rules.txt
+@include ../parts/title_rules.txt
+@include ../parts/item_rules.txt
+@include ../parts/tone_technical.txt
+@include ../parts/output_rules.txt

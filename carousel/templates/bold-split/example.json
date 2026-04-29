@@ -1,0 +1,189 @@
+{
+  "slides": [
+    {
+      "type": "cover",
+      "kind": "orange",
+      "brand": "ai.tools.daily.lab",
+      "leftBig": "01",
+      "leftSmall": "BUILD\nFASTER",
+      "eyebrow": "AI TOOLS FOR DEVELOPERS",
+      "title": "AI tools\nthat save 10+ hours\na week",
+      "subtitle": "A practical carousel for developers who want faster shipping, cleaner code, and fewer context switches.",
+      "items": [
+        {
+          "label": "Focus",
+          "text": "Use tools that remove repetitive work, not tools that add another workflow."
+        },
+        {
+          "label": "Promise",
+          "text": "The best AI stack is invisible when you code and obvious when you measure velocity."
+        }
+      ],
+      "footerLeft": "Swipe for the shortlist\nbuilt for real teams.",
+      "cta": "Start with the tools\nthat actually compound.",
+      "id": "slide-1",
+      "slide_num": 1,
+      "category": "",
+      "cta_action": ""
+    },
+    {
+      "type": "content",
+      "kind": "charcoal",
+      "brand": "ai.tools.daily.lab",
+      "leftBig": "02",
+      "leftSmall": "CODE\nASSIST",
+      "eyebrow": "WORKFLOW",
+      "title": "1. Pair programming\nwith a copilot",
+      "subtitle": "Use autocomplete and chat in the same editor so you can move from idea to implementation without leaving context.",
+      "items": [
+        {
+          "label": "Best for",
+          "text": "Feature work, refactors, and boilerplate that should never slow you down."
+        },
+        {
+          "label": "Try this",
+          "text": "Ask for tests first, then request a safe implementation that matches the existing code style."
+        },
+        {
+          "label": "Watch out",
+          "text": "If the output feels generic, tighten the prompt with repo-specific examples."
+        }
+      ],
+      "footerLeft": "Reduce tab-switching.\nKeep the editor as home base.",
+      "cta": "Faster edits,\nless mental drag.",
+      "id": "slide-2",
+      "slide_num": 2,
+      "category": "",
+      "cta_action": ""
+    },
+    {
+      "type": "content",
+      "kind": "charcoal",
+      "brand": "ai.tools.daily.lab",
+      "leftBig": "03",
+      "leftSmall": "REVIEW\nBLOCKERS",
+      "eyebrow": "QUALITY",
+      "title": "2. AI code review\nbefore PRs land",
+      "subtitle": "Run a pre-merge pass that checks logic, style, edge cases, and missing tests before the team gets pulled into review.",
+      "items": [
+        {
+          "label": "Best for",
+          "text": "Catching obvious defects early and turning code review into a higher-signal conversation."
+        },
+        {
+          "label": "Try this",
+          "text": "Feed the diff plus the acceptance criteria, then ask for issues ranked by severity."
+        },
+        {
+          "label": "Watch out",
+          "text": "Don’t let AI replace human judgment on product tradeoffs and architecture."
+        }
+      ],
+      "footerLeft": "Shift review left.\nProtect teammate attention.",
+      "cta": "Less back-and-forth,\nmore shipping.",
+      "id": "slide-3",
+      "slide_num": 3,
+      "category": "",
+      "cta_action": ""
+    },
+    {
+      "type": "content",
+      "kind": "charcoal",
+      "brand": "ai.tools.daily.lab",
+      "leftBig": "04",
+      "leftSmall": "DOCS\nON DEMAND",
+      "eyebrow": "KNOWLEDGE",
+      "title": "3. Turn raw notes\ninto useful docs",
+      "subtitle": "Generate onboarding guides, API notes, and release summaries from commits, tickets, and meeting transcripts.",
+      "items": [
+        {
+          "label": "Best for",
+          "text": "Teams that move quickly and need documentation to keep up."
+        },
+        {
+          "label": "Try this",
+          "text": "Ask for a structure: what changed, why it changed, how to use it, and what to verify."
+        },
+        {
+          "label": "Watch out",
+          "text": "Always link the source of truth so the docs stay auditable."
+        }
+      ],
+      "footerLeft": "Make knowledge\nsearchable and durable.",
+      "cta": "Docs that stay\nclose to the code.",
+      "id": "slide-4",
+      "slide_num": 4,
+      "category": "",
+      "cta_action": ""
+    },
+    {
+      "type": "content",
+      "kind": "charcoal",
+      "brand": "ai.tools.daily.lab",
+      "leftBig": "05",
+      "leftSmall": "SHIP\nWITH DATA",
+      "eyebrow": "OPERATIONS",
+      "title": "4. Add AI to\nincident analysis",
+      "subtitle": "Use LLMs to summarize logs, cluster alerts, and draft postmortems while the team focuses on mitigation.",
+      "items": [
+        {
+          "label": "Best for",
+          "text": "High-volume logs, noisy alerts, and recurring incident patterns."
+        },
+        {
+          "label": "Try this",
+          "text": "Ask the model to extract timeline, blast radius, suspected root causes, and next actions."
+        },
+        {
+          "label": "Watch out",
+          "text": "Keep observability data private and verify every claim against telemetry."
+        }
+      ],
+      "footerLeft": "Turn chaos into\nclear next steps.",
+      "cta": "Faster triage,\ncalmer on-call.",
+      "id": "slide-5",
+      "slide_num": 5,
+      "category": "",
+      "cta_action": ""
+    },
+    {
+      "type": "outro",
+      "kind": "orange",
+      "brand": "ai.tools.daily.lab",
+      "leftBig": "06",
+      "leftSmall": "YOUR\nSTACK",
+      "eyebrow": "WRAP-UP",
+      "title": "Build a small AI stack\nthat compounds every sprint",
+      "subtitle": "Pick one editor helper, one review assistant, and one documentation workflow. Then measure saved time and quality gains.",
+      "items": [
+        {
+          "label": "Rule",
+          "text": "Start small, keep the workflow close to the code, and remove anything that creates friction."
+        },
+        {
+          "label": "Goal",
+          "text": "Make AI a reliable teammate for developers, not a separate destination."
+        }
+      ],
+      "footerLeft": "Follow @ai.tools.daily.lab\nfor more developer-first AI systems.",
+      "cta": "Ship smarter.\nRepeat weekly.",
+      "id": "slide-6",
+      "slide_num": 6,
+      "category": "",
+      "cta_action": ""
+    }
+  ],
+  "brand": "ai.tools.daily.lab",
+  "series": "Developer Edition",
+  "accent": "#C65A2E",
+  "template": "bold-split",
+  "style": "base",
+  "caption": "A carousel generated with the bold-split template.",
+  "hashtags": [
+    "#aitools",
+    "#artificialintelligence",
+    "#developers",
+    "#productivity",
+    "#tech"
+  ]
+}

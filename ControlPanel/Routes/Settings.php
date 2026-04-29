@@ -35,11 +35,13 @@ class Settings extends AbstractRoute
                 $generator->saveSettings([
                     'api_key' => ee()->input->post('api_key', false),
                     'admin_api_key' => ee()->input->post('admin_api_key', false),
+                    'anthropic_api_key' => ee()->input->post('anthropic_api_key', false),
                     'openai_project_id' => ee()->input->post('openai_project_id', true),
                     'text_model' => ee()->input->post('text_model', true),
                     'image_model' => ee()->input->post('image_model', true),
                     'image_size' => ee()->input->post('image_size', true),
                     'image_quality' => ee()->input->post('image_quality', true),
+                    'carousel_slides' => ee()->input->post('carousel_slides', true),
                 ]);
 
                 ee('CP/Alert')->makeBanner('socialposter-settings')
@@ -69,6 +71,7 @@ class Settings extends AbstractRoute
             'image_models' => $generator->imageModels(),
             'api_key_saved' => $settings['api_key'] !== '',
             'admin_api_key_saved' => $settings['admin_api_key'] !== '',
+            'anthropic_api_key_saved' => ($settings['anthropic_api_key'] ?? '') !== '',
         ]);
 
         return $this;

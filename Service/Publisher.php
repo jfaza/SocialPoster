@@ -2,17 +2,23 @@
 
 namespace JavidFazaeli\SocialPoster\Service;
 
+use JavidFazaeli\SocialPoster\Service\InstagramPostGenerator;
+
 class Publisher
 {
     private SocialPostGenerator $generator;
+    private SocialPostGenerator $instagramGenerator;
 
-    public function __construct(?SocialPostGenerator $generator = null)
+    public function __construct(?SocialPostGenerator $generator = null, ?SocialPostGenerator $instagramGenerator = null)
     {
-        $this->generator = $generator ?: new SocialPostGenerator();
+        $this->generator          = $generator          ?: new SocialPostGenerator();
+        $this->instagramGenerator = $instagramGenerator ?: new InstagramPostGenerator();
     }
 
     public function targets(): array
     {
+        $instagramConfigured = $this->instagramConfigured();
+
         return [
             'blog' => [
                 'label' => 'Blog',
@@ -31,10 +37,20 @@ class Publisher
             ],
             'instagram' => [
                 'label' => 'Instagram',
-                'status' => 'planned',
-                'description' => 'Image-first social publishing target planned for a future integration.',
+                'status' => $instagramConfigured ? 'configured' : 'needs_settings',
+                'description' => $instagramConfigured
+                    ? 'Credentials are saved. Direct Instagram publishing is the next integration step.'
+                    : 'Add Instagram Graph API credentials in Settings before direct publishing is enabled.',
             ],
         ];
+    }
+
+    private function instagramConfigured(): bool
+    {
+        $settings = $this->generator->getSettings();
+
+        return trim((string) ($settings['instagram_business_account_id'] ?? '')) !== ''
+            && trim((string) ($settings['instagram_access_token'] ?? '')) !== '';
     }
 
     public function statusOptions(): array
@@ -164,6 +180,441 @@ class Publisher
             'url' => ee()->functions->create_url('blog/article/' . $entry->url_title, false),
             'edit_url' => ee('CP/URL')->make('publish/edit/entry/' . (int) $entry->entry_id)->compile(),
         ];
+    }
+
+    public function publishToInstagram(int $generationId): array
+    {
+        $post = $this->instagramGenerator->find($generationId);
+        if (! $post) {
+            throw new \InvalidArgumentException('Generated post not found.');
+        }
+
+        $settings    = $this->generator->getSettings();
+        $igUserId    = trim((string) ($settings['instagram_business_account_id'] ?? ''));
+        $accessToken = trim((string) ($settings['instagram_access_token'] ?? ''));
+        $graphVersion = trim((string) ($settings['instagram_graph_version'] ?? 'v24.0'));
+
+        if ($igUserId === '' || $accessToken === '') {
+            throw new \RuntimeException('Instagram credentials are not configured. Add them under Instagram Settings.');
+        }
+
+        $imageUrl = $this->absoluteImageUrl($post);
+        if ($imageUrl === '') {
+            throw new \RuntimeException('No image is available for this post. Generate or upload an image before publishing.');
+        }
+
+        $caption = $this->instagramCaption($post);
+
+        $containerId = $this->instagramCreateContainer($graphVersion, $igUserId, $imageUrl, $caption, $accessToken);
+        $mediaId     = $this->instagramPublishContainer($graphVersion, $igUserId, $containerId, $accessToken);
+
+        $this->recordPublishedInstagram($generationId, $mediaId, $caption);
+
+        return [
+            'media_id' => $mediaId,
+            'caption'  => $caption,
+        ];
+    }
+
+    public function publishedInstagrams(int $limit = 50): array
+    {
+        if (! ee()->db->table_exists('socialposter_published_instagram')) {
+            return [];
+        }
+
+        return ee()->db
+            ->order_by('created_at', 'DESC')
+            ->limit($limit)
+            ->get('socialposter_published_instagram')
+            ->result_array();
+    }
+
+    private function instagramCaption(array $post): string
+    {
+        $postText = trim((string) ($post['post_text'] ?? ''));
+
+        // For carousel posts the format is: slide copy \n\nInstagram Caption\n caption
+        $parts = preg_split('/\n\s*(?:#{1,6}\s*)?Instagram Caption:?\s*\n/i', $postText, 2);
+        $caption = count($parts) === 2 ? trim($parts[1]) : $postText;
+
+        $hashtags = array_filter(
+            (array) ($post['hashtags'] ?? []),
+            fn($t) => trim((string) $t) !== ''
+        );
+
+        if ($hashtags) {
+            $hashtagStr = implode(' ', array_map(
+                fn($t) => '#' . ltrim(trim((string) $t), '#'),
+                $hashtags
+            ));
+            $caption = $caption !== '' ? $caption . "\n\n" . $hashtagStr : $hashtagStr;
+        }
+
+        // Append source credit for news-based posts
+        $source       = trim((string) ($post['source'] ?? ''));
+        $externalLink = trim((string) ($post['external_link'] ?? ''));
+        if ($source === 'news' && $externalLink !== '') {
+            $host = (string) parse_url($externalLink, PHP_URL_HOST);
+            $host = (string) preg_replace('/^www\./i', '', $host);
+            if ($host !== '') {
+                $caption .= ($caption !== '' ? "\n\n" : '') . 'via ' . $host;
+            }
+        }
+
+        return $caption;
+    }
+
+    private function absoluteImageUrl(array $post): string
+    {
+        $imageUrl = trim((string) ($post['image_url'] ?? ''));
+        if ($imageUrl === '') {
+            return '';
+        }
+
+        if (preg_match('/^https?:\/\//i', $imageUrl)) {
+            return $imageUrl;
+        }
+
+        $base = rtrim((string) ee()->config->item('base_url'), '/');
+        return $base . '/' . ltrim($imageUrl, '/');
+    }
+
+    private function instagramCreateContainer(string $version, string $userId, string $imageUrl, string $caption, string $accessToken): string
+    {
+        $url = 'https://graph.facebook.com/' . $version . '/' . $userId . '/media';
+        $response = $this->instagramGraphPost($url, [
+            'image_url'    => $imageUrl,
+            'caption'      => $caption,
+            'access_token' => $accessToken,
+        ]);
+
+        $id = trim((string) ($response['id'] ?? ''));
+        if ($id === '') {
+            $message = (string) ($response['error']['message'] ?? 'Unknown error creating media container.');
+            throw new \RuntimeException('Instagram API: ' . $message);
+        }
+
+        return $id;
+    }
+
+    private function instagramPublishContainer(string $version, string $userId, string $containerId, string $accessToken): string
+    {
+        $url = 'https://graph.facebook.com/' . $version . '/' . $userId . '/media_publish';
+        $response = $this->instagramGraphPost($url, [
+            'creation_id'  => $containerId,
+            'access_token' => $accessToken,
+        ]);
+
+        $id = trim((string) ($response['id'] ?? ''));
+        if ($id === '') {
+            $message = (string) ($response['error']['message'] ?? 'Unknown error publishing container.');
+            throw new \RuntimeException('Instagram API: ' . $message);
+        }
+
+        return $id;
+    }
+
+    public function exchangeInstagramToken(string $shortToken): array
+    {
+        $shortToken = trim($shortToken);
+        if ($shortToken === '') {
+            throw new \InvalidArgumentException('Paste a token to exchange.');
+        }
+
+        $settings  = ee('socialposter:generator')->getSettings();
+        $appId     = trim((string) ($settings['instagram_app_id'] ?? ''));
+        $appSecret = trim((string) ($settings['instagram_app_secret'] ?? ''));
+        $version   = $this->graphVersion($settings);
+
+        if ($appId === '' || $appSecret === '') {
+            throw new \RuntimeException('Meta App ID and App Secret are required to exchange a token. Save those above first.');
+        }
+
+        $response = $this->instagramGraphGet(
+            'https://graph.facebook.com/' . $version . '/oauth/access_token',
+            [
+                'grant_type'        => 'fb_exchange_token',
+                'client_id'         => $appId,
+                'client_secret'     => $appSecret,
+                'fb_exchange_token' => $shortToken,
+            ]
+        );
+
+        $token = trim((string) ($response['access_token'] ?? ''));
+        if ($token === '') {
+            $msg = $response['error']['message'] ?? 'Token exchange did not return an access_token.';
+            throw new \RuntimeException($msg);
+        }
+
+        return [
+            'access_token' => $token,
+            'expires_in'   => (int) ($response['expires_in'] ?? 0),
+        ];
+    }
+
+    public function listInstagramPages(): array
+    {
+        $settings = ee('socialposter:generator')->getSettings();
+        $version  = $this->graphVersion($settings);
+        $token    = trim((string) ($settings['instagram_user_access_token'] ?? ''))
+                 ?: trim((string) ($settings['instagram_access_token'] ?? ''));
+
+        if ($token === '') {
+            throw new \RuntimeException('Save a user access token first (use "Exchange & Save Long-Lived Token" above).');
+        }
+
+        $response = $this->instagramGraphGet(
+            'https://graph.facebook.com/' . $version . '/me/accounts',
+            [
+                'access_token' => $token,
+                'fields'       => 'id,name,access_token,instagram_business_account{id,username}',
+                'limit'        => 100,
+            ]
+        );
+
+        $pages = [];
+        foreach ((array) ($response['data'] ?? []) as $page) {
+            if (! is_array($page)) {
+                continue;
+            }
+            $igAccount = is_array($page['instagram_business_account'] ?? null) ? $page['instagram_business_account'] : [];
+            $pages[] = [
+                'id'                            => (string) ($page['id'] ?? ''),
+                'name'                          => (string) ($page['name'] ?? ''),
+                'access_token'                  => (string) ($page['access_token'] ?? ''),
+                'instagram_business_account_id' => (string) ($igAccount['id'] ?? ''),
+                'instagram_username'            => (string) ($igAccount['username'] ?? ''),
+            ];
+        }
+
+        return $pages;
+    }
+
+    public function selectInstagramPage(string $pageId): array
+    {
+        $pageId = trim($pageId);
+        if ($pageId === '') {
+            throw new \InvalidArgumentException('No page selected.');
+        }
+
+        foreach ($this->listInstagramPages() as $page) {
+            if ($page['id'] === $pageId) {
+                if ($page['access_token'] === '') {
+                    throw new \RuntimeException('Page found but has no access_token in the response. Make sure your user token has pages_show_list and pages_read_engagement scopes.');
+                }
+                return $page;
+            }
+        }
+
+        throw new \RuntimeException('Page not found in your account list.');
+    }
+
+    public function inspectInstagramToken(?string $token = null): array
+    {
+        $settings  = ee('socialposter:generator')->getSettings();
+        $appId     = trim((string) ($settings['instagram_app_id'] ?? ''));
+        $appSecret = trim((string) ($settings['instagram_app_secret'] ?? ''));
+        $version   = $this->graphVersion($settings);
+        $token     = $token !== null ? trim($token) : trim((string) ($settings['instagram_access_token'] ?? ''));
+
+        $base = ['is_valid' => false, 'expires_at' => 0, 'scopes' => [], 'app_id' => '', 'type' => '', 'error' => ''];
+
+        if ($token === '') {
+            return $base + ['error' => 'No access token saved.'];
+        }
+        if ($appId === '' || $appSecret === '') {
+            return $base + ['error' => 'Set Meta App ID and App Secret to check token status.'];
+        }
+
+        try {
+            $response = $this->instagramGraphGet(
+                'https://graph.facebook.com/' . $version . '/debug_token',
+                ['input_token' => $token, 'access_token' => $appId . '|' . $appSecret]
+            );
+        } catch (\Throwable $e) {
+            return $base + ['error' => $e->getMessage()];
+        }
+
+        $data = is_array($response['data'] ?? null) ? $response['data'] : [];
+
+        return [
+            'is_valid'   => (bool) ($data['is_valid'] ?? false),
+            'expires_at' => (int) ($data['expires_at'] ?? 0),
+            'scopes'     => array_values((array) ($data['scopes'] ?? [])),
+            'app_id'     => (string) ($data['app_id'] ?? ''),
+            'type'       => (string) ($data['type'] ?? ''),
+            'error'      => (string) ($data['error']['message'] ?? ''),
+        ];
+    }
+
+    public function testInstagramConnection(): array
+    {
+        $settings   = ee('socialposter:generator')->getSettings();
+        $token      = trim((string) ($settings['instagram_access_token'] ?? ''));
+        $igUserId   = trim((string) ($settings['instagram_business_account_id'] ?? ''));
+        $pageId     = trim((string) ($settings['instagram_page_id'] ?? ''));
+        $appId      = trim((string) ($settings['instagram_app_id'] ?? ''));
+        $appSecret  = trim((string) ($settings['instagram_app_secret'] ?? ''));
+        $version    = $this->graphVersion($settings);
+
+        // instagram_business_basic is the Instagram Login equivalent of instagram_basic
+        $required = ['instagram_content_publish', 'instagram_basic'];
+        $result = [
+            'token_valid'       => false,
+            'token_type'        => '',
+            'token_expires'     => '',
+            'scopes'            => [],
+            'missing_scopes'    => $required,
+            'ig_account'        => '',
+            'ig_username'       => '',
+            'page_id'           => $pageId,
+            'errors'            => [],
+            'warnings'          => [],
+        ];
+
+        if ($token === '') {
+            $result['errors'][] = 'No access token saved.';
+            return $result;
+        }
+        if ($igUserId === '') {
+            $result['errors'][] = 'Instagram Professional Account ID is not set.';
+        }
+
+        // 1. Inspect token via debug_token (needs App ID + Secret)
+        if ($appId !== '' && $appSecret !== '') {
+            try {
+                $debug = $this->instagramGraphGet(
+                    'https://graph.facebook.com/' . $version . '/debug_token',
+                    ['input_token' => $token, 'access_token' => $appId . '|' . $appSecret]
+                );
+                $data = is_array($debug['data'] ?? null) ? $debug['data'] : [];
+                $result['token_valid'] = (bool) ($data['is_valid'] ?? false);
+                $result['token_type']  = (string) ($data['type'] ?? '');
+                $result['scopes']      = array_values((array) ($data['scopes'] ?? []));
+                // Normalise scope aliases so checks pass regardless of Meta's naming variant:
+                // instagram_business_basic  (Instagram Login API) → instagram_basic
+                // instagram_content_publishing (portal label)     → instagram_content_publish
+                $effectiveScopes = $result['scopes'];
+                if (in_array('instagram_business_basic', $effectiveScopes, true)) {
+                    $effectiveScopes[] = 'instagram_basic';
+                }
+                if (in_array('instagram_content_publishing', $effectiveScopes, true)) {
+                    $effectiveScopes[] = 'instagram_content_publish';
+                }
+                $result['missing_scopes'] = array_values(array_diff($required, $effectiveScopes));
+
+                $expiresAt = (int) ($data['expires_at'] ?? 0);
+                if ($expiresAt === 0) {
+                    $result['token_expires'] = 'Does not expire';
+                } else {
+                    $days = (int) floor(($expiresAt - time()) / 86400);
+                    $result['token_expires'] = date('M j, Y', $expiresAt) . ' (' . $days . ' days)';
+                }
+
+                if (! $result['token_valid']) {
+                    $result['errors'][] = 'Token is invalid or expired: ' . ($data['error']['message'] ?? 'unknown error');
+                }
+            } catch (\Throwable $e) {
+                $result['warnings'][] = 'Could not inspect token: ' . $e->getMessage();
+                $result['token_valid'] = true; // assume valid and proceed
+            }
+        } else {
+            $result['warnings'][] = 'App ID or App Secret not saved — skipping token scope check.';
+            $result['token_valid'] = true;
+            $result['missing_scopes'] = [];
+        }
+
+        // 2. Verify the IG Business Account ID resolves
+        if ($igUserId !== '' && $result['token_valid']) {
+            try {
+                $igData = $this->instagramGraphGet(
+                    'https://graph.facebook.com/' . $version . '/' . $igUserId,
+                    ['fields' => 'id,username,name', 'access_token' => $token]
+                );
+                $result['ig_account']  = (string) ($igData['id'] ?? '');
+                $result['ig_username'] = (string) ($igData['username'] ?? $igData['name'] ?? '');
+            } catch (\Throwable $e) {
+                $result['errors'][] = 'Business Account ID lookup failed: ' . $e->getMessage();
+            }
+        }
+
+        return $result;
+    }
+
+    private function graphVersion(array $settings): string
+    {
+        $version = trim((string) ($settings['instagram_graph_version'] ?? 'v24.0'));
+        return $version !== '' ? $version : 'v24.0';
+    }
+
+    private function instagramGraphGet(string $url, array $params): array
+    {
+        $url .= '?' . http_build_query($params);
+
+        $ch = curl_init($url);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT        => 30,
+            CURLOPT_USERAGENT      => 'SocialPoster/1.0',
+        ]);
+
+        $body   = curl_exec($ch);
+        $error  = curl_error($ch);
+        $status = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        if ($body === false || $body === '') {
+            throw new \RuntimeException('Instagram API request failed: ' . ($error ?: 'empty response'));
+        }
+
+        $decoded = json_decode((string) $body, true);
+        if (! is_array($decoded)) {
+            throw new \RuntimeException('Instagram API returned a non-JSON response.');
+        }
+
+        if ($status < 200 || $status >= 300) {
+            $msg = $decoded['error']['message'] ?? 'Instagram API request failed (HTTP ' . $status . ').';
+            throw new \RuntimeException($msg);
+        }
+
+        return $decoded;
+    }
+
+    private function instagramGraphPost(string $url, array $params): array
+    {
+        $ch = curl_init($url);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_POST           => true,
+            CURLOPT_POSTFIELDS     => http_build_query($params),
+            CURLOPT_TIMEOUT        => 30,
+            CURLOPT_USERAGENT      => 'SocialPoster/1.0',
+        ]);
+
+        $body  = curl_exec($ch);
+        $error = curl_error($ch);
+        curl_close($ch);
+
+        if ($body === false || $body === '') {
+            throw new \RuntimeException('Instagram API request failed: ' . $error);
+        }
+
+        $decoded = json_decode((string) $body, true);
+        return is_array($decoded) ? $decoded : [];
+    }
+
+    private function recordPublishedInstagram(int $generationId, string $mediaId, string $caption): void
+    {
+        if (! ee()->db->table_exists('socialposter_published_instagram')) {
+            return;
+        }
+
+        ee()->db->insert('socialposter_published_instagram', [
+            'generation_id' => $generationId,
+            'media_id'      => $mediaId,
+            'caption'       => $caption,
+            'created_at'    => ee()->localize->now,
+        ]);
     }
 
     public function publishedBlogs(int $limit = 50): array
@@ -693,7 +1144,7 @@ class Publisher
     {
         $imagePath = trim((string) ($post['image_path'] ?? ''));
         if ($imagePath !== '') {
-            $path = FCPATH . ltrim($imagePath, '/');
+            $path = (new ImageStorage())->publicPath($imagePath);
             return is_file($path) ? $path : '';
         }
 
@@ -707,7 +1158,7 @@ class Publisher
             return '';
         }
 
-        $path = FCPATH . ltrim($urlPath, '/');
+        $path = (new ImageStorage())->publicPath($urlPath);
         return is_file($path) ? $path : '';
     }
 
@@ -778,7 +1229,7 @@ class Publisher
 
         $path = str_replace(
             ['{base_path}', '{base_url}'],
-            [rtrim(str_replace('\\', '/', FCPATH), '/') . '/', rtrim((string) ee()->config->item('base_url'), '/') . '/'],
+            [(new ImageStorage())->siteRootPath(), rtrim((string) ee()->config->item('base_url'), '/') . '/'],
             $path
         );
         $path = preg_replace('#(?<!:)/+#', '/', $path);

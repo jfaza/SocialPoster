@@ -1,0 +1,9 @@
+{
+  "name": "editorial-cards",
+  "description": "Editorial card-based carousel with premium SaaS styling and strong visual hierarchy.",
+  "style": ["base", "educational", "professional", "clean"],
+  "best_for": ["tools", "breakdowns", "comparisons", "developer content"],
+  "density": "medium",
+  "tone": "structured",
+  "tags": ["editorial", "cards", "saas", "premium", "developer"]
+}

@@ -1,0 +1,9 @@
+﻿Content rules:
+- Be specific and practical
+- Avoid generic phrases like “leverage”, “unlock”, “transform”
+- No fluff, no filler
+- No fake stats or claims that need sources
+- Every slide should provide real value
+- Prefer concrete workflows, use cases, tradeoffs, or examples
+- Do not over-explain
+

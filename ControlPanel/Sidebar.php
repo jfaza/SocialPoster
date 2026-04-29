@@ -14,41 +14,71 @@ class Sidebar extends AbstractSidebar
     public function process()
     {
         $sidebar = ee('CP/Sidebar')->make();
-        $list = $sidebar->addHeader($this->header)->addBasicList();
-
         $current = ee()->uri->uri_string;
-        $mk = fn($suffix) => ee('CP/URL')->make($this->base . $suffix);
 
-        $list->addItem('Calendar', $mk('calendar'))
-            ->withIcon('calendar')
-            ->isActive(strpos($current, $this->base . 'calendar') !== false);
+        $mk         = fn($suffix) => ee('CP/URL')->make($this->base . $suffix);
+        $path       = fn($suffix) => $this->base . $suffix;
+        $isExact    = fn($suffix) => rtrim($current, '/') === rtrim($path($suffix), '/');
+        $startsWith = fn($suffix) => strpos($current, $path($suffix)) === 0;
 
-        $list->addItem('Generate', $mk('index'))
+        // ── Workflows ───────────────────────────────────────────
+        $main = $sidebar->addHeader($this->header)->addBasicList();
+
+        $main->addItem('Generate', $mk('index'))
             ->withIcon('pencil')
             ->isActive(
-                strpos($current, $this->base . 'index') !== false
+                $startsWith('index')
                 || rtrim($current, '/') === rtrim($this->base, '/')
             );
 
-        $list->addItem('Publish', $mk('publish'))
+        $main->addItem('Calendar', $mk('calendar'))
+            ->withIcon('calendar')
+            ->isActive($startsWith('calendar'));
+
+        $main->addItem('History', $mk('history'))
+            ->withIcon('list')
+            ->isActive($startsWith('history'));
+
+        $main->addItem('Published', $mk('published'))
+            ->withIcon('check')
+            ->isActive($isExact('published'));
+
+        $main->addItem('Publish Blog', $mk('publish'))
             ->withIcon('upload')
-            ->isActive(strpos($current, $this->base . 'publish') !== false);
+            ->isActive($isExact('publish'));
 
-        $list->addItem('Templates', $mk('templates'))
-            ->withIcon('list')
-            ->isActive(strpos($current, $this->base . 'templates') !== false);
+        // ── Instagram (content tools + publishing) ──────────────
+        $instagram = $sidebar->addHeader('Instagram')->addBasicList();
 
-        $list->addItem('Token Usage', $mk('usage'))
-            ->withIcon('bar-chart')
-            ->isActive(strpos($current, $this->base . 'usage') !== false);
+        $instagram->addItem('Create', $mk('instagram/create'))
+            ->isActive($startsWith('instagram/create'));
 
-        $list->addItem('Settings', $mk('settings'))
-            ->withIcon('cog')
-            ->isActive(strpos($current, $this->base . 'settings') !== false);
+        $instagram->addItem('History', $mk('instagram/history'))
+            ->isActive($startsWith('instagram/history'));
 
-        $list->addItem('History', $mk('history'))
-            ->withIcon('list')
-            ->isActive(strpos($current, $this->base . 'history') !== false);
+        $instagram->addItem('Carousels', $mk('instagram/carousel'))
+            ->isActive($startsWith('instagram/carousel'));
+
+        $instagram->addItem('News Sources', $mk('instagram/news-sources'))
+            ->isActive($startsWith('instagram/news-sources'));
+
+        $instagram->addItem('Publish', $mk('publish/instagram'))
+            ->isActive($startsWith('publish/instagram'));
+
+        // ── Settings (admin / config) ───────────────────────────
+        $settings = $sidebar->addHeader('Settings')->addBasicList();
+
+        $settings->addItem('OpenAI', $mk('settings'))
+            ->isActive($startsWith('settings'));
+
+        $settings->addItem('Instagram', $mk('instagram'))
+            ->isActive($isExact('instagram'));
+
+        $settings->addItem('Templates', $mk('templates'))
+            ->isActive($startsWith('templates'));
+
+        $settings->addItem('Token Usage', $mk('usage'))
+            ->isActive($startsWith('usage'));
 
         ee()->view->sidebar = $sidebar->render();
     }

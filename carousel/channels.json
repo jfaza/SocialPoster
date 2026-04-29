@@ -1,0 +1,46 @@
+{
+  "ai": {
+    "name": "AI",
+    "description": "Artificial intelligence news and research",
+    "feeds": [
+      "https://techcrunch.com/category/artificial-intelligence/feed/",
+      "https://venturebeat.com/ai/feed/",
+      "https://www.theverge.com/rss/ai-artificial-intelligence/index.xml"
+    ]
+  },
+  "tech": {
+    "name": "Tech",
+    "description": "General technology news",
+    "feeds": [
+      "https://techcrunch.com/feed/",
+      "https://www.theverge.com/rss/index.xml",
+      "https://feeds.arstechnica.com/arstechnica/index"
+    ]
+  },
+  "dev": {
+    "name": "Developer",
+    "description": "Developer tools, open source, and engineering",
+    "feeds": [
+      "https://github.blog/feed.xml",
+      "https://dev.to/feed",
+      "https://feeds.feedburner.com/ThePragmaticEngineer"
+    ]
+  },
+  "security": {
+    "name": "Security",
+    "description": "Cybersecurity and infosec news",
+    "feeds": [
+      "https://krebsonsecurity.com/feed/",
+      "https://www.darkreading.com/rss_simple.asp",
+      "https://feeds.feedburner.com/TheHackersNews"
+    ]
+  },
+  "startups": {
+    "name": "Startups",
+    "description": "Startup and venture capital news",
+    "feeds": [
+      "https://techcrunch.com/category/startups/feed/",
+      "https://news.crunchbase.com/feed/"
+    ]
+  }
+}

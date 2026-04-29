@@ -1,0 +1,6 @@
+﻿Tone:
+- Practical and confident
+- Slightly punchy but not hypey
+- Written like someone experienced, not like marketing copy
+- Clear enough for beginners, useful enough for builders
+

@@ -29,6 +29,8 @@ class History extends AbstractRoute
         $this->loadStyle();
 
         $generator = ee('socialposter:generator');
+        $templates = ee('socialposter:templates');
+        $templateMeta = $templates->metaById();
 
         $id = (int) $id;
 
@@ -111,6 +113,10 @@ class History extends AbstractRoute
                 ee()->functions->redirect(ee('CP/URL')->make('addons/settings/socialposter/history'));
             }
 
+            if ($this->isInstagramPost($post, $templateMeta)) {
+                ee()->functions->redirect(ee('CP/URL')->make('addons/settings/socialposter/instagram/history/' . $id));
+            }
+
             $this->setBody('History', [
                 'mode' => 'edit',
                 'post' => $post,
@@ -119,22 +125,50 @@ class History extends AbstractRoute
                 'index_url' => ee('CP/URL')->make('addons/settings/socialposter')->compile(),
                 'settings_url' => ee('CP/URL')->make('addons/settings/socialposter/settings')->compile(),
                 'history_url' => ee('CP/URL')->make('addons/settings/socialposter/history')->compile(),
+                'history_item_url_pattern' => ee('CP/URL')->make('addons/settings/socialposter/history/__ID__')->compile(),
                 'save_url' => ee('CP/URL')->make('addons/settings/socialposter/history/' . $id)->compile(),
-                'template_options' => ee('socialposter:templates')->options(),
+                'template_options' => $templates->options(),
+                'template_meta' => $templateMeta,
             ]);
 
             return $this;
         }
 
+        $allRows = $generator->latest(50);
+        $blogRows = array_values(array_filter(
+            $allRows,
+            fn(array $row) => ! $this->isInstagramPost($row, $templateMeta)
+        ));
+
         $this->setBody('History', [
             'mode' => 'list',
-            'rows' => ee('socialposter:seoScorer')->scoreMany($generator->latest(50)),
+            'rows' => ee('socialposter:seoScorer')->scoreMany($blogRows),
             'index_url' => ee('CP/URL')->make('addons/settings/socialposter')->compile(),
             'settings_url' => ee('CP/URL')->make('addons/settings/socialposter/settings')->compile(),
             'history_url' => ee('CP/URL')->make('addons/settings/socialposter/history')->compile(),
-            'template_options' => ee('socialposter:templates')->options(),
+            'history_item_url_pattern' => ee('CP/URL')->make('addons/settings/socialposter/history/__ID__')->compile(),
+            'template_options' => $templates->options(),
+            'template_meta' => $templateMeta,
         ]);
 
         return $this;
+    }
+
+    private function isInstagramPost(array $post, array $templateMeta): bool
+    {
+        $source = (string) ($post['source'] ?? '');
+        if ($source === 'news' || $source === 'instagram') {
+            return true;
+        }
+
+        $template = $templateMeta[(int) ($post['template_id'] ?? 0)] ?? null;
+        if (! $template) {
+            return false;
+        }
+
+        $platform = strtolower(trim((string) ($template['platform'] ?? '')));
+        $title    = strtolower(trim((string) ($template['title'] ?? '')));
+
+        return $platform === 'instagram' || strpos($title, 'instagram carousel') !== false;
     }
 }

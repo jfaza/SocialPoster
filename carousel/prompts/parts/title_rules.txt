@@ -1,0 +1,8 @@
+﻿Title rules:
+- Keep titles short, max 2–3 lines
+- Use newline characters (\n) to control line breaks when helpful
+- Do NOT output literal backslash-n (\\n)
+- Avoid long sentences in titles
+- Make titles punchy and readable on mobile
+- Avoid boring generic titles like “AI Tools for Developers” when a stronger angle is possible
+

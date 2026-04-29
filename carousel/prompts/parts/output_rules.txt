@@ -1,0 +1,10 @@
+﻿Output requirements:
+- Must strictly follow the provided JSON schema
+- Do not add extra fields
+- Do not omit required fields
+- Keep valid JSON
+- No markdown
+- No explanation outside the JSON
+- Use empty strings for unused required fields
+- Use empty arrays for unused item lists
+

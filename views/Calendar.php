@@ -29,6 +29,14 @@ $weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
         <h2 class="sp-month-title"><?= $h($month_label) ?></h2>
         <a class="button button--default" href="<?= $h($next_url) ?>#tab=t-0">Next</a>
       </div>
+      <div class="sp-kind-legend">
+        <span class="sp-kind-legend-item"><span class="sp-kind-tag sp-kind-tag-b">B</span> Blog</span>
+        <span class="sp-kind-legend-item"><span class="sp-kind-tag sp-kind-tag-i">I</span> Instagram</span>
+        <span class="sp-kind-legend-item"><span class="sp-kind-tag sp-kind-tag-ic">IC</span> Carousel</span>
+        <span class="sp-kind-legend-item"><span class="sp-kind-tag sp-kind-tag-in">IN</span> News</span>
+        <span class="sp-kind-legend-item sp-kind-legend-future"><span class="sp-kind-tag sp-kind-tag-f">F</span> Facebook</span>
+        <span class="sp-kind-legend-item sp-kind-legend-future"><span class="sp-kind-tag sp-kind-tag-x">X</span> X / Twitter</span>
+      </div>
       <table class="sp-calendar">
         <thead>
           <tr>
@@ -43,12 +51,15 @@ $weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
                   <?php if (! empty($cell['day'])): ?>
                     <div class="sp-day"><?= (int) $cell['day'] ?></div>
                     <?php foreach ($cell['events'] as $event): ?>
+                      <?php $kind = $event['kind'] ?? 'B'; ?>
                       <?php if (! empty($event['url'])): ?>
-                        <a class="sp-event <?= $h($event['type']) ?> <?= empty($event['active']) ? 'inactive' : '' ?>" href="<?= $h($event['url']) ?>">
+                        <a class="sp-event <?= $h($event['type']) ?> sp-kind-<?= $h(strtolower($kind)) ?> <?= empty($event['active']) ? 'inactive' : '' ?>" href="<?= $h($event['url']) ?>">
+                          <span class="sp-kind-tag"><?= $h($kind) ?></span>
                           <?= $h($event['time']) ?> · <?= $h($event['title']) ?>
                         </a>
                       <?php else: ?>
-                        <span class="sp-event <?= $h($event['type']) ?> <?= empty($event['active']) ? 'inactive' : '' ?>">
+                        <span class="sp-event <?= $h($event['type']) ?> sp-kind-<?= $h(strtolower($kind)) ?> <?= empty($event['active']) ? 'inactive' : '' ?>">
+                          <span class="sp-kind-tag"><?= $h($kind) ?></span>
                           <?= $h($event['time']) ?> · <?= $h($event['title']) ?>
                         </span>
                       <?php endif; ?>
@@ -69,13 +80,16 @@ $weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
               <section class="sp-calendar-list-day">
                 <h3><?= $h(date('D, M j', strtotime((string) $cell['date']))) ?></h3>
                 <?php foreach ($cell['events'] as $event): ?>
+                  <?php $kind = $event['kind'] ?? 'B'; ?>
                   <?php if (! empty($event['url'])): ?>
-                    <a class="sp-event <?= $h($event['type']) ?> <?= empty($event['active']) ? 'inactive' : '' ?>" href="<?= $h($event['url']) ?>">
+                    <a class="sp-event <?= $h($event['type']) ?> sp-kind-<?= $h(strtolower($kind)) ?> <?= empty($event['active']) ? 'inactive' : '' ?>" href="<?= $h($event['url']) ?>">
+                      <span class="sp-kind-tag"><?= $h($kind) ?></span>
                       <strong><?= $h($event['time']) ?></strong>
                       <span><?= $h($event['title']) ?></span>
                     </a>
                   <?php else: ?>
-                    <span class="sp-event <?= $h($event['type']) ?> <?= empty($event['active']) ? 'inactive' : '' ?>">
+                    <span class="sp-event <?= $h($event['type']) ?> sp-kind-<?= $h(strtolower($kind)) ?> <?= empty($event['active']) ? 'inactive' : '' ?>">
+                      <span class="sp-kind-tag"><?= $h($kind) ?></span>
                       <strong><?= $h($event['time']) ?></strong>
                       <span><?= $h($event['title']) ?></span>
                     </span>
@@ -166,3 +180,4 @@ $weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     </section>
   </div>
 </div>
+

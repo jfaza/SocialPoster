@@ -2,13 +2,17 @@
 
 namespace JavidFazaeli\SocialPoster\Service;
 
+use JavidFazaeli\SocialPoster\Service\InstagramPostGenerator;
+
 class Scheduler
 {
     private SocialPostGenerator $generator;
+    private SocialPostGenerator $instagramGenerator;
 
-    public function __construct(?SocialPostGenerator $generator = null)
+    public function __construct(?SocialPostGenerator $generator = null, ?SocialPostGenerator $instagramGenerator = null)
     {
-        $this->generator = $generator ?: new SocialPostGenerator();
+        $this->generator          = $generator          ?: new SocialPostGenerator();
+        $this->instagramGenerator = $instagramGenerator ?: new InstagramPostGenerator();
     }
 
     public function frequencies(): array
@@ -125,7 +129,8 @@ class Scheduler
                 $topic = $this->nextTopic($row);
                 $prompt = $this->promptWithTopic((string) $row['prompt'], $topic);
 
-                $result = $this->generator->generate($prompt, [
+                $gen = $this->generatorForTemplate((int) ($row['template_id'] ?? 0));
+                $result = $gen->generate($prompt, [
                     'schedule_id' => (int) $row['id'],
                     'scheduled_for' => (int) $row['next_run_at'],
                     'source' => 'scheduled',
@@ -200,23 +205,25 @@ class Scheduler
 
     private function eventsByDay(int $year, int $month): array
     {
-        $start = strtotime(sprintf('%04d-%02d-01 00:00:00', $year, $month));
-        $end = strtotime('+1 month', $start) - 1;
+        $start  = strtotime(sprintf('%04d-%02d-01 00:00:00', $year, $month));
+        $end    = strtotime('+1 month', $start) - 1;
         $events = [];
 
         foreach ($this->schedules() as $schedule) {
             $run = (int) $schedule['next_run_at'];
             if ($run >= $start && $run <= $end) {
                 $events[date('Y-m-d', $run)][] = [
-                    'type' => 'scheduled',
-                    'title' => $this->calendarTitle($schedule),
-                    'time' => date('g:ia', $run),
+                    'type'   => 'scheduled',
+                    'kind'   => $this->scheduleKind((int) ($schedule['template_id'] ?? 0)),
+                    'title'  => $this->calendarTitle($schedule),
+                    'time'   => date('g:ia', $run),
                     'active' => ! empty($schedule['is_active']),
-                    'url' => '',
+                    'url'    => '',
                 ];
             }
         }
 
+        // socialposter_generations — blog posts, news-mode IG, single-image IG
         if (ee()->db->table_exists('socialposter_generations')) {
             $rows = ee()->db
                 ->where('created_at >=', $start)
@@ -227,18 +234,119 @@ class Scheduler
 
             foreach ($rows as $row) {
                 $time = (int) $row['created_at'];
-                $id = (int) $row['id'];
+                $id   = (int) $row['id'];
                 $events[date('Y-m-d', $time)][] = [
-                    'type' => 'generated',
-                    'title' => $this->calendarPostTitle((string) ($row['title'] ?: 'Generated post'), $id),
-                    'time' => date('g:ia', $time),
+                    'type'   => 'generated',
+                    'kind'   => $this->generationKind($row),
+                    'title'  => $this->calendarPostTitle((string) ($row['title'] ?? 'Generated post'), $id),
+                    'time'   => date('g:ia', $time),
                     'active' => true,
-                    'url' => ee('CP/URL')->make('addons/settings/socialposter/history/' . $id)->compile(),
+                    'url'    => ee('CP/URL')->make('addons/settings/socialposter/history/' . $id)->compile(),
+                ];
+            }
+        }
+
+        // socialposter_instagram_posts — older standalone IG posts table
+        if (ee()->db->table_exists('socialposter_instagram_posts')) {
+            $rows = ee()->db
+                ->where('created_at >=', $start)
+                ->where('created_at <=', $end)
+                ->order_by('created_at', 'ASC')
+                ->get('socialposter_instagram_posts')
+                ->result_array();
+
+            foreach ($rows as $row) {
+                $time = (int) $row['created_at'];
+                $id   = (int) $row['id'];
+                $events[date('Y-m-d', $time)][] = [
+                    'type'   => 'generated',
+                    'kind'   => 'I',
+                    'title'  => $this->calendarPostTitle((string) ($row['title'] ?? 'Instagram post'), $id),
+                    'time'   => date('g:ia', $time),
+                    'active' => true,
+                    'url'    => ee('CP/URL')->make('addons/settings/socialposter/instagram/history/' . $id)->compile(),
+                ];
+            }
+        }
+
+        // socialposter_carousel_generations — Instagram carousels (no `title`, uses `topic`)
+        if (ee()->db->table_exists('socialposter_carousel_generations')) {
+            $rows = ee()->db
+                ->where('created_at >=', $start)
+                ->where('created_at <=', $end)
+                ->order_by('created_at', 'ASC')
+                ->get('socialposter_carousel_generations')
+                ->result_array();
+
+            foreach ($rows as $row) {
+                $time = (int) $row['created_at'];
+                $id   = (int) $row['id'];
+                $events[date('Y-m-d', $time)][] = [
+                    'type'   => 'generated',
+                    'kind'   => 'IC',
+                    'title'  => $this->calendarPostTitle((string) ($row['topic'] ?? 'Carousel'), $id),
+                    'time'   => date('g:ia', $time),
+                    'active' => true,
+                    'url'    => ee('CP/URL')->make('addons/settings/socialposter/instagram/carousel/' . $id)->compile(),
                 ];
             }
         }
 
         return $events;
+    }
+
+    private function generationKind(array $row): string
+    {
+        $source = strtolower(trim((string) ($row['source'] ?? '')));
+        if ($source === 'news') {
+            return 'IN';
+        }
+
+        $templateId = (int) ($row['template_id'] ?? 0);
+        if ($templateId > 0 && $this->templateIsInstagram($templateId)) {
+            return 'I';
+        }
+
+        // Single-image news/manual posts have no template but live as IG. Heuristic:
+        // image-only with empty post_text fallback isn't reliable, so default to B.
+        return 'B';
+    }
+
+    private function scheduleKind(int $templateId): string
+    {
+        return $templateId > 0 && $this->templateIsInstagram($templateId) ? 'I' : 'B';
+    }
+
+    private function templateIsInstagram(int $templateId): bool
+    {
+        static $platforms = null;
+        if ($platforms === null) {
+            $platforms = [];
+            try {
+                foreach (ee('socialposter:templates')->metaById() as $tid => $meta) {
+                    $platforms[(int) $tid] = strtolower(trim((string) ($meta['platform'] ?? '')));
+                }
+            } catch (\Throwable $e) {
+                $platforms = [];
+            }
+        }
+
+        return ($platforms[$templateId] ?? '') === 'instagram';
+    }
+
+    private function generatorForTemplate(int $templateId): SocialPostGenerator
+    {
+        if ($templateId < 1) {
+            return $this->generator;
+        }
+
+        $template = ee('socialposter:templates')->find($templateId);
+        if (! $template) {
+            return $this->generator;
+        }
+
+        $platform = strtolower(trim((string) ($template['platform'] ?? '')));
+        return $platform === 'instagram' ? $this->instagramGenerator : $this->generator;
     }
 
     public function nextTopic(array $schedule): string
@@ -318,8 +426,7 @@ class Scheduler
             'Audience: ' . (string) ($template['audience'] ?? ''),
             'Platform: ' . (string) ($template['platform'] ?? ''),
             'Instructions: ' . (string) ($template['prompt_instructions'] ?? ''),
-            'Article structure: ' . ee('socialposter:templates')->articleStructureFor($template),
-            'Article body requirements: post_text must be the full publishable body in Markdown. Include one ## heading for each table_of_contents item, using the exact same heading text. Include actionable detail under each heading, not just a paragraph summary.',
+            'Content structure: ' . ee('socialposter:templates')->articleStructureFor($template),
             'Internal link requirements: use only relative internal URLs beginning with /, or exact site URLs supplied by the user. Do not invent placeholder domains.',
         ];
 

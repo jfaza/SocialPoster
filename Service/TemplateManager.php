@@ -4,6 +4,8 @@ namespace JavidFazaeli\SocialPoster\Service;
 
 class TemplateManager
 {
+    private const INSTAGRAM_CAROUSEL_INSTRUCTIONS = 'You are an expert Instagram carousel creator and visual content strategist. Generate a complete Instagram carousel package with 6 to 8 slides minimum. Do not stop at slide 1. Every slide must include both text content and a unique image brief. post_text must be formatted slide by slide using labels such as "Slide 1 - Cover", "Slide 2 - ...", and so on. For each slide, include a heading plus concise bullets or short support lines, then add a short "Visual Direction:" line for that slide. Slide 1 must be a cover with a strong hook of 10 words or fewer and a subtitle if needed. Slides 2 through the next-to-last slide must teach one idea only, use 3 to 5 bullets maximum, and keep each bullet under 10 words. The final slide must reinforce value and include a CTA such as follow, save, comment, or DM. Tone must be clear, sharp, slightly bold, and free of fluff. Design direction should feel premium, modern, minimal, editorial, and AI-tech oriented with clean composition, no people, no logos, no readable text inside images, and strong 1:1 carousel aesthetics. Include one Instagram Caption section at the end with a publish-ready caption and hashtags. table_of_contents should contain slide titles only for internal structure. The system currently generates one image only, so image_brief and image_prompt must describe the main cover / visual system for the carousel, while the per-slide visual directions live inside post_text. Do not write a blog article, long paragraphs, FAQ sections, citations, internal links, external links, recommended topics, or generic advice.';
+
     public function fieldOptions(): array
     {
         return [
@@ -118,6 +120,7 @@ class TemplateManager
                 'realistic technical workspace' => 'Realistic technical workspace',
                 'realistic case-study scene' => 'Realistic case-study scene',
                 'realistic portrait-style scene' => 'Realistic portrait-style scene',
+                'consistent branded carousel cover' => 'Consistent branded carousel cover',
             ],
             'cta_style' => [
                 'soft consultation CTA' => 'Soft consultation CTA',
@@ -129,6 +132,11 @@ class TemplateManager
                 'no CTA' => 'No CTA',
             ],
         ];
+    }
+
+    public function instagramCarouselInstructions(): string
+    {
+        return self::INSTAGRAM_CAROUSEL_INSTRUCTIONS;
     }
 
     public function defaults(): array
@@ -297,7 +305,7 @@ class TemplateManager
                 'goal' => 'build authority and start conversations',
                 'research_mode' => 'use only supplied brand/site context',
                 'citation_count' => 0,
-                'internal_link_count' => 1,
+                'internal_link_count' => 0,
                 'external_link_count' => 0,
                 'schema_type' => 'None',
                 'image_style' => 'realistic portrait-style scene',
@@ -338,9 +346,9 @@ class TemplateManager
                 'internal_link_count' => 1,
                 'external_link_count' => 0,
                 'schema_type' => 'None',
-                'image_style' => 'realistic workplace scene',
+                'image_style' => 'consistent branded carousel cover',
                 'cta_style' => 'conversation starter',
-                'prompt_instructions' => 'Create an Instagram carousel package with slide-by-slide copy, caption, hashtags/keywords, CTA, and a realistic image prompt.',
+                'prompt_instructions' => self::INSTAGRAM_CAROUSEL_INSTRUCTIONS,
                 'is_default' => 0,
             ],
             [
@@ -456,6 +464,21 @@ class TemplateManager
             ->result_array();
     }
 
+    public function forPage(string $page = 'general'): array
+    {
+        $page = strtolower(trim($page));
+
+        return array_values(array_filter($this->all(), function (array $template) use ($page): bool {
+            $isInstagram = $this->isInstagramCarousel($template);
+
+            if ($page === 'instagram') {
+                return $isInstagram;
+            }
+
+            return ! $isInstagram;
+        }));
+    }
+
     public function options(bool $includeEmpty = true): array
     {
         $options = $includeEmpty ? [0 => 'No template'] : [];
@@ -465,6 +488,161 @@ class TemplateManager
         }
 
         return $options;
+    }
+
+    public function optionsForPage(string $page = 'general', bool $includeEmpty = true): array
+    {
+        $options = $includeEmpty ? [0 => 'No template'] : [];
+
+        foreach ($this->forPage($page) as $template) {
+            $options[(int) $template['id']] = (string) $template['title'];
+        }
+
+        return $options;
+    }
+
+    public function metaById(): array
+    {
+        $meta = [];
+        foreach ($this->all() as $template) {
+            $meta[(int) $template['id']] = [
+                'title' => (string) ($template['title'] ?? ''),
+                'platform' => (string) ($template['platform'] ?? ''),
+                'content_type' => (string) ($template['content_type'] ?? ''),
+            ];
+        }
+
+        return $meta;
+    }
+
+    public function metaByPage(string $page = 'general'): array
+    {
+        $meta = [];
+        foreach ($this->forPage($page) as $template) {
+            $meta[(int) $template['id']] = [
+                'title' => (string) ($template['title'] ?? ''),
+                'platform' => (string) ($template['platform'] ?? ''),
+                'content_type' => (string) ($template['content_type'] ?? ''),
+            ];
+        }
+
+        return $meta;
+    }
+
+    public function starterPresetsById(): array
+    {
+        $presets = [];
+        foreach ($this->all() as $template) {
+            $presets[(int) $template['id']] = $this->starterPresetsFor($template);
+        }
+
+        return $presets;
+    }
+
+    public function starterPresetsByPage(string $page = 'general'): array
+    {
+        $presets = [];
+        foreach ($this->forPage($page) as $template) {
+            $presets[(int) $template['id']] = $this->starterPresetsFor($template);
+        }
+
+        return $presets;
+    }
+
+    public function findByTitle(string $title): ?array
+    {
+        $title = trim($title);
+        if ($title === '') {
+            return null;
+        }
+
+        foreach ($this->all() as $template) {
+            if (trim((string) ($template['title'] ?? '')) === $title) {
+                return $template;
+            }
+        }
+
+        return null;
+    }
+
+    public function instagramCarouselTemplate(): ?array
+    {
+        return $this->findByTitle('Instagram Carousel');
+    }
+
+    private function starterPresetsFor(array $template): array
+    {
+        $title = strtolower((string) ($template['title'] ?? ''));
+        $platform = strtolower((string) ($template['platform'] ?? ''));
+        $type = (string) ($template['content_type'] ?? '');
+
+        if ($platform === 'instagram' || str_contains($title, 'instagram carousel')) {
+            return [
+                [
+                    'label' => 'AI visibility carousel',
+                    'prompt' => "Create an Instagram carousel for business owners, founders, and marketing teams.\n\nTopic: Why traditional SEO is not enough anymore, and how businesses can prepare their website/content to show up in Google, AI search, and answer engines.\n\nStructure it as 7 slides:\n1. Hook/problem\n2. What changed in search\n3. Why AI visibility matters\n4. What businesses usually miss\n5. A simple framework\n6. Quick action checklist\n7. Soft CTA to work with Javid Fazaeli\n\nTone: confident, helpful, concise, not hypey. Include short slide titles, punchy slide copy, a caption, hashtags, and a soft CTA.",
+                    'image_brief' => 'Premium dark editorial Instagram carousel cover with charcoal background, muted sage green accents, subtle grid lines, abstract search/AI signal visuals, small glowing nodes connected like a knowledge graph, modern professional tech aesthetic, no people, no logos, no clutter, square 1:1 format.',
+                ],
+                [
+                    'label' => 'Website mistakes carousel',
+                    'prompt' => "Create an Instagram carousel for local businesses and service providers.\n\nTopic: 6 website mistakes that make a business harder to find, trust, and contact.\n\nStructure it as 7 slides: hook, mistake 1, mistake 2, mistake 3, mistake 4, mistake 5/6, CTA. Keep each slide short and practical. Include a caption, hashtags, and a question CTA.",
+                    'image_brief' => 'Clean premium website audit visual, dark charcoal workspace, subtle sage highlights, realistic laptop/tablet with abstract blurred website interface shapes, checklist mood without readable text, no people, no logos, square 1:1.',
+                ],
+                [
+                    'label' => 'Before/after clarity carousel',
+                    'prompt' => "Create an Instagram carousel for founders and marketing teams.\n\nTopic: Before and after: turning vague website copy into clear content that helps buyers and search engines understand your business.\n\nUse 6-7 slides with very concise teaching points, one practical example, caption, hashtags, and a soft CTA for a website/content review.",
+                    'image_brief' => 'Minimal premium split-mood composition showing messy abstract content blocks becoming organized structured signals, charcoal background, sage accent lines, realistic glass screen reflections, no readable text, no logos, square 1:1.',
+                ],
+            ];
+        }
+
+        if (str_contains($title, 'linkedin') || $platform === 'linkedin') {
+            return [
+                [
+                    'label' => 'Founder insight',
+                    'prompt' => 'Create a LinkedIn authority post about [topic] for founders and marketing teams. Use a practical hook, one clear lesson, one concrete example, and a conversation-starting CTA.',
+                    'image_brief' => 'Realistic founder/workspace editorial image, calm professional mood, laptop and notes, natural light, no visible text, no logos.',
+                ],
+                [
+                    'label' => 'Practical lesson',
+                    'prompt' => 'Create a concise LinkedIn post about a common mistake businesses make with [topic]. Explain the mistake, why it matters, a better approach, and a soft question CTA.',
+                    'image_brief' => 'Clean realistic consulting workspace scene, subtle tech details, neutral professional lighting, no text, no logos.',
+                ],
+            ];
+        }
+
+        if (str_contains($title, 'x thread') || $platform === 'x / twitter') {
+            return [
+                [
+                    'label' => 'Tactical thread',
+                    'prompt' => 'Create an X thread about [topic] for founders and marketing teams. Include a strong first post, 6-8 short posts, practical examples, and a final CTA.',
+                    'image_brief' => 'Realistic dark tech workspace image with subtle interface reflections, concise social media mood, no text, no logos.',
+                ],
+            ];
+        }
+
+        if ($type === 'seo_article' || $platform === 'website') {
+            return [
+                [
+                    'label' => 'SEO article',
+                    'prompt' => 'Create an SEO article about [topic] for [audience]. Include search intent, practical examples, related internal blog links when relevant, a matching blog category, and a soft consultation CTA.',
+                    'image_brief' => 'Realistic editorial blog hero image, professional workspace, natural light, clean composition, no visible text, no logos.',
+                ],
+                [
+                    'label' => 'Buyer guide',
+                    'prompt' => 'Create a buyer-focused guide about [topic]. Explain the problem, decision criteria, common mistakes, practical steps, FAQs, and a clear next step for working with Javid Fazaeli.',
+                    'image_brief' => 'Premium realistic consulting scene, desk with laptop and planning notes, calm confident mood, no text, no logos.',
+                ],
+            ];
+        }
+
+        return [
+            [
+                'label' => 'Default starter',
+                'prompt' => 'Create a content package about [topic] for [audience]. Keep it practical, clear, and aligned with the selected template. Include a soft CTA and relevant image direction.',
+                'image_brief' => 'Realistic professional editorial image, clean composition, modern tech/business mood, no visible text, no logos.',
+            ],
+        ];
     }
 
     public function find(int $id): ?array
@@ -564,13 +742,46 @@ class TemplateManager
             'Image style: ' . $template['image_style'],
             'CTA style: ' . $template['cta_style'],
             'Instructions: ' . $template['prompt_instructions'],
-            'Article structure: ' . $this->articleStructureFor($template),
+            $this->platformContractFor($template),
+            'Content structure: ' . $this->articleStructureFor($template),
             'Image generation requirements: image_prompt must describe a realistic, photorealistic scene. Do not create infographic, diagram, quote-card, vector, illustration, text-heavy, or branded graphic prompts unless the user explicitly asks for visible text.',
-            'Article body requirements: post_text must be the full publishable body in Markdown. Include one ## heading for each table_of_contents item, using the exact same heading text. Include actionable detail under each heading, not just a paragraph summary.',
+            $this->bodyRequirementsFor($template),
             'Internal link requirements: use only relative internal URLs beginning with /, or exact site URLs supplied by the user. Do not invent placeholder domains.',
         ];
 
         return implode("\n", array_filter($lines, fn($line) => trim($line) !== ''));
+    }
+
+    private function platformContractFor(array $template): string
+    {
+        if (! $this->isInstagramCarousel($template)) {
+            return '';
+        }
+
+        return 'Instagram carousel contract: Generate carousel-ready social content, not a blog post. post_text must contain at least 6 slide blocks plus an Instagram Caption block. Slide 1 is the cover hook. Each remaining slide should teach one idea only, stay short enough to fit on a designed Instagram slide, and use concise scannable bullets or support lines. Each slide block should also include one short "Visual Direction:" line for that slide. table_of_contents should contain slide titles only for internal structure. The system currently generates one image, so image_brief and image_prompt must describe a single square carousel cover / visual system, not separate images for every slide.';
+    }
+
+    private function bodyRequirementsFor(array $template): string
+    {
+        $type = (string) ($template['content_type'] ?? '');
+
+        if ($this->isInstagramCarousel($template)) {
+            return 'Instagram body requirements: post_text must be native carousel content, not a blog article. Use slide labels such as "Slide 1 - Cover", "Slide 2 - ...", and so on. Slide 1 should contain the main hook. Slides 2 to the final slide should each cover one idea with short, skimmable bullets or support lines. Every slide should also include a short "Visual Direction:" line describing that slide image. End with an "Instagram Caption" section. Keep table_of_contents as slide titles only for internal structure. Do not add SEO article sections, FAQ sections, citations, long Markdown essays, internal links, external links, or recommended follow-up topics.';
+        }
+
+        if ($type === 'social_post') {
+            return 'Social body requirements: post_text must be native social copy for the selected platform, not an SEO article. Keep table_of_contents as a short outline of the social post, thread, or carousel.';
+        }
+
+        return 'Article body requirements: post_text must be the full publishable body in Markdown. Include one ## heading for each table_of_contents item, using the exact same heading text. Include actionable detail under each heading, not just a paragraph summary.';
+    }
+
+    private function isInstagramCarousel(array $template): bool
+    {
+        $platform = strtolower((string) ($template['platform'] ?? ''));
+        $title = strtolower((string) ($template['title'] ?? ''));
+
+        return $platform === 'instagram' || str_contains($title, 'instagram carousel');
     }
 
     public function articleStructureFor(array $template): string

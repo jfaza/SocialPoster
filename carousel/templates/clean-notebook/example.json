@@ -1,0 +1,173 @@
+{
+  "slides": [
+    {
+      "type": "cover",
+      "tag": "Notes for developers",
+      "title": "AI tools for developers\nthat save real time",
+      "subtitle": "A clean notebook-style recap of practical tools for coding, shipping, and debugging faster.",
+      "side_label": "Today’s focus",
+      "side_note": "Beginner-friendly picks\nwith low setup friction",
+      "stats": [
+        {
+          "label": "Build faster",
+          "value": "Less context switching"
+        },
+        {
+          "label": "Ship cleaner",
+          "value": "More reusable workflows"
+        }
+      ],
+      "hero_label": "What this carousel covers",
+      "hero_text": "A lightweight map of the best AI-assisted workflows for devs — from IDE help to testing, docs, and issue triage.",
+      "takeaway_label": "Why it matters",
+      "takeaway_text": "The best tools feel like a calm second brain, not another noisy dashboard.",
+      "id": "slide-1",
+      "slide_num": 1,
+      "category": "",
+      "cta": "",
+      "cta_action": "",
+      "items": []
+    },
+    {
+      "type": "content",
+      "tag": "Workflow notes",
+      "title": "Use AI inside\nyour editor first",
+      "subtitle": "Start where you already write code so the tool fits naturally into your day.",
+      "panel_kicker": "Best place to begin",
+      "panel_meta": "Fast wins\nLow learning curve",
+      "items": [
+        {
+          "title": "Autocomplete that understands the file",
+          "body": "Helpful for boilerplate, refactors, and small fixes without leaving your editor."
+        },
+        {
+          "title": "Chat over the current project",
+          "body": "Great for asking about architecture, dependencies, and hidden side effects."
+        },
+        {
+          "title": "Generate test cases on demand",
+          "body": "Turn edge cases into unit tests before bugs make it to production."
+        }
+      ],
+      "id": "slide-2",
+      "slide_num": 2,
+      "category": "",
+      "cta": "",
+      "cta_action": ""
+    },
+    {
+      "type": "content",
+      "tag": "Debugging notes",
+      "title": "Let AI explain\nwhat broke",
+      "subtitle": "When something fails, use the model as a patient pair debugger instead of guessing.",
+      "panel_kicker": "Debugging stack",
+      "panel_meta": "Logs\nErrors\nHypotheses",
+      "items": [
+        {
+          "title": "Summarize stack traces",
+          "body": "Ask for a plain-English explanation of the likely root cause and next step."
+        },
+        {
+          "title": "Compare similar failures",
+          "body": "Feed multiple logs to spot patterns across environments or releases."
+        },
+        {
+          "title": "Draft a fix checklist",
+          "body": "Convert an error report into a short action list for you or your team."
+        },
+        {
+          "title": "Write reproduction steps",
+          "body": "Useful when you need to hand the issue to someone else."
+        }
+      ],
+      "id": "slide-3",
+      "slide_num": 3,
+      "category": "",
+      "cta": "",
+      "cta_action": ""
+    },
+    {
+      "type": "content",
+      "tag": "Shipping notes",
+      "title": "Automate the\nrepeatable parts",
+      "subtitle": "The biggest gains usually come from removing small, repetitive tasks.",
+      "panel_kicker": "Automation wins",
+      "panel_meta": "Docs\nChangelog\nQA",
+      "items": [
+        {
+          "title": "Release note drafts",
+          "body": "Summarize merged changes into a clear, publish-ready update."
+        },
+        {
+          "title": "Docs from code changes",
+          "body": "Keep README files and internal docs closer to the current implementation."
+        },
+        {
+          "title": "PR review assistants",
+          "body": "Catch missing tests, inconsistent naming, and risky patterns early."
+        }
+      ],
+      "id": "slide-4",
+      "slide_num": 4,
+      "category": "",
+      "cta": "",
+      "cta_action": ""
+    },
+    {
+      "type": "content",
+      "tag": "Team notes",
+      "title": "Use AI as a\ncollaboration layer",
+      "subtitle": "The most useful setups help the whole team move with less friction.",
+      "panel_kicker": "Team patterns",
+      "panel_meta": "Shared prompts\nTemplates\nConsistency",
+      "items": [
+        {
+          "title": "Shared prompt snippets",
+          "body": "Create a common format for tickets, reviews, and incident follow-ups."
+        },
+        {
+          "title": "Decision summaries",
+          "body": "Turn long discussions into short, readable action records."
+        },
+        {
+          "title": "Onboarding helpers",
+          "body": "Give new teammates a faster path to understanding the codebase."
+        }
+      ],
+      "id": "slide-5",
+      "slide_num": 5,
+      "category": "",
+      "cta": "",
+      "cta_action": ""
+    },
+    {
+      "type": "outro",
+      "tag": "Next step",
+      "title": "Build a small AI stack\nthat your team actually uses",
+      "subtitle": "Pick one tool, make it part of one workflow, and keep the setup simple.",
+      "panel_kicker": "Takeaway",
+      "panel_meta": "ai.tools.daily.lab\nNotebook edition",
+      "cta_title": "Start with one repeatable pain point",
+      "cta_body": "Choose a task you do every week — debugging, testing, docs, or reviews — and automate only that first.",
+      "id": "slide-6",
+      "slide_num": 6,
+      "category": "",
+      "cta": "",
+      "cta_action": "",
+      "items": []
+    }
+  ],
+  "brand": "ai.tools.daily.lab",
+  "series": "Developer Edition",
+  "accent": "#C65A2E",
+  "template": "clean-notebook",
+  "style": "base",
+  "caption": "A carousel generated with the clean-notebook template.",
+  "hashtags": [
+    "#aitools",
+    "#artificialintelligence",
+    "#developers",
+    "#productivity",
+    "#tech"
+  ]
+}

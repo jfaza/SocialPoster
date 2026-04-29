@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>data-pulse</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { background: #F0F6FF; font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; color: #0D1B3E; }
+  body { display: flex; flex-direction: column; align-items: center; gap: 0; }
+
+  .slide {
+    width: 1080px;
+    height: 1080px;
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(145deg, #F0F6FF 0%, #E8F0FE 100%);
+    background-image:
+      radial-gradient(circle, rgba(37,99,235,0.12) 1px, transparent 1px),
+      linear-gradient(145deg, #F0F6FF 0%, #E8F0FE 100%);
+    background-size: 28px 28px, 100% 100%;
+  }
+
+  .orb {
+    position: absolute;
+    width: 360px;
+    height: 360px;
+    border-radius: 50%;
+    pointer-events: none;
+    filter: blur(48px);
+    z-index: 0;
+  }
+  .orb-a { background: radial-gradient(circle, rgba(14,165,233,0.32), transparent 70%); top: -120px; right: -100px; }
+  .orb-b { background: radial-gradient(circle, rgba(37,99,235,0.20), transparent 70%); bottom: -120px; left: -100px; width: 280px; height: 280px; }
+
+  /* COVER */
+  .cover { display: flex; }
+  .cover-left {
+    width: 486px;
+    height: 100%;
+    background: #0D1B3E;
+    padding: 64px 56px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    position: relative;
+    z-index: 1;
+    background-image: radial-gradient(circle, rgba(255,255,255,0.05) 1px, transparent 1px);
+    background-size: 28px 28px;
+  }
+  .cover-brand { color: #FFFFFF; font-size: 18px; font-weight: 700; letter-spacing: 0.04em; }
+  .cover-bar { width: 56px; height: 3px; background: #2563EB; margin-top: 14px; }
+  .cover-eyebrow { color: #2563EB; font-size: 13px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 18px; }
+  .cover-title { color: #FFFFFF; font-size: 68px; font-weight: 800; letter-spacing: -0.04em; line-height: 1.04; white-space: pre-line; word-break: break-word; max-width: 14ch; }
+  .cover-sub { color: #7DA4E8; font-size: 18px; font-weight: 400; line-height: 1.55; margin-top: 22px; max-width: 28ch; }
+  .cover-foot { color: #3A5A99; font-size: 13px; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 700; }
+
+  .cover-right {
+    flex: 1;
+    height: 100%;
+    padding: 64px 56px;
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  .live-card {
+    background: #FFFFFF;
+    border: 1px solid #C7D9F8;
+    border-radius: 24px;
+    padding: 32px;
+    box-shadow: 0 20px 60px rgba(13,27,62,0.06);
+  }
+  .live-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
+  .live-label { font-size: 13px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: #2563EB; }
+  .live-dot { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #5A6E99; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; }
+  .live-dot::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: #0EA5E9; box-shadow: 0 0 12px #0EA5E9; }
+  .stat-box { padding: 18px 0; border-top: 1px solid #E1EAF7; }
+  .stat-box:first-of-type { border-top: none; padding-top: 0; }
+  .stat-label { font-size: 13px; color: #5A6E99; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; margin-bottom: 6px; }
+  .stat-val { font-size: 38px; color: #2563EB; font-weight: 800; letter-spacing: -0.03em; }
+
+  .pulse-bars { display: flex; align-items: flex-end; gap: 14px; height: 200px; padding: 16px 0; }
+  .pulse-bars div { flex: 1; border-radius: 10px 10px 4px 4px; }
+  .pb1 { height: 40%; background: #BFD3FB; }
+  .pb2 { height: 70%; background: #2563EB; }
+  .pb3 { height: 95%; background: #0EA5E9; box-shadow: 0 0 24px rgba(14,165,233,0.4); }
+  .pb4 { height: 55%; background: #2563EB; }
+  .pb5 { height: 80%; background: #7DA4E8; }
+
+  /* CONTENT */
+  .content { display: flex; flex-direction: column; position: relative; }
+  .header-band {
+    height: 64px;
+    background: #0D1B3E;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 48px;
+    position: relative;
+    z-index: 2;
+  }
+  .header-brand { color: #FFFFFF; font-size: 14px; font-weight: 700; letter-spacing: 0.04em; }
+  .header-meta { display: flex; align-items: center; gap: 16px; }
+  .header-cat { color: #2563EB; font-size: 12px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; }
+  .header-num { color: #FFFFFF; font-size: 14px; font-weight: 700; background: rgba(37,99,235,0.25); padding: 6px 12px; border-radius: 999px; letter-spacing: 0.04em; }
+
+  .content-body { flex: 1; padding: 40px 56px 44px; position: relative; z-index: 1; display: flex; flex-direction: column; }
+  .content-eyebrow { color: #2563EB; font-size: 13px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 14px; }
+  .content-title { color: #0D1B3E; font-size: 52px; font-weight: 800; letter-spacing: -0.04em; line-height: 1.05; white-space: pre-line; word-break: break-word; max-width: 18ch; margin-bottom: 20px; }
+  .content-title em { color: #2563EB; font-style: normal; }
+
+  .items-grid { display: grid; gap: 16px; flex: 1; align-content: stretch; min-height: 0; }
+  .grid-1 { grid-template-columns: 1fr; }
+  .grid-2 { grid-template-columns: 1fr 1fr; }
+  .grid-3 { grid-template-columns: 1fr 1fr 1fr; }
+  .grid-4 { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; }
+  .grid-5 { grid-template-columns: 1fr 1fr 1fr; grid-template-rows: 1fr 1fr; }
+
+  .item-card {
+    background: #FFFFFF;
+    border: 1px solid #C7D9F8;
+    border-left: 3px solid #2563EB;
+    border-radius: 20px;
+    padding: 24px 24px 26px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    box-shadow: 0 8px 24px rgba(13,27,62,0.04);
+    min-height: 0;
+    height: 100%;
+  }
+  .item-tag { font-size: 11px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: #0EA5E9; }
+  .item-title { font-size: 20px; font-weight: 700; color: #0D1B3E; letter-spacing: -0.02em; line-height: 1.25; }
+  .item-text { font-size: 15px; font-weight: 400; color: #5A6E99; line-height: 1.55; }
+
+  .item-card.wide { display: grid; grid-template-columns: 240px 1fr; gap: 32px; align-items: center; padding: 32px; }
+  .item-card.wide .item-title { font-size: 28px; }
+  .item-card.wide .item-text { font-size: 17px; }
+
+  .watermark {
+    position: absolute;
+    right: 44px;
+    bottom: 10px;
+    font-size: 180px;
+    font-weight: 800;
+    color: rgba(37,99,235,0.06);
+    letter-spacing: -0.06em;
+    line-height: 1;
+    z-index: 0;
+    pointer-events: none;
+  }
+
+  .cta-band {
+    margin-top: 24px;
+    padding: 16px 22px;
+    background: rgba(37,99,235,0.10);
+    border-radius: 14px;
+    color: #2563EB;
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    display: inline-flex;
+    align-self: flex-start;
+    align-items: center;
+    gap: 10px;
+  }
+  .cta-band::before { content: '→'; font-weight: 800; }
+
+  /* OUTRO */
+  .outro {
+    background: #0D1B3E;
+    background-image: radial-gradient(circle, rgba(255,255,255,0.04) 1px, transparent 1px);
+    background-size: 28px 28px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 80px;
+    position: relative;
+    text-align: center;
+  }
+  .outro-orb {
+    position: absolute;
+    width: 520px; height: 520px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(37,99,235,0.55), transparent 70%);
+    filter: blur(80px);
+    opacity: 0.5;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 0;
+  }
+  .outro-eyebrow { color: #2563EB; font-size: 13px; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; margin-bottom: 24px; position: relative; z-index: 1; }
+  .outro-title { color: #FFFFFF; font-size: 64px; font-weight: 800; letter-spacing: -0.04em; line-height: 1.08; max-width: 16ch; white-space: pre-line; word-break: break-word; position: relative; z-index: 1; }
+  .outro-sub { color: #7DA4E8; font-size: 22px; font-weight: 400; line-height: 1.5; margin-top: 28px; max-width: 32ch; position: relative; z-index: 1; }
+  .outro-cta {
+    margin-top: 48px;
+    background: #2563EB;
+    color: #FFFFFF;
+    border-radius: 999px;
+    padding: 18px 36px;
+    font-size: 17px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    box-shadow: 0 0 32px rgba(37,99,235,0.5);
+    position: relative; z-index: 1;
+    display: inline-flex; align-items: center; gap: 12px;
+  }
+  .outro-cta::after { content: '→'; }
+  .outro-brand { position: absolute; bottom: 56px; color: #3A5A99; font-size: 14px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; z-index: 1; }
+
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+function getDataUrl() {
+  const params = new URLSearchParams(window.location.search);
+  return params.get("data") || "./example.json";
+}
+function cleanText(value) {
+  return typeof value === "string" ? value.replace(/\\n/g, "\n") : (value || "");
+}
+function esc(s) {
+  return String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+
+function renderCover(s, data) {
+  const itemsHtml = s.items && s.items.length
+    ? s.items.slice(0,3).map(it => `
+        <div class="stat-box">
+          <div class="stat-label">${esc(cleanText(it.title))}</div>
+          <div class="stat-val">${esc(cleanText(it.text))}</div>
+        </div>`).join("")
+    : `<div class="pulse-bars">
+         <div class="pb1"></div><div class="pb2"></div><div class="pb3"></div><div class="pb4"></div><div class="pb5"></div>
+       </div>`;
+
+  const subHtml = s.subtitle ? `<div class="cover-sub">${esc(cleanText(s.subtitle))}</div>` : "";
+  const ctaHtml = s.cta ? `<div class="cover-foot">${esc(cleanText(s.cta))}</div>` : `<div class="cover-foot">${esc(data.brand || "")}</div>`;
+
+  return `
+    <div class="slide cover">
+      <div class="orb orb-a"></div>
+      <div class="cover-left">
+        <div>
+          <div class="cover-brand">${esc(data.brand || "")}</div>
+          <div class="cover-bar"></div>
+        </div>
+        <div>
+          <div class="cover-eyebrow">${esc(cleanText(s.category || ""))}</div>
+          <div class="cover-title">${esc(cleanText(s.title || ""))}</div>
+          ${subHtml}
+        </div>
+        ${ctaHtml}
+      </div>
+      <div class="cover-right">
+        <div class="live-card">
+          <div class="live-head">
+            <div class="live-label">Live Signal</div>
+            <div class="live-dot">Online</div>
+          </div>
+          ${itemsHtml}
+        </div>
+      </div>
+    </div>`;
+}
+
+function renderContent(s, data, i) {
+  const num = String(s.slide_num || i + 1).padStart(2, "0");
+  const items = s.items || [];
+  const count = items.length;
+  let gridClass = "grid-3";
+  if (count === 1) gridClass = "grid-1";
+  else if (count === 2) gridClass = "grid-2";
+  else if (count === 3) gridClass = "grid-3";
+  else if (count === 4) gridClass = "grid-4";
+  else if (count >= 5) gridClass = "grid-5";
+
+  const itemsHtml = count
+    ? `<div class="items-grid ${gridClass}">${items.map((it, idx) => {
+        const tag = String(idx + 1).padStart(2, "0");
+        const wide = count === 1 ? " wide" : "";
+        const inner = count === 1
+          ? `<div><div class="item-tag">Module ${tag}</div><div class="item-title">${esc(cleanText(it.title))}</div></div>
+             <div class="item-text">${esc(cleanText(it.text))}</div>`
+          : `<div class="item-tag">${tag}</div>
+             <div class="item-title">${esc(cleanText(it.title))}</div>
+             <div class="item-text">${esc(cleanText(it.text))}</div>`;
+        return `<div class="item-card${wide}">${inner}</div>`;
+      }).join("")}</div>`
+    : "";
+
+  const subHtml = s.subtitle ? `<div class="content-eyebrow">${esc(cleanText(s.subtitle))}</div>` : `<div class="content-eyebrow">${esc(cleanText(s.category || ""))}</div>`;
+  const ctaHtml = s.cta ? `<div class="cta-band">${esc(cleanText(s.cta))}</div>` : "";
+
+  return `
+    <div class="slide content">
+      <div class="orb orb-a"></div>
+      <div class="orb orb-b"></div>
+      <div class="header-band">
+        <div class="header-brand">${esc(data.brand || "")}</div>
+        <div class="header-meta">
+          <div class="header-cat">${esc(cleanText(s.category || ""))}</div>
+          <div class="header-num">${num} / 06</div>
+        </div>
+      </div>
+      <div class="content-body">
+        ${subHtml}
+        <div class="content-title">${esc(cleanText(s.title || ""))}</div>
+        ${itemsHtml}
+        ${ctaHtml}
+      </div>
+      <div class="watermark">${num}</div>
+    </div>`;
+}
+
+function renderOutro(s, data) {
+  const subHtml = s.subtitle ? `<div class="outro-sub">${esc(cleanText(s.subtitle))}</div>` : "";
+  const ctaHtml = s.cta ? `<div class="outro-cta">${esc(cleanText(s.cta))}</div>` : "";
+  return `
+    <div class="slide outro">
+      <div class="outro-orb"></div>
+      <div class="outro-eyebrow">${esc(cleanText(s.category || "End of Signal"))}</div>
+      <div class="outro-title">${esc(cleanText(s.title || ""))}</div>
+      ${subHtml}
+      ${ctaHtml}
+      <div class="outro-brand">${esc(data.brand || "")}</div>
+    </div>`;
+}
+
+async function load() {
+  const url = getDataUrl();
+  const res = await fetch(url);
+  const data = await res.json();
+  const slides = data.slides || [];
+  const root = document.getElementById("root");
+  root.innerHTML = slides.map((s, i) => {
+    if (s.type === "cover") return renderCover(s, data);
+    if (s.type === "outro") return renderOutro(s, data);
+    return renderContent(s, data, i);
+  }).join("");
+}
+load();
+</script>
+</body>
+</html>

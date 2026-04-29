@@ -84,6 +84,7 @@ class Templates extends AbstractRoute
             'editing' => $editing,
             'editor_active' => $editorActive,
             'field_options' => $templates->fieldOptions(),
+            'instagram_carousel_instructions' => $templates->instagramCarouselInstructions(),
         ]);
 
         return $this;

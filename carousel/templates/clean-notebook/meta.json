@@ -1,0 +1,27 @@
+{
+  "name": "clean-notebook",
+  "description": "A light notebook-style Instagram carousel template for beginner-friendly developer education about AI tools. Minimal, airy, and easy to scan.",
+  "style": [
+    "light notebook",
+    "soft editorial",
+    "clean developer UI",
+    "minimal cards"
+  ],
+  "best_for": [
+    "AI tools tutorials",
+    "developer education",
+    "workflow breakdowns",
+    "beginner-friendly explainers"
+  ],
+  "density": "medium",
+  "tone": "calm",
+  "tags": [
+    "instagram carousel",
+    "notebook",
+    "developer",
+    "ai tools",
+    "light",
+    "clean",
+    "education"
+  ]
+}

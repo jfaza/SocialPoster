@@ -48,8 +48,8 @@ update flow from ExpressionEngine.
 
 ## Configuration
 
-Open the SocialPoster settings screen in the ExpressionEngine control panel and
-configure:
+Open the SocialPoster OpenAI Settings screen in the ExpressionEngine control
+panel and configure:
 
 - OpenAI API key
 - Text model, including `gpt-5.4` and `gpt-5.4-mini`
@@ -57,7 +57,23 @@ configure:
 - Image size
 - Image quality
 
-The API key is encrypted before it is stored.
+Open the SocialPoster Instagram screen to configure Instagram API values that
+match Meta's professional publishing flow:
+
+- Meta App ID and App Secret
+- Graph API version
+- Facebook Page ID linked to the Instagram Professional account
+- Instagram Professional Account ID / IG User ID
+- User access token with `instagram_basic`, `instagram_content_publish`, and
+  `pages_read_engagement`
+
+Meta's publishing flow also expects the app user to have `MANAGE` or
+`CREATE_CONTENT` task access on the linked Facebook Page. The add-on currently
+stores the Professional account ID in the legacy
+`instagram_business_account_id` setting key, but the UI now labels it according
+to Meta's current terminology.
+
+API keys, app secrets, and access tokens are encrypted before they are stored.
 
 ## Scheduling
 

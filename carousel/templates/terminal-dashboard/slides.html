@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>terminal-dashboard</title>
+  <style>
+    :root{
+      --bg:#FAFAF8;
+      --panel:#ffffff;
+      --text:#1D1B18;
+      --muted:#6E665F;
+      --line:#E7E1DB;
+      --accent:#C65A2E;
+      --accent-soft:#F5D6C8;
+      --shadow:0 18px 40px rgba(29,27,24,.08);
+    }
+    *{box-sizing:border-box;}
+    html,body{margin:0;padding:0;background:var(--bg);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;color:var(--text);}
+    body{overflow-x:hidden;}
+    .slides{width:1080px;margin:0 auto;}
+    .slide{
+      width:1080px;
+      height:1080px;
+      position:relative;
+      overflow:hidden;
+      background:
+        radial-gradient(circle at 16% 18%, rgba(198,90,46,.08), transparent 24%),
+        radial-gradient(circle at 86% 12%, rgba(198,90,46,.06), transparent 18%),
+        linear-gradient(180deg, #FCFCFA 0%, #FAFAF8 100%);
+      border-bottom:1px solid var(--line);
+      padding:64px;
+    }
+    .topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:44px;}
+    .brand{display:flex;align-items:center;gap:14px;font-size:20px;font-weight:700;letter-spacing:.2px;}
+    .mark{width:18px;height:18px;border-radius:6px;background:var(--accent);box-shadow:0 0 0 6px rgba(198,90,46,.12);} 
+    .chip{display:inline-flex;align-items:center;gap:10px;padding:10px 14px;border:1px solid var(--line);background:rgba(255,255,255,.72);border-radius:999px;color:var(--muted);font-size:16px;}
+    .grid{display:grid;grid-template-columns: 1.05fr .95fr;gap:28px;height: calc(100% - 108px);}
+    .panel{background:rgba(255,255,255,.86);border:1px solid var(--line);border-radius:28px;box-shadow:var(--shadow);overflow:hidden;}
+    .panel.pad{padding:34px;}
+    .eyebrow{color:var(--accent);font-size:18px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;margin-bottom:18px;}
+    h1,h2,h3,p{margin:0;white-space:pre-line;}
+    .title{font-size:68px;line-height:1.02;letter-spacing:-.04em;font-weight:800;max-width:10ch;}
+    .subtitle{margin-top:20px;font-size:24px;line-height:1.45;color:var(--muted);max-width:33ch;}
+    .meta-row{display:flex;gap:12px;flex-wrap:wrap;margin-top:28px;}
+    .stat{padding:14px 16px;border-radius:18px;background:#fff;border:1px solid var(--line);font-size:15px;color:var(--muted);}
+    .stat strong{display:block;color:var(--text);font-size:18px;margin-bottom:4px;}
+    .terminal{height:100%;background:#11110F;color:#F5F2EE;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;display:flex;flex-direction:column;}
+    .terminal .bar{display:flex;align-items:center;justify-content:space-between;padding:18px 22px;border-bottom:1px solid rgba(255,255,255,.08);background:#171614;}
+    .dots{display:flex;gap:8px;}
+    .dots span{width:12px;height:12px;border-radius:50%;background:#3A3734;}
+    .dots span:nth-child(1){background:#E46B4A;}
+    .dots span:nth-child(2){background:#D9B15F;}
+    .dots span:nth-child(3){background:#4BB36F;}
+    .cmd{padding:22px 24px 0;font-size:15px;line-height:1.7;color:#D8D2CC;}
+    .cmd .accent{color:#F08E65;}
+    .blocks{padding:22px;display:grid;grid-template-columns:1fr;gap:14px;}
+    .block{border-radius:20px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.03);padding:18px 18px 16px;}
+    .block h3{font-size:18px;line-height:1.3;margin-bottom:10px;color:#FFF6F1;}
+    .block p{font-size:14px;line-height:1.55;color:#BDB5AE;}
+    .items{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:18px;}
+    .item{padding:18px;border-radius:22px;background:#fff;border:1px solid var(--line);min-height:132px;}
+    .item .num{font-size:14px;font-weight:700;color:var(--accent);margin-bottom:10px;}
+    .item h4{font-size:24px;line-height:1.15;margin-bottom:8px;letter-spacing:-.03em;}
+    .item p{font-size:16px;line-height:1.5;color:var(--muted);}
+    .footer{position:absolute;left:64px;right:64px;bottom:50px;display:flex;justify-content:space-between;align-items:center;color:var(--muted);font-size:16px;}
+    .cta{padding:16px 22px;border-radius:999px;background:var(--accent);color:#fff;font-weight:700;box-shadow:0 12px 26px rgba(198,90,46,.22);}
+    .list{display:grid;gap:16px;margin-top:18px;}
+    .list .row{display:grid;grid-template-columns:72px 1fr;gap:16px;align-items:start;padding:18px;border-radius:22px;background:#fff;border:1px solid var(--line);}
+    .badge{width:72px;height:72px;border-radius:22px;background:linear-gradient(180deg, rgba(198,90,46,.16), rgba(198,90,46,.06));display:flex;align-items:center;justify-content:center;color:var(--accent);font-weight:800;font-size:24px;}
+    .row h4{font-size:23px;line-height:1.12;margin-bottom:6px;}
+    .row p{font-size:16px;line-height:1.5;color:var(--muted);}
+    .outro-box{display:flex;flex-direction:column;justify-content:space-between;height:100%;padding:38px;}
+    .big-call{font-size:58px;line-height:1.04;letter-spacing:-.04em;font-weight:800;max-width:11ch;}
+    .support{font-size:23px;line-height:1.5;color:var(--muted);max-width:24ch;margin-top:18px;}
+    .mini-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:26px;}
+    .mini{padding:20px;border-radius:22px;background:#fff;border:1px solid var(--line);}
+    .mini strong{display:block;font-size:18px;margin-bottom:6px;}
+    .mini span{font-size:15px;line-height:1.45;color:var(--muted);}
+  </style>
+</head>
+<body>
+  <div class="slides" id="app"></div>
+  <script>
+    function getDataUrl() {
+      const params = new URLSearchParams(window.location.search);
+      return params.get("data") || "./example.json";
+    }
+    function cleanText(v) {
+      return typeof v === "string" ? v.replace(/\\n/g, "\n") : (v ?? "");
+    }
+    function esc(s) { return String(s ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+
+    function renderCover(s, data, slides) {
+      const items = s.items || [];
+      const statCards = items.length
+        ? `<div class="meta-row">${items.slice(0,3).map(it => `<div class="stat"><strong>${esc(cleanText(it.title))}</strong>${esc(cleanText(it.text))}</div>`).join('')}</div>`
+        : '';
+      const terminalBody = items.length
+        ? `<div class="cmd"><span class="accent">$</span> ${esc(cleanText(s.subtitle))}</div><div class="blocks">${items.map(it => `<div class="block"><h3>${esc(cleanText(it.title))}</h3><p>${esc(cleanText(it.text))}</p></div>`).join('')}</div>`
+        : `<div class="cmd"><div><span class="accent">$</span> init ${esc(cleanText(s.category || 'pipeline'))}</div><br>${cleanText(s.title).split('\n').map(l => `<div><span class="accent">&gt;</span> ${esc(l)}</div>`).join('')}<br><div style="color:#6E665F"># ${esc(cleanText(s.subtitle))}</div></div>`;
+      return `<section class="slide">
+        <div class="topbar"><div class="brand"><span class="mark"></span><span>${esc(data.brand||'ai.tools.daily.lab')}</span></div><div class="chip">${esc(cleanText(s.category||'AI tools'))}</div></div>
+        <div class="grid">
+          <div class="panel pad">
+            <div class="eyebrow">${esc(cleanText(s.category||'Featured Playbook'))}</div>
+            <h1 class="title">${esc(cleanText(s.title))}</h1>
+            <p class="subtitle">${esc(cleanText(s.subtitle))}</p>
+            ${statCards}
+          </div>
+          <div class="panel terminal">
+            <div class="bar"><div class="dots"><span></span><span></span><span></span></div><div>01</div></div>
+            ${terminalBody}
+          </div>
+        </div>
+        <div class="footer"><div>1 / ${slides.length}</div><div class="cta">${esc(cleanText(s.cta||'Save this carousel'))}</div></div>
+      </section>`;
+    }
+
+    function renderContent(s, i, data, slides) {
+      const items = s.items || [];
+      const num = String(s.slide_num || i + 1).padStart(2, '0');
+      const listRows = items.map((it, idx) => `<div class="row"><div class="badge">${idx+1}</div><div><h4>${esc(cleanText(it.title))}</h4><p>${esc(cleanText(it.text))}</p></div></div>`).join('');
+      // Right panel: big slide number + item titles only as a compact index (no content duplication)
+      const indexCards = items.map((it, idx) => `<div style="padding:16px 18px;border-radius:18px;background:#fff;border:1px solid var(--line);"><div style="font-size:13px;font-weight:700;color:var(--accent);letter-spacing:.1em;text-transform:uppercase;margin-bottom:4px;">${String(idx+1).padStart(2,'0')}</div><div style="font-size:21px;font-weight:700;line-height:1.2;letter-spacing:-.02em;">${esc(cleanText(it.title))}</div></div>`).join('');
+      return `<section class="slide">
+        <div class="topbar"><div class="brand"><span class="mark"></span><span>${esc(data.brand||'ai.tools.daily.lab')}</span></div><div class="chip">${esc(cleanText(s.category||'AI tools'))}</div></div>
+        <div class="grid">
+          <div class="panel pad">
+            <div class="eyebrow">${esc(cleanText(s.category||'Workflow'))}</div>
+            <h2 class="title" style="font-size:54px;max-width:13ch;">${esc(cleanText(s.title))}</h2>
+            ${s.subtitle ? `<p class="subtitle">${esc(cleanText(s.subtitle))}</p>` : ''}
+            <div class="list">${listRows}</div>
+          </div>
+          <div class="panel pad" style="display:flex;flex-direction:column;justify-content:space-between;">
+            <div>
+              <div style="font-size:64px;font-weight:800;letter-spacing:-.04em;color:var(--accent);line-height:1;">${esc(num)}</div>
+              <div style="font-size:20px;font-weight:700;margin-top:10px;color:var(--muted);">${esc(cleanText(s.category))}</div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:12px;">${indexCards}</div>
+          </div>
+        </div>
+        <div class="footer"><div>${esc(num)} / ${slides.length}</div><div class="cta">${esc(cleanText(s.cta||'Save this carousel'))}</div></div>
+      </section>`;
+    }
+
+    function renderOutro(s, i, data, slides) {
+      const items = s.items || [];
+      const miniGrid = items.length
+        ? `<div class="mini-grid">${items.slice(0,4).map(it => `<div class="mini"><strong>${esc(cleanText(it.title))}</strong><span>${esc(cleanText(it.text))}</span></div>`).join('')}</div>`
+        : '';
+      const justify = items.length ? 'justify-content:space-between' : 'justify-content:center;align-items:center;text-align:center';
+      return `<section class="slide">
+        <div class="topbar"><div class="brand"><span class="mark"></span><span>${esc(data.brand||'ai.tools.daily.lab')}</span></div><div class="chip">${esc(cleanText(s.category||'AI tools'))}</div></div>
+        <div class="panel outro-box" style="${justify}">
+          <div>
+            <div class="eyebrow">${esc(cleanText(s.category||'Next steps'))}</div>
+            <div class="big-call">${esc(cleanText(s.title))}</div>
+            <div class="support">${esc(cleanText(s.subtitle))}</div>
+          </div>
+          ${miniGrid ? `<div>${miniGrid}</div>` : ''}
+        </div>
+        <div class="footer"><div>6 / ${slides.length}</div><div class="cta">${esc(cleanText(s.cta||'Save this carousel'))}</div></div>
+      </section>`;
+    }
+
+    function render(data) {
+      const slides = data.slides || [];
+      document.getElementById('app').innerHTML = slides.map((s, i) => {
+        if (s.type === 'cover') return renderCover(s, data, slides);
+        if (s.type === 'outro') return renderOutro(s, i, data, slides);
+        return renderContent(s, i, data, slides);
+      }).join('');
+    }
+    fetch(getDataUrl()).then(r => r.json()).then(render).catch(() => render({slides:[]}));
+  </script>
+</body>
+</html>

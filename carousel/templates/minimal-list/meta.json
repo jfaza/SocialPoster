@@ -1,0 +1,21 @@
+{
+  "name": "minimal-list",
+  "description": "Clean white/orange list layout for educational breakdowns",
+  "style": [
+    "base",
+    "educational",
+    "clean"
+  ],
+  "best_for": [
+    "tools",
+    "lists",
+    "breakdowns"
+  ],
+  "density": "medium",
+  "tone": "practical",
+  "tags": [
+    "minimal",
+    "list",
+    "saas"
+  ]
+}

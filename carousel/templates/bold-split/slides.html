@@ -1,0 +1,200 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>bold-split</title>
+  <style>
+    :root {
+      --orange: #C65A2E;
+      --charcoal: #1A1A1A;
+      --paper: #FFFFFF;
+      --ink: #101010;
+      --muted: #5C5C5C;
+      --line: #E8E8E8;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; background: #f3f3f3; font-family: Inter, Arial, Helvetica, sans-serif; }
+    body { overflow-y: auto; }
+    .slide {
+      width: 1080px;
+      height: 1080px;
+      position: relative;
+      overflow: hidden;
+      background: var(--paper);
+      display: flex;
+      border-bottom: 1px solid #ddd;
+    }
+    .left {
+      width: 40%;
+      height: 100%;
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 56px 44px;
+    }
+    .left.orange { background: var(--orange); }
+    .left.charcoal { background: var(--charcoal); }
+    .brand {
+      font-size: 24px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      line-height: 1.1;
+      opacity: 0.98;
+      white-space: pre-line;
+    }
+    .bigmark {
+      font-size: 132px;
+      line-height: 0.9;
+      font-weight: 800;
+      letter-spacing: -0.05em;
+      white-space: pre-line;
+      word-break: break-word;
+    }
+    .smallmark {
+      font-size: 28px;
+      line-height: 1.15;
+      font-weight: 700;
+      white-space: pre-line;
+      max-width: 100%;
+    }
+    .right {
+      width: 60%;
+      height: 100%;
+      background: #fff;
+      color: var(--ink);
+      padding: 62px 62px 56px 56px;
+      display: flex;
+      flex-direction: column;
+    }
+    .eyebrow {
+      font-size: 18px;
+      font-weight: 800;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--orange);
+      margin-bottom: 18px;
+    }
+    .title {
+      font-size: 60px;
+      line-height: 0.96;
+      font-weight: 800;
+      letter-spacing: -0.05em;
+      white-space: pre-line;
+      margin: 0 0 22px 0;
+    }
+    .subtitle {
+      font-size: 26px;
+      line-height: 1.35;
+      color: var(--muted);
+      white-space: pre-line;
+      margin-bottom: 28px;
+      max-width: 84%;
+    }
+    .items {
+      margin-top: 6px;
+      padding-top: 22px;
+      border-top: 2px solid var(--line);
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 18px;
+      flex: 1;
+    }
+    .item {
+      padding: 0 0 0 0;
+      font-size: 28px;
+      line-height: 1.22;
+      color: var(--ink);
+      white-space: pre-line;
+      font-weight: 600;
+    }
+    .item .label {
+      display: inline-block;
+      font-size: 16px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--orange);
+      margin-bottom: 6px;
+    }
+    .footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      gap: 18px;
+      border-top: 2px solid var(--line);
+      padding-top: 18px;
+      margin-top: 18px;
+      color: var(--muted);
+      font-size: 18px;
+      line-height: 1.35;
+      white-space: pre-line;
+    }
+    .cta {
+      font-size: 26px;
+      line-height: 1.15;
+      font-weight: 800;
+      color: var(--ink);
+      white-space: pre-line;
+    }
+    .mono {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+    }
+  </style>
+</head>
+<body>
+  <div id="app"></div>
+  <script>
+    function getDataUrl() {
+      const params = new URLSearchParams(window.location.search);
+      return params.get("data") || "./example.json";
+    }
+    function cleanText(value) {
+      return typeof value === "string" ? value.replace(/\\n/g, "\n") : (value || "");
+    }
+    function esc(text) {
+      return String(text)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/\"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
+    function renderSlide(s) {
+      const isAccent = s.type === "cover" || s.type === "outro";
+      const leftClass = isAccent ? "orange" : "charcoal";
+      const leftBig = s.leftBig || (s.slide_num ? String(s.slide_num).padStart(2, "0") : "01");
+      const items = (s.items || []).map((it, idx) => `
+        <div class="item">
+          <div class="label">${esc(cleanText(it.label || `Point ${idx + 1}`))}</div>
+          <div>${esc(cleanText(it.text))}</div>
+        </div>
+      `).join("");
+      return `
+        <section class="slide">
+          <div class="left ${leftClass}">
+            <div class="brand">${esc(cleanText(s.brand || "ai.tools.daily.lab"))}</div>
+            <div class="bigmark">${esc(cleanText(leftBig))}</div>
+            <div class="smallmark">${esc(cleanText(s.leftSmall || s.leftText || ""))}</div>
+          </div>
+          <div class="right">
+            <div class="eyebrow">${esc(cleanText(s.eyebrow || "AI TOOLS FOR DEVELOPERS"))}</div>
+            <h1 class="title">${esc(cleanText(s.title))}</h1>
+            <div class="subtitle">${esc(cleanText(s.subtitle || ""))}</div>
+            <div class="items">${items}</div>
+            <div class="footer">
+              <div>${esc(cleanText(s.footerLeft || ""))}</div>
+              <div class="cta">${esc(cleanText(s.cta || ""))}</div>
+            </div>
+          </div>
+        </section>
+      `;
+    }
+    fetch(getDataUrl()).then(r => r.json()).then(data => {
+      const slides = Array.isArray(data.slides) ? data.slides : [];
+      document.getElementById("app").innerHTML = slides.map(renderSlide).join("");
+    });
+  </script>
+</body>
+</html>

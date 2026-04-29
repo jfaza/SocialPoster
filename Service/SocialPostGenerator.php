@@ -6,13 +6,23 @@ class SocialPostGenerator
 {
     private const DEFAULT_TEXT_MODEL = 'gpt-5.4';
 
+    protected string $table = 'socialposter_generations';
+
     private OpenAiClient $openai;
     private ImageStorage $imageStorage;
+    private GdSlideRenderer $gdRenderer;
+    private IdeogramClient $ideogramClient;
 
-    public function __construct(?OpenAiClient $openai = null, ?ImageStorage $imageStorage = null)
-    {
-        $this->openai = $openai ?: new OpenAiClient();
-        $this->imageStorage = $imageStorage ?: new ImageStorage();
+    public function __construct(
+        ?OpenAiClient $openai = null,
+        ?ImageStorage $imageStorage = null,
+        ?GdSlideRenderer $gdRenderer = null,
+        ?IdeogramClient $ideogramClient = null
+    ) {
+        $this->openai         = $openai         ?: new OpenAiClient();
+        $this->imageStorage   = $imageStorage   ?: new ImageStorage();
+        $this->gdRenderer     = $gdRenderer     ?: new GdSlideRenderer();
+        $this->ideogramClient = $ideogramClient ?: new IdeogramClient();
     }
 
     public function defaultSettings(): array
@@ -21,19 +31,45 @@ class SocialPostGenerator
             'api_key' => '',
             'admin_api_key' => '',
             'openai_project_id' => '',
+            'anthropic_api_key' => '',
             'text_model' => self::DEFAULT_TEXT_MODEL,
             'image_model' => 'gpt-image-1.5',
             'image_size' => '1024x1024',
             'image_quality' => 'medium',
+            'carousel_slides' => '6',
+            'instagram_app_id' => '',
+            'instagram_app_secret' => '',
+            'instagram_ig_app_id' => '',
+            'instagram_ig_app_secret' => '',
+            'instagram_graph_version' => 'v24.0',
+            'instagram_page_id' => '',
+            'instagram_business_account_id' => '',
+            'instagram_access_token' => '',
+            'instagram_user_access_token' => '',
+            'instagram_cover_provider' => 'openai',
+            'instagram_slide_provider' => 'gd',
+            'ideogram_api_key' => '',
         ];
     }
 
     public function textModels(): array
     {
         return [
-            'gpt-5.4' => 'GPT-5.4',
-            'gpt-5.4-mini' => 'GPT-5.4 Mini',
+            'openai' => [
+                'gpt-5.4'      => 'GPT-5.4',
+                'gpt-5.4-mini' => 'GPT-5.4 Mini',
+            ],
+            'anthropic' => [
+                'claude-opus-4-7'          => 'Claude Opus 4.7',
+                'claude-sonnet-4-6'        => 'Claude Sonnet 4.6',
+                'claude-haiku-4-5-20251001'=> 'Claude Haiku 4.5',
+            ],
         ];
+    }
+
+    public function textModelsFlat(): array
+    {
+        return array_merge(...array_values($this->textModels()));
     }
 
     public function imageModels(): array
@@ -57,14 +93,14 @@ class SocialPostGenerator
         $query = ee()->db->get('socialposter_settings');
         foreach ($query->result_array() as $row) {
             $key = (string) $row['setting_key'];
-            if (in_array($key, ['api_key', 'admin_api_key'], true)) {
+            if (in_array($key, $this->secretSettingKeys(), true)) {
                 $settings[$key] = $this->decrypt((string) $row['setting_value']);
             } elseif (array_key_exists($key, $settings)) {
                 $settings[$key] = (string) $row['setting_value'];
             }
         }
 
-        foreach (['api_key', 'admin_api_key'] as $key) {
+        foreach ($this->secretSettingKeys() as $key) {
             if ($this->looksLikePlaceholderSecret($settings[$key])) {
                 $settings[$key] = '';
             }
@@ -82,8 +118,22 @@ class SocialPostGenerator
         $current = $this->getSettings();
         $apiKey = trim((string) ($input['api_key'] ?? ''));
         $adminApiKey = trim((string) ($input['admin_api_key'] ?? ''));
+        $anthropicApiKey = trim((string) ($input['anthropic_api_key'] ?? ''));
+        $instagramAppSecret = trim((string) ($input['instagram_app_secret'] ?? ''));
+        $instagramIgAppSecret = trim((string) ($input['instagram_ig_app_secret'] ?? ''));
+        $instagramAccessToken = trim((string) ($input['instagram_access_token'] ?? ''));
+        $instagramUserAccessToken = trim((string) ($input['instagram_user_access_token'] ?? ''));
+        $ideogramApiKey = trim((string) ($input['ideogram_api_key'] ?? ''));
         $this->validateSecretInput($apiKey, 'OpenAI API Key');
         $this->validateSecretInput($adminApiKey, 'OpenAI Admin API Key');
+        $this->validateSecretInput($anthropicApiKey, 'Anthropic API Key');
+        $this->validateSecretInput($instagramAppSecret, 'Meta App Secret');
+        $this->validateSecretInput($instagramIgAppSecret, 'Instagram App Secret');
+        $this->validateSecretInput($instagramAccessToken, 'Instagram Access Token');
+        $this->validateSecretInput($instagramUserAccessToken, 'Instagram User Access Token');
+        $this->validateSecretInput($ideogramApiKey, 'Ideogram API Key');
+
+        $carouselSlides = max(3, min(12, (int) ($input['carousel_slides'] ?? $current['carousel_slides'] ?? 6)));
 
         $settings = [
             'api_key' => $apiKey !== ''
@@ -92,17 +142,47 @@ class SocialPostGenerator
             'admin_api_key' => $adminApiKey !== ''
                 ? $adminApiKey
                 : $current['admin_api_key'],
+            'anthropic_api_key' => $anthropicApiKey !== ''
+                ? $anthropicApiKey
+                : $current['anthropic_api_key'],
             'openai_project_id' => trim((string) ($input['openai_project_id'] ?? $current['openai_project_id'])),
-            'text_model' => trim((string) ($input['text_model'] ?? self::DEFAULT_TEXT_MODEL)) ?: self::DEFAULT_TEXT_MODEL,
+            'carousel_slides' => (string) $carouselSlides,
+            'text_model' => trim((string) ($input['text_model'] ?? $current['text_model'] ?? self::DEFAULT_TEXT_MODEL)) ?: self::DEFAULT_TEXT_MODEL,
             'image_model' => array_key_exists(($input['image_model'] ?? ''), $this->imageModels())
                 ? (string) $input['image_model']
-                : 'gpt-image-1.5',
+                : (array_key_exists(($current['image_model'] ?? ''), $this->imageModels()) ? (string) $current['image_model'] : 'gpt-image-1.5'),
             'image_size' => in_array(($input['image_size'] ?? ''), ['1024x1024', '1024x1536', '1536x1024'], true)
                 ? (string) $input['image_size']
-                : '1024x1024',
+                : (in_array(($current['image_size'] ?? ''), ['1024x1024', '1024x1536', '1536x1024'], true) ? (string) $current['image_size'] : '1024x1024'),
             'image_quality' => in_array(($input['image_quality'] ?? ''), ['low', 'medium', 'high'], true)
                 ? (string) $input['image_quality']
-                : 'medium',
+                : (in_array(($current['image_quality'] ?? ''), ['low', 'medium', 'high'], true) ? (string) $current['image_quality'] : 'medium'),
+            'instagram_app_id' => trim((string) ($input['instagram_app_id'] ?? $current['instagram_app_id'])),
+            'instagram_app_secret' => $instagramAppSecret !== ''
+                ? $instagramAppSecret
+                : $current['instagram_app_secret'],
+            'instagram_ig_app_id' => trim((string) ($input['instagram_ig_app_id'] ?? $current['instagram_ig_app_id'])),
+            'instagram_ig_app_secret' => $instagramIgAppSecret !== ''
+                ? $instagramIgAppSecret
+                : $current['instagram_ig_app_secret'],
+            'instagram_graph_version' => $this->normalizeGraphVersion((string) ($input['instagram_graph_version'] ?? $current['instagram_graph_version'])),
+            'instagram_page_id' => trim((string) ($input['instagram_page_id'] ?? $current['instagram_page_id'])),
+            'instagram_business_account_id' => trim((string) ($input['instagram_business_account_id'] ?? $current['instagram_business_account_id'])),
+            'instagram_access_token' => $instagramAccessToken !== ''
+                ? $instagramAccessToken
+                : $current['instagram_access_token'],
+            'instagram_user_access_token' => $instagramUserAccessToken !== ''
+                ? $instagramUserAccessToken
+                : $current['instagram_user_access_token'],
+            'instagram_cover_provider' => in_array(($input['instagram_cover_provider'] ?? ''), ['openai', 'ideogram', 'gd', 'none'], true)
+                ? (string) $input['instagram_cover_provider']
+                : ($current['instagram_cover_provider'] ?? 'openai'),
+            'instagram_slide_provider' => in_array(($input['instagram_slide_provider'] ?? ''), ['openai', 'ideogram', 'gd', 'none'], true)
+                ? (string) $input['instagram_slide_provider']
+                : ($current['instagram_slide_provider'] ?? 'gd'),
+            'ideogram_api_key' => $ideogramApiKey !== ''
+                ? $ideogramApiKey
+                : $current['ideogram_api_key'],
         ];
 
         if ($settings['admin_api_key'] !== '' && str_starts_with($settings['admin_api_key'], 'proj_')) {
@@ -114,7 +194,7 @@ class SocialPostGenerator
         }
 
         foreach ($settings as $key => $value) {
-            $stored = in_array($key, ['api_key', 'admin_api_key'], true) ? $this->encrypt($value) : $value;
+            $stored = in_array($key, $this->secretSettingKeys(), true) ? $this->encrypt($value) : $value;
             $exists = ee()->db->where('setting_key', $key)->count_all_results('socialposter_settings') > 0;
             $row = [
                 'setting_key' => $key,
@@ -139,6 +219,16 @@ class SocialPostGenerator
             'api_key' => ['socialposter_openai_api_key', 'openai_api_key'],
             'admin_api_key' => ['socialposter_openai_admin_api_key', 'openai_admin_api_key'],
             'openai_project_id' => ['socialposter_openai_project_id', 'openai_project_id'],
+            'instagram_app_id' => ['socialposter_instagram_app_id', 'instagram_app_id'],
+            'instagram_app_secret' => ['socialposter_instagram_app_secret', 'instagram_app_secret'],
+            'instagram_ig_app_id' => ['socialposter_instagram_ig_app_id', 'instagram_ig_app_id'],
+            'instagram_ig_app_secret' => ['socialposter_instagram_ig_app_secret', 'instagram_ig_app_secret'],
+            'instagram_graph_version' => ['socialposter_instagram_graph_version', 'instagram_graph_version'],
+            'instagram_page_id' => ['socialposter_instagram_page_id', 'instagram_page_id'],
+            'instagram_business_account_id' => ['socialposter_instagram_business_account_id', 'instagram_business_account_id'],
+            'instagram_access_token' => ['socialposter_instagram_access_token', 'instagram_access_token'],
+            'instagram_user_access_token' => ['socialposter_instagram_user_access_token', 'instagram_user_access_token'],
+            'ideogram_api_key' => ['socialposter_ideogram_api_key', 'ideogram_api_key'],
         ];
 
         foreach ($overrides as $setting => $configKeys) {
@@ -171,6 +261,34 @@ class SocialPostGenerator
         }
     }
 
+    private function secretSettingKeys(): array
+    {
+        return [
+            'api_key',
+            'admin_api_key',
+            'anthropic_api_key',
+            'instagram_app_secret',
+            'instagram_ig_app_secret',
+            'instagram_access_token',
+            'instagram_user_access_token',
+            'ideogram_api_key',
+        ];
+    }
+
+    private function normalizeGraphVersion(string $version): string
+    {
+        $version = strtolower(trim($version));
+        if ($version === '') {
+            return 'v24.0';
+        }
+
+        if (preg_match('/^\d+(?:\.\d+)?$/', $version)) {
+            $version = 'v' . $version;
+        }
+
+        return preg_match('/^v\d+(?:\.\d+)?$/', $version) ? $version : 'v24.0';
+    }
+
     private function looksLikePlaceholderSecret(string $value): bool
     {
         $normalized = strtolower(trim($value));
@@ -183,6 +301,12 @@ class SocialPostGenerator
             'openai admin api key',
             'api key',
             'admin api key',
+            'instagram app secret',
+            'instagram access token',
+            'app secret',
+            'access token',
+            'optional app secret',
+            'long-lived token with publishing permissions',
             'sk-...',
             'sk-admin-...',
         ], true);
@@ -201,9 +325,16 @@ class SocialPostGenerator
         }
 
         $templateId = (int) ($meta['template_id'] ?? 0);
-        $templateInstructions = $templateId > 0 ? ee('socialposter:templates')->instructionsFor($templateId) : '';
+        $template = $templateId > 0 ? ee('socialposter:templates')->find($templateId) : null;
+        $templateInstructions = $template ? ee('socialposter:templates')->instructionsFor($templateId) : '';
         $generationPrompt = trim($templateInstructions . "\n\nUser prompt:\n" . $prompt);
-        $siteContext = $this->siteContextInstructions();
+        $requestedSlideCount = $this->requestedInstagramSlideCount($prompt, $template);
+        if ($requestedSlideCount !== null) {
+            $generationPrompt .= "\n\nInstagram slide count requirement:\nReturn exactly {$requestedSlideCount} slides. "
+                . "table_of_contents must contain exactly {$requestedSlideCount} slide titles, one per slide. "
+                . "post_text must contain exactly {$requestedSlideCount} slide blocks before the Instagram Caption section.";
+        }
+        $siteContext = $this->siteContextInstructions($template);
         if ($siteContext !== '') {
             $generationPrompt .= "\n\n" . $siteContext;
         }
@@ -212,21 +343,40 @@ class SocialPostGenerator
             $generationPrompt .= "\n\nImage brief to follow:\n" . $requestedImageBrief;
         }
 
-        $content = $this->openai->generateContent($settings['api_key'], $settings['text_model'], $generationPrompt);
-        $this->validateGeneratedContent($content);
+        $content = $this->generateStructuredContent($settings['api_key'], $settings['text_model'], $generationPrompt, $template, $prompt);
+        $this->validateGeneratedContent($content, $template, $prompt);
 
         $imageBrief = $requestedImageBrief !== '' ? $requestedImageBrief : trim((string) ($content['image_brief'] ?? ''));
-        $imagePrompt = $this->composeImagePrompt(trim((string) ($content['image_prompt'] ?? $prompt)), $imageBrief);
+        if ($imageBrief === '') {
+            $slideImageBriefs = $this->instagramSlideImageBriefsFromContent($content);
+            $imageBrief = trim((string) ($slideImageBriefs[0] ?? ''));
+        }
+        $imagePrompt = $this->composeImagePrompt(trim((string) ($content['image_prompt'] ?? $prompt)), $imageBrief, $template);
+        $imageSettings = $this->resolvedImageSettings($settings, $template);
         $imageBase64 = $this->openai->generateImage(
             $settings['api_key'],
-            $settings['image_model'],
+            $imageSettings['image_model'],
             $imagePrompt,
-            $settings['image_size'],
-            $settings['image_quality']
+            $imageSettings['image_size'],
+            $imageSettings['image_quality']
         );
 
-        $imagePath = $this->imageStorage->saveBase64Png($imageBase64, (string) ($content['title'] ?? 'social-post'));
+        $imagePath = $this->imageStorage->saveBase64Png(
+            $imageBase64,
+            (string) ($content['title'] ?? 'social-post'),
+            $this->imageResizeConfig($template)
+        );
         $this->assertStoredImageExists($imagePath);
+
+        $slidePaths = [];
+        if (
+            empty($meta['skip_slide_images'])
+            && $this->isInstagramTemplate($template)
+            && ! empty($content['slides'])
+            && is_array($content['slides'])
+        ) {
+            $slidePaths = $this->generateSlideImages($content['slides'], $settings['api_key'], $imageSettings);
+        }
 
         $record = [
             'site_id' => (int) ee()->config->item('site_id'),
@@ -249,44 +399,302 @@ class SocialPostGenerator
             'created_at' => ee()->localize->now,
         ];
 
-        if (ee()->db->field_exists('schedule_id', 'socialposter_generations')) {
+        if (ee()->db->field_exists('schedule_id', $this->table)) {
             $record['schedule_id'] = (int) ($meta['schedule_id'] ?? 0);
         }
 
-        if (ee()->db->field_exists('scheduled_for', 'socialposter_generations')) {
+        if (ee()->db->field_exists('scheduled_for', $this->table)) {
             $record['scheduled_for'] = (int) ($meta['scheduled_for'] ?? 0);
         }
 
-        if (ee()->db->field_exists('source', 'socialposter_generations')) {
+        if (ee()->db->field_exists('source', $this->table)) {
             $record['source'] = (string) ($meta['source'] ?? 'manual');
         }
 
-        if (ee()->db->field_exists('template_id', 'socialposter_generations')) {
+        if (ee()->db->field_exists('template_id', $this->table)) {
             $record['template_id'] = $templateId;
         }
 
         foreach (['image_model', 'image_size', 'image_quality'] as $field) {
-            if (ee()->db->field_exists($field, 'socialposter_generations')) {
-                $record[$field] = (string) $settings[$field];
+            if (ee()->db->field_exists($field, $this->table)) {
+                $record[$field] = (string) $imageSettings[$field];
             }
         }
 
-        ee()->db->insert('socialposter_generations', $record);
+        if (ee()->db->field_exists('slide_images', $this->table)) {
+            $record['slide_images'] = json_encode($slidePaths);
+        }
+
+        ee()->db->insert($this->table, $record);
         $record['id'] = (int) ee()->db->insert_id();
 
         return $this->normalizeRecord($record);
     }
 
+    public function generateNewsPost(array $article, array $options = []): array
+    {
+        $settings = $this->getSettings();
+        $apiKey   = trim((string) ($settings['api_key'] ?? ''));
+        if ($apiKey === '') {
+            throw new \RuntimeException('OpenAI API key is not configured.');
+        }
+
+        $articleTitle   = trim((string) ($article['title'] ?? ''));
+        $articleUrl     = trim((string) ($article['url'] ?? ''));
+        $articleExcerpt = trim((string) ($article['excerpt'] ?? ''));
+        $articleImageUrl = trim((string) ($article['image_url'] ?? ''));
+
+        if ($articleTitle === '') {
+            throw new \InvalidArgumentException('Article title is required.');
+        }
+
+        $captionHint = trim((string) ($options['caption_hint'] ?? ''));
+        $imageChoice = trim((string) ($options['image_choice'] ?? 'none'));
+        $imageHint   = trim((string) ($options['image_hint'] ?? ''));
+
+        $userPrompt = implode("\n", array_filter([
+            'Article title: ' . $articleTitle,
+            $articleUrl     !== '' ? 'Article URL: ' . $articleUrl : '',
+            $articleExcerpt !== '' ? 'Article excerpt: ' . $articleExcerpt : '',
+            $captionHint    !== '' ? "\nCaption instructions:\n" . $captionHint : '',
+        ]));
+
+        $content   = $this->openai->generateNewsPostText($apiKey, $settings['text_model'], $userPrompt);
+        $postTitle = trim((string) ($content['title'] ?? $articleTitle));
+        $caption   = trim((string) ($content['caption'] ?? ''));
+        $hashtags  = $this->normalizeHashtags((array) ($content['hashtags'] ?? []));
+
+        $imagePath       = '';
+        $imagePromptUsed = '';
+        $imageSettings   = $this->resolvedImageSettings($settings, null);
+
+        if ($imageChoice === 'article' && $articleImageUrl !== '') {
+            try {
+                $imagePath = $this->downloadAndSaveImage($articleImageUrl, $postTitle);
+            } catch (\Throwable $e) {
+                // non-fatal — post is created without image
+            }
+        } elseif ($imageChoice === 'generate') {
+            $basePrompt      = $imageHint !== '' ? $imageHint : ('Visual for news article: ' . $articleTitle);
+            $imagePromptUsed = $this->composeImagePrompt($basePrompt, '', null);
+            $base64          = $this->openai->generateImage(
+                $apiKey,
+                $imageSettings['image_model'],
+                $imagePromptUsed,
+                $imageSettings['image_size'],
+                $imageSettings['image_quality']
+            );
+            $imagePath = $this->imageStorage->saveBase64Png($base64, $postTitle);
+            $this->assertStoredImageExists($imagePath);
+        }
+
+        $record = [
+            'site_id'             => (int) ee()->config->item('site_id'),
+            'member_id'           => $this->memberId(),
+            'prompt'              => $articleUrl !== '' ? $articleUrl : $articleTitle,
+            'title'               => $postTitle,
+            'post_text'           => $caption,
+            'intro_text'          => $articleExcerpt,
+            'table_of_contents'   => '[]',
+            'keywords'            => '[]',
+            'category'            => '',
+            'hashtags'            => json_encode($hashtags),
+            'external_link'       => $articleUrl,
+            'internal_link'       => '',
+            'recommended_topics'  => '[]',
+            'image_brief'         => $imageHint,
+            'image_prompt'        => $imagePromptUsed,
+            'image_path'          => $imagePath,
+            'raw_response'        => '{}',
+            'created_at'          => ee()->localize->now,
+        ];
+
+        if (ee()->db->field_exists('source', $this->table)) {
+            $record['source'] = 'news';
+        }
+        foreach (['image_model', 'image_size', 'image_quality'] as $field) {
+            if (ee()->db->field_exists($field, $this->table)) {
+                $record[$field] = (string) $imageSettings[$field];
+            }
+        }
+
+        ee()->db->insert($this->table, $record);
+        $record['id'] = (int) ee()->db->insert_id();
+
+        return $this->normalizeRecord($record);
+    }
+
+    private function downloadAndSaveImage(string $url, string $title): string
+    {
+        $ch = curl_init($url);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_MAXREDIRS      => 5,
+            CURLOPT_TIMEOUT        => 30,
+            CURLOPT_USERAGENT      => 'SocialPoster/1.0',
+        ]);
+
+        $body   = curl_exec($ch);
+        $error  = curl_error($ch);
+        $status = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        if ($body === false || $body === '' || $status < 200 || $status >= 300) {
+            throw new \RuntimeException('Could not download article image: ' . ($error ?: 'HTTP ' . $status));
+        }
+
+        // Convert to PNG via GD so we always write a valid PNG file
+        $binary = (string) $body;
+        if (function_exists('imagecreatefromstring')) {
+            $src = @imagecreatefromstring($binary);
+            if ($src !== false) {
+                ob_start();
+                imagepng($src);
+                $converted = (string) ob_get_clean();
+                imagedestroy($src);
+                if ($converted !== '') {
+                    $binary = $converted;
+                }
+            }
+        }
+
+        return $this->imageStorage->saveBase64Png(base64_encode($binary), $title);
+    }
+
+    public function generateSingleImagePost(string $topic, array $options = []): array
+    {
+        $topic = trim($topic);
+        if ($topic === '') {
+            throw new \InvalidArgumentException('Please enter a topic.');
+        }
+
+        $settings = $this->getSettings();
+        $apiKey   = trim((string) ($settings['api_key'] ?? ''));
+        if ($apiKey === '') {
+            throw new \RuntimeException('OpenAI API key is not configured.');
+        }
+
+        $captionHint = trim((string) ($options['caption_prompt'] ?? ''));
+        $imageHint   = trim((string) ($options['image_prompt'] ?? ''));
+
+        $userPrompt = 'Topic: ' . $topic;
+        if ($captionHint !== '') {
+            $userPrompt .= "\n\nCaption instructions:\n" . $captionHint;
+        }
+        if ($imageHint !== '') {
+            $userPrompt .= "\n\nImage instructions:\n" . $imageHint;
+        }
+
+        $content      = $this->openai->generateSingleImageText($apiKey, $settings['text_model'], $userPrompt);
+        $caption      = trim((string) ($content['caption'] ?? ''));
+        $hashtags     = $this->normalizeHashtags((array) ($content['hashtags'] ?? []));
+        $rawImgPrompt = trim((string) ($content['image_prompt'] ?? $topic));
+
+        $imagePrompt   = $this->composeImagePrompt($rawImgPrompt, $imageHint, null);
+        $imageSettings = $this->resolvedImageSettings($settings, null);
+
+        $imageBase64 = $this->openai->generateImage(
+            $apiKey,
+            $imageSettings['image_model'],
+            $imagePrompt,
+            $imageSettings['image_size'],
+            $imageSettings['image_quality']
+        );
+
+        $imagePath = $this->imageStorage->saveBase64Png($imageBase64, $topic);
+        $this->assertStoredImageExists($imagePath);
+
+        $record = [
+            'site_id'    => (int) ee()->config->item('site_id'),
+            'member_id'  => $this->memberId(),
+            'prompt'     => $topic,
+            'title'      => $topic,
+            'post_text'  => $caption,
+            'intro_text' => '',
+            'table_of_contents'   => '[]',
+            'keywords'            => '[]',
+            'category'            => '',
+            'hashtags'            => json_encode($hashtags),
+            'external_link'       => '',
+            'internal_link'       => '',
+            'recommended_topics'  => '[]',
+            'image_brief'         => $imageHint,
+            'image_prompt'        => $imagePrompt,
+            'image_path'          => $imagePath,
+            'raw_response'        => '{}',
+            'created_at'          => ee()->localize->now,
+        ];
+
+        if (ee()->db->field_exists('source', $this->table)) {
+            $record['source'] = (string) ($options['source'] ?? 'manual');
+        }
+
+        foreach (['image_model', 'image_size', 'image_quality'] as $field) {
+            if (ee()->db->field_exists($field, $this->table)) {
+                $record[$field] = (string) $imageSettings[$field];
+            }
+        }
+
+        ee()->db->insert($this->table, $record);
+        $record['id'] = (int) ee()->db->insert_id();
+
+        return $this->normalizeRecord($record);
+    }
+
+    public function plan(string $mode, array $input = []): array
+    {
+        $settings = $this->getSettings();
+        if (trim($settings['api_key']) === '') {
+            throw new \RuntimeException('OpenAI API key is not configured.');
+        }
+
+        $templateId = (int) ($input['template_id'] ?? 0);
+        $template = $templateId > 0 ? ee('socialposter:templates')->find($templateId) : null;
+        $platform = trim((string) ($template['platform'] ?? ''));
+        $kind = in_array($mode, ['title', 'brief', 'images', 'creative'], true) ? $mode : 'brief';
+
+        $prompt = implode("\n", array_filter([
+            'Planning task: Generate ' . $kind . ' support for a SocialPoster generation form.',
+            'Template: ' . trim((string) ($template['title'] ?? 'No template')),
+            'Platform: ' . ($platform !== '' ? $platform : 'General'),
+            'Current title: ' . trim((string) ($input['title'] ?? '')),
+            'Current brief: ' . trim((string) ($input['brief'] ?? '')),
+            'Current keywords: ' . trim((string) ($input['keywords'] ?? '')),
+            'Current prompt/topic: ' . trim((string) ($input['prompt'] ?? '')),
+            'Image plan context: ' . trim((string) ($input['image_plan'] ?? '')),
+            $platform === 'Instagram'
+                ? 'For Instagram, return a clear topic, a useful slide outline with Slide 1, Slide 2, and so on, a caption direction, a hashtag direction, and one square cover visual direction that fits the whole carousel. Do not return separate image descriptions for every slide.'
+                : 'For images, return 1-3 concise image descriptions suitable for the selected content type.',
+            $kind === 'creative'
+                ? 'Focus on the full creative brief. Improve or fill title, brief, keywords, topic, slide outline, caption direction, hashtag direction, and the cover visual direction.'
+                : 'Return a strong title, a concise brief, 5-8 keywords, and image descriptions. If a field already exists, improve it instead of ignoring it.',
+        ], fn($line) => trim($line) !== ''));
+
+        $plan = $this->openai->generatePlan($settings['api_key'], $settings['text_model'], $prompt);
+
+        return [
+            'title' => trim((string) ($plan['title'] ?? '')),
+            'brief' => trim((string) ($plan['brief'] ?? '')),
+            'keywords' => array_values(array_filter(array_map('trim', (array) ($plan['keywords'] ?? [])))),
+            'topic' => trim((string) ($plan['topic'] ?? '')),
+            'slide_outline' => trim((string) ($plan['slide_outline'] ?? '')),
+            'caption_direction' => trim((string) ($plan['caption_direction'] ?? '')),
+            'hashtag_direction' => trim((string) ($plan['hashtag_direction'] ?? '')),
+            'images' => array_values(array_filter((array) ($plan['images'] ?? []), 'is_array')),
+        ];
+    }
+
     public function latest(int $limit = 20): array
     {
-        if (! ee()->db->table_exists('socialposter_generations')) {
+        if (! ee()->db->table_exists($this->table)) {
             return [];
         }
 
         $rows = ee()->db
             ->order_by('created_at', 'DESC')
             ->limit($limit)
-            ->get('socialposter_generations')
+            ->get($this->table)
             ->result_array();
 
         return array_map([$this, 'normalizeRecord'], $rows);
@@ -303,7 +711,7 @@ class SocialPostGenerator
             'reasoning_tokens' => 0,
         ];
 
-        if (! ee()->db->table_exists('socialposter_generations')) {
+        if (! ee()->db->table_exists($this->table)) {
             return [
                 'summary' => $summary,
                 'rows' => [],
@@ -313,7 +721,7 @@ class SocialPostGenerator
 
         $select = ['id', 'title', 'raw_response', 'created_at', 'image_path'];
         foreach (['source', 'template_id', 'image_model', 'image_size', 'image_quality'] as $field) {
-            if (ee()->db->field_exists($field, 'socialposter_generations')) {
+            if (ee()->db->field_exists($field, $this->table)) {
                 $select[] = $field;
             }
         }
@@ -322,7 +730,7 @@ class SocialPostGenerator
             ->select($select)
             ->order_by('created_at', 'DESC')
             ->limit($limit)
-            ->get('socialposter_generations')
+            ->get($this->table)
             ->result_array();
 
         $usageRows = [];
@@ -348,17 +756,17 @@ class SocialPostGenerator
 
     public function find(int $id): ?array
     {
-        if (! ee()->db->table_exists('socialposter_generations')) {
+        if (! ee()->db->table_exists($this->table)) {
             return null;
         }
 
-        $row = ee()->db->where('id', $id)->get('socialposter_generations')->row_array();
+        $row = ee()->db->where('id', $id)->get($this->table)->row_array();
         return $row ? $this->normalizeRecord($row) : null;
     }
 
     public function update(int $id, array $input): bool
     {
-        $row = ee()->db->where('id', $id)->get('socialposter_generations')->row_array();
+        $row = ee()->db->where('id', $id)->get($this->table)->row_array();
         if (! $row) {
             return false;
         }
@@ -385,18 +793,18 @@ class SocialPostGenerator
             $record['image_prompt'] = trim((string) $input['image_prompt']);
         }
 
-        if (ee()->db->field_exists('template_id', 'socialposter_generations')) {
+        if (ee()->db->field_exists('template_id', $this->table)) {
             $record['template_id'] = (int) ($input['template_id'] ?? 0);
         }
 
-        ee()->db->where('id', $id)->update('socialposter_generations', $record);
+        ee()->db->where('id', $id)->update($this->table, $record);
 
         return true;
     }
 
     public function regenerateImage(int $id, array $input): ?array
     {
-        $row = ee()->db->where('id', $id)->get('socialposter_generations')->row_array();
+        $row = ee()->db->where('id', $id)->get($this->table)->row_array();
         if (! $row) {
             return null;
         }
@@ -412,42 +820,49 @@ class SocialPostGenerator
             $imagePrompt = trim((string) ($row['prompt'] ?? $row['title'] ?? 'social post image'));
         }
 
-        $composedPrompt = $this->composeImagePrompt($this->baseImagePrompt($imagePrompt), $imageBrief);
+        $templateId = (int) ($row['template_id'] ?? 0);
+        $template = $templateId > 0 ? ee('socialposter:templates')->find($templateId) : null;
+        $composedPrompt = $this->composeImagePrompt($this->baseImagePrompt($imagePrompt), $imageBrief, $template);
+        $imageSettings = $this->resolvedImageSettings($settings, $template);
         $imageBase64 = $this->openai->generateImage(
             $settings['api_key'],
-            $settings['image_model'],
+            $imageSettings['image_model'],
             $composedPrompt,
-            $settings['image_size'],
-            $settings['image_quality']
+            $imageSettings['image_size'],
+            $imageSettings['image_quality']
         );
 
-        $imagePath = $this->imageStorage->saveBase64Png($imageBase64, (string) ($row['title'] ?? 'social-post'));
+        $imagePath = $this->imageStorage->saveBase64Png(
+            $imageBase64,
+            (string) ($row['title'] ?? 'social-post'),
+            $this->imageResizeConfig($template)
+        );
         $this->assertStoredImageExists($imagePath);
 
-        ee()->db->where('id', $id)->update('socialposter_generations', [
+        ee()->db->where('id', $id)->update($this->table, [
             'image_brief' => $imageBrief,
             'image_prompt' => $composedPrompt,
             'image_path' => $imagePath,
-        ] + $this->imageSettingsRecord($settings));
+        ] + $this->imageSettingsRecord($imageSettings));
 
         return $this->find($id);
     }
 
     public function delete(int $id): bool
     {
-        $row = ee()->db->where('id', $id)->get('socialposter_generations')->row_array();
+        $row = ee()->db->where('id', $id)->get($this->table)->row_array();
         if (! $row) {
             return false;
         }
 
         if (! empty($row['image_path'])) {
-            $path = FCPATH . ltrim((string) $row['image_path'], '/');
+            $path = $this->imageStorage->publicPath((string) $row['image_path']);
             if (is_file($path)) {
                 @unlink($path);
             }
         }
 
-        ee()->db->where('id', $id)->delete('socialposter_generations');
+        ee()->db->where('id', $id)->delete($this->table);
         return true;
     }
 
@@ -475,12 +890,23 @@ class SocialPostGenerator
         $record['image_url'] = $this->imageUrlForPath((string) ($record['image_path'] ?? ''));
         $record['image_missing'] = trim((string) ($record['image_path'] ?? '')) !== '' && $record['image_url'] === '';
         $record['internal_link_title'] = $this->internalLinkTitle((string) ($record['internal_link'] ?? ''));
+        $record['instagram_slides'] = $this->instagramSlidesFromRecord($record);
+        $record['instagram_slide_image_briefs'] = array_values(array_filter(array_map(
+            fn(array $slide) => trim((string) ($slide['image_brief'] ?? '')),
+            $record['instagram_slides']
+        )));
+        $slidePaths = $this->decodeList($record['slide_images'] ?? []);
+        $record['slide_images'] = $slidePaths;
+        $record['slide_image_urls'] = array_map(
+            fn($path) => $path !== '' ? $this->imageUrlForPath((string) $path) : '',
+            $slidePaths
+        );
         return $record;
     }
 
     private function assertStoredImageExists(string $imagePath): void
     {
-        $path = FCPATH . ltrim(trim($imagePath), '/');
+        $path = $this->imageStorage->publicPath(trim($imagePath));
         if ($imagePath === '' || ! is_file($path) || ! is_readable($path) || filesize($path) < 1) {
             throw new \RuntimeException('Generated image file was not saved correctly.');
         }
@@ -493,7 +919,7 @@ class SocialPostGenerator
             return '';
         }
 
-        $path = FCPATH . ltrim($imagePath, '/');
+        $path = $this->imageStorage->publicPath($imagePath);
         return is_file($path) ? '/' . ltrim($imagePath, '/') : '';
     }
 
@@ -618,7 +1044,7 @@ class SocialPostGenerator
     {
         $record = [];
         foreach (['image_model', 'image_size', 'image_quality'] as $field) {
-            if (ee()->db->field_exists($field, 'socialposter_generations')) {
+            if (ee()->db->field_exists($field, $this->table)) {
                 $record[$field] = (string) $settings[$field];
             }
         }
@@ -626,7 +1052,17 @@ class SocialPostGenerator
         return $record;
     }
 
-    private function validateGeneratedContent(array $content): void
+    private function resolvedImageSettings(array $settings, ?array $template = null): array
+    {
+        if ($template && $this->isInstagramTemplate($template)) {
+            $settings['image_size'] = '1024x1024';
+            $settings['image_quality'] = 'high';
+        }
+
+        return $settings;
+    }
+
+    private function validateGeneratedContent(array $content, ?array $template = null, string $prompt = ''): void
     {
         $title = trim((string) ($content['title'] ?? ''));
         $postText = trim((string) ($content['post_text'] ?? ''));
@@ -636,7 +1072,7 @@ class SocialPostGenerator
             throw new \RuntimeException('OpenAI returned incomplete article content.');
         }
 
-        if ($tocItems) {
+        if ($tocItems && $this->requiresArticleHeadings($template)) {
             $headings = $this->markdownHeadings($postText);
             if (count($headings) < count($tocItems)) {
                 throw new \RuntimeException('OpenAI returned a table of contents without matching article sections. Try generating again.');
@@ -655,9 +1091,137 @@ class SocialPostGenerator
         }
 
         $internalLink = trim((string) ($content['internal_link'] ?? ''));
-        if ($internalLink !== '' && ! $this->validInternalLink($internalLink)) {
+        if ($internalLink !== '' && ! $this->isInstagramTemplate($template) && ! $this->validInternalLink($internalLink)) {
             throw new \RuntimeException('OpenAI returned an invalid internal link: ' . $internalLink);
         }
+
+        $requestedSlideCount = $this->requestedInstagramSlideCount($prompt, $template);
+        if ($requestedSlideCount !== null) {
+            if (count($tocItems) !== $requestedSlideCount) {
+                throw new \RuntimeException('OpenAI returned the wrong number of Instagram slides. Requested '
+                    . $requestedSlideCount . ', received ' . count($tocItems) . '. Please generate again.');
+            }
+
+            $slideBlocks = $this->instagramSlideBlocks($postText);
+            if (count($slideBlocks) !== $requestedSlideCount) {
+                throw new \RuntimeException('OpenAI returned the wrong number of Instagram slide blocks. Requested '
+                    . $requestedSlideCount . ', received ' . count($slideBlocks) . '. Please generate again.');
+            }
+
+            $slideImageBriefs = $this->instagramSlideImageBriefsFromContent($content);
+            if (count($slideImageBriefs) !== $requestedSlideCount) {
+                throw new \RuntimeException('OpenAI returned the wrong number of Instagram slide image briefs. Requested '
+                    . $requestedSlideCount . ', received ' . count($slideImageBriefs) . '. Please generate again.');
+            }
+        }
+    }
+
+    private function requestedInstagramSlideCount(string $prompt, ?array $template = null): ?int
+    {
+        if (! $this->isInstagramTemplate($template)) {
+            return null;
+        }
+
+        $patterns = [
+            '/^\s*Slide count:\s*(\d+)\s*$/im',
+            '/\bStructure it as\s*(\d+)\s*slides?\b/i',
+            '/\bUse\s*(\d+)(?:\s*-\s*\d+)?\s*slides?\b/i',
+            '/\bOutput\s*(\d+)(?:\s*-\s*\d+)?\s*concise slides?\b/i',
+        ];
+
+        foreach ($patterns as $pattern) {
+            if (preg_match($pattern, $prompt, $matches)) {
+                $count = (int) ($matches[1] ?? 0);
+                if ($count > 0) {
+                    return $count;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private function generateStructuredContent(string $apiKey, string $model, string $generationPrompt, ?array $template = null, string $prompt = ''): array
+    {
+        $content = $this->openai->generateContent($apiKey, $model, $generationPrompt);
+
+        if (! $this->isInstagramTemplate($template)) {
+            return $content;
+        }
+
+        $minimumSlides = max(6, (int) ($this->requestedInstagramSlideCount($prompt, $template) ?? 0));
+        if ($this->instagramOutputSlideCount($content) >= $minimumSlides) {
+            return $content;
+        }
+
+        $retryPrompt = $generationPrompt . "\n\nYou did not generate enough slides. Generate ALL slides (6–8).";
+        return $this->openai->generateContent($apiKey, $model, $retryPrompt);
+    }
+
+    private function instagramOutputSlideCount(array $content): int
+    {
+        $structuredSlides = $this->instagramSlideImageBriefsFromContent($content);
+        $tocItems = array_values(array_filter(array_map('trim', (array) ($content['table_of_contents'] ?? []))));
+        $slideBlocks = $this->instagramSlideBlocks((string) ($content['post_text'] ?? ''));
+
+        return max(count($structuredSlides), count($tocItems), count($slideBlocks));
+    }
+
+    private function instagramSlideImageBriefsFromContent(array $content): array
+    {
+        $slides = $content['slides'] ?? [];
+        if (! is_array($slides)) {
+            return [];
+        }
+
+        $briefs = [];
+        foreach ($slides as $slide) {
+            if (! is_array($slide)) {
+                continue;
+            }
+
+            $brief = trim((string) ($slide['image_brief'] ?? ''));
+            if ($brief !== '') {
+                $briefs[] = $brief;
+            }
+        }
+
+        return $briefs;
+    }
+
+    private function instagramSlidesFromRecord(array $record): array
+    {
+        $decoded = json_decode((string) ($record['raw_response'] ?? ''), true);
+        if (! is_array($decoded)) {
+            return [];
+        }
+
+        $parsed = $decoded['parsed_content'] ?? [];
+        $slides = is_array($parsed) ? ($parsed['slides'] ?? []) : [];
+        if (! is_array($slides)) {
+            return [];
+        }
+
+        return array_values(array_filter($slides, 'is_array'));
+    }
+
+    private function instagramSlideBlocks(string $postText): array
+    {
+        preg_match_all('/^\s*Slide\s+\d+\b.*$/im', $postText, $matches);
+        return array_values(array_filter(array_map('trim', $matches[0] ?? [])));
+    }
+
+    private function requiresArticleHeadings(?array $template): bool
+    {
+        if (! $template) {
+            return true;
+        }
+
+        $type = (string) ($template['content_type'] ?? '');
+        $platform = strtolower((string) ($template['platform'] ?? ''));
+
+        return in_array($type, ['seo_article', 'faq', 'technical_audit', 'comparison', 'case_study'], true)
+            || $platform === 'website';
     }
 
     private function markdownHeadings(string $markdown): array
@@ -692,8 +1256,12 @@ class SocialPostGenerator
         return $siteHost !== null && strtolower($host) === strtolower($siteHost);
     }
 
-    private function siteContextInstructions(): string
+    private function siteContextInstructions(?array $template = null): string
     {
+        if ($this->isInstagramTemplate($template)) {
+            return '';
+        }
+
         $parts = [];
         $categories = $this->blogCategoryNames();
         $links = $this->recentBlogLinks();
@@ -858,20 +1426,55 @@ class SocialPostGenerator
         return array_values(array_unique($hashtags));
     }
 
-    private function composeImagePrompt(string $imagePrompt, string $imageBrief): string
+    private function composeImagePrompt(string $imagePrompt, string $imageBrief, ?array $template = null): string
     {
-        $realisticDirection = implode("\n", [
-            'Generate a realistic, photorealistic image suitable for a professional social post or blog hero.',
-            'Use natural lighting, believable materials, authentic environments, and real-world perspective.',
-            'Avoid illustrations, vector art, infographics, diagrams, quote cards, UI mockups, rendered text, logos, watermarks, and decorative typography unless the user explicitly requests visible text.',
-        ]);
-        $imagePrompt = trim($realisticDirection . "\n\nSubject and composition:\n" . $imagePrompt);
+        if ($template && $this->isInstagramTemplate($template)) {
+            $instagramDirection = implode("\n", [
+                'Generate a polished Instagram carousel cover image suitable for slide 1 of a professional post.',
+                'Keep the composition square 1:1, bold, clean, high-contrast, and visually strong on a mobile feed.',
+                'Favor designed editorial cover aesthetics, abstract systems, premium layouts, or stylized productized visuals over blog hero photography.',
+                'Do not include logos, watermarks, UI screenshots, or readable text unless the user explicitly requests visible text.',
+                'Keep enough safe margin around the focal elements so the image still reads well inside Instagram cropping and UI overlays.',
+            ]);
+            $imagePrompt = trim($instagramDirection . "\n\nSubject and composition:\n" . $imagePrompt);
+        } else {
+            $realisticDirection = implode("\n", [
+                'Generate a realistic, photorealistic image suitable for a professional social post or blog hero.',
+                'Use natural lighting, believable materials, authentic environments, and real-world perspective.',
+                'Avoid illustrations, vector art, infographics, diagrams, quote cards, UI mockups, rendered text, logos, watermarks, and decorative typography unless the user explicitly requests visible text.',
+            ]);
+            $imagePrompt = trim($realisticDirection . "\n\nSubject and composition:\n" . $imagePrompt);
+        }
 
         if ($imageBrief === '') {
             return $imagePrompt;
         }
 
         return trim($imagePrompt . "\n\nImage brief:\n" . $imageBrief);
+    }
+
+    private function imageResizeConfig(?array $template = null): ?array
+    {
+        if (! $template || ! $this->isInstagramTemplate($template)) {
+            return null;
+        }
+
+        return [
+            'width' => 1080,
+            'height' => 1080,
+        ];
+    }
+
+    private function isInstagramTemplate(?array $template = null): bool
+    {
+        if (! $template) {
+            return false;
+        }
+
+        $platform = strtolower(trim((string) ($template['platform'] ?? '')));
+        $title = strtolower(trim((string) ($template['title'] ?? '')));
+
+        return $platform === 'instagram' || str_contains($title, 'instagram carousel');
     }
 
     private function baseImagePrompt(string $imagePrompt): string
@@ -887,6 +1490,163 @@ class SocialPostGenerator
         } catch (\Throwable $e) {
             return 0;
         }
+    }
+
+    public function generateSingleSlideImage(int $generationId, int $slideIndex, array $slideData): array
+    {
+        $row = ee()->db->where('id', $generationId)->get($this->table)->row_array();
+        if (! $row) {
+            throw new \InvalidArgumentException('Generated post not found.');
+        }
+
+        $settings     = $this->getSettings();
+        $slideNumber  = (int) ($slideData['slide_number'] ?? ($slideIndex + 1));
+        $slideTitle   = trim((string) ($slideData['title'] ?? 'slide'));
+        $isCover      = $slideIndex === 0 || strtolower((string) ($slideData['type'] ?? '')) === 'cover';
+        $providerKey  = $isCover ? 'instagram_cover_provider' : 'instagram_slide_provider';
+        $provider     = (string) ($settings[$providerKey] ?? 'openai');
+
+        if ($provider === 'none') {
+            return [
+                'generation_id' => $generationId,
+                'slide_index'   => $slideIndex,
+                'slide_number'  => $slideNumber,
+                'image_url'     => '',
+            ];
+        }
+
+        $base64 = $this->generateSlideImageBase64($provider, $slideData, $settings);
+
+        $resize = $provider === 'gd' ? null : ['width' => 1080, 'height' => 1080];
+        $path   = $this->imageStorage->saveBase64Png(
+            $base64,
+            'slide-' . $slideNumber . '-' . $slideTitle,
+            $resize
+        );
+
+        if (ee()->db->field_exists('slide_images', $this->table)) {
+            $existing = $this->decodeList($row['slide_images'] ?? '');
+            while (count($existing) <= $slideIndex) {
+                $existing[] = '';
+            }
+            $existing[$slideIndex] = $path;
+            ee()->db->where('id', $generationId)->update($this->table, [
+                'slide_images' => json_encode(array_values($existing)),
+            ]);
+        }
+
+        return [
+            'generation_id' => $generationId,
+            'slide_index'   => $slideIndex,
+            'slide_number'  => $slideNumber,
+            'image_url'     => $this->imageUrlForPath($path),
+        ];
+    }
+
+    private function generateSlideImageBase64(string $provider, array $slideData, array $settings): string
+    {
+        if ($provider === 'gd') {
+            return $this->gdRenderer->renderToBase64($slideData);
+        }
+
+        if ($provider === 'ideogram') {
+            $ideogramKey = trim((string) ($settings['ideogram_api_key'] ?? ''));
+            if ($ideogramKey === '') {
+                throw new \RuntimeException('Ideogram API key is not configured. Add it in Instagram Settings.');
+            }
+            $prompt = $this->composeSlideImagePrompt($slideData);
+            return $this->ideogramClient->generateImage($ideogramKey, $prompt);
+        }
+
+        // openai (default)
+        $apiKey = trim((string) ($settings['api_key'] ?? ''));
+        if ($apiKey === '') {
+            throw new \RuntimeException('OpenAI API key is not configured.');
+        }
+        $model  = (string) ($settings['image_model'] ?? 'gpt-image-1.5');
+        $prompt = $this->composeSlideImagePrompt($slideData);
+        return $this->openai->generateImage($apiKey, $model, $prompt, '1024x1024', 'medium');
+    }
+
+    private function generateSlideImages(array $slides, string $apiKey, array $imageSettings): array
+    {
+        @set_time_limit(0);
+        $paths = [];
+
+        foreach ($slides as $slide) {
+            if (! is_array($slide)) {
+                $paths[] = '';
+                continue;
+            }
+
+            try {
+                $prompt = $this->composeSlideImagePrompt($slide);
+                $base64 = $this->openai->generateImage(
+                    $apiKey,
+                    $imageSettings['image_model'],
+                    $prompt,
+                    '1024x1024',
+                    'medium'
+                );
+
+                $slideNumber = (int) ($slide['slide_number'] ?? (count($paths) + 1));
+                $slideTitle = trim((string) ($slide['title'] ?? 'slide'));
+                $path = $this->imageStorage->saveBase64Png(
+                    $base64,
+                    'slide-' . $slideNumber . '-' . $slideTitle,
+                    ['width' => 1080, 'height' => 1080]
+                );
+                $paths[] = $path;
+            } catch (\Throwable $e) {
+                $paths[] = '';
+            }
+        }
+
+        return $paths;
+    }
+
+    private function composeSlideImagePrompt(array $slide): string
+    {
+        $slideNumber = (int) ($slide['slide_number'] ?? 0);
+        $type = strtolower(trim((string) ($slide['type'] ?? '')));
+        $title = trim((string) ($slide['title'] ?? ''));
+        $subtitle = trim((string) ($slide['subtitle'] ?? ''));
+        $heading = trim((string) ($slide['heading'] ?? ''));
+        $bullets = array_values(array_filter(array_map('trim', (array) ($slide['bullets'] ?? []))));
+        $imageBrief = trim((string) ($slide['image_brief'] ?? ''));
+        $isCover = $slideNumber === 1 || $type === 'cover';
+
+        $textLines = [];
+        if ($title !== '') {
+            $textLines[] = $title;
+        }
+        if ($isCover && $subtitle !== '') {
+            $textLines[] = $subtitle;
+        }
+        if (! $isCover && $heading !== '') {
+            $textLines[] = $heading;
+        }
+        foreach (array_slice($bullets, 0, 4) as $bullet) {
+            $textLines[] = '• ' . $bullet;
+        }
+        if (! $textLines) {
+            $textLines[] = 'Slide ' . $slideNumber;
+        }
+
+        $lines = [
+            'Instagram carousel ' . ($isCover ? 'cover slide' : 'slide ' . $slideNumber) . ', square 1:1 format.',
+            'Design as a premium typographic social media slide. Display this text prominently on the slide:',
+            implode(' | ', $textLines),
+            'Style: dark charcoal background, bold clean sans-serif typography in white or muted sage green, minimal structured layout, high contrast, premium editorial Instagram aesthetic.',
+            'Text must be large, legible, centered or left-aligned, with safe margins from all edges so nothing is cropped by Instagram UI.',
+            'No logos, no watermarks.',
+        ];
+
+        if ($imageBrief !== '') {
+            $lines[] = 'Background visual accent: ' . $imageBrief;
+        }
+
+        return implode("\n", array_filter($lines));
     }
 
     private function encrypt(string $value): string

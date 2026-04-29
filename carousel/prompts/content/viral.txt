@@ -1,0 +1,14 @@
+﻿@include ../parts/role.txt
+@include ../parts/structure_6_slides.txt
+@include ../parts/content_rules.txt
+@include ../parts/title_rules.txt
+@include ../parts/item_rules.txt
+
+Tone:
+- Punchy and scroll-stopping
+- Strong hook on slide 1
+- Use contrast, pain points, or curiosity
+- Avoid fake urgency and clickbait
+- Still useful and practical
+
+@include ../parts/output_rules.txt

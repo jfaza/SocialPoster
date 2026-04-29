@@ -1,0 +1,143 @@
+{
+  "brand": "ai.tools.daily.lab",
+  "accent": "#C65A2E",
+  "slides": [
+    {
+      "type": "cover",
+      "title": "The AI Dev\nStack of 2025",
+      "subtitle": "A live readout of the tools shipping faster code, fewer bugs, and smarter pull requests.",
+      "category": "Issue 042 · Signal",
+      "slide_num": "1",
+      "cta": "Swipe to decode →",
+      "items": [],
+      "id": "slide-1",
+      "cta_action": ""
+    },
+    {
+      "type": "content",
+      "title": "Code completion\nthat actually ships",
+      "subtitle": "Autocomplete Layer",
+      "category": "Editors",
+      "slide_num": "2",
+      "cta": "",
+      "items": [
+        {
+          "title": "Cursor",
+          "text": "Agentic IDE built on VS Code with full repo context and inline diffs."
+        },
+        {
+          "title": "GitHub Copilot",
+          "text": "Mature suggestions, chat, and PR summaries across every major language."
+        },
+        {
+          "title": "Codeium",
+          "text": "Free tier with strong autocomplete and a self-hosted option for teams."
+        }
+      ],
+      "id": "slide-2",
+      "cta_action": ""
+    },
+    {
+      "type": "content",
+      "title": "Review, refactor,\nand reason",
+      "subtitle": "PR Intelligence",
+      "category": "Code Review",
+      "slide_num": "3",
+      "cta": "",
+      "items": [
+        {
+          "title": "CodeRabbit",
+          "text": "Line-by-line review comments tuned to your repo conventions."
+        },
+        {
+          "title": "Greptile",
+          "text": "Indexes the whole codebase to flag architectural drift in PRs."
+        },
+        {
+          "title": "Ellipsis",
+          "text": "Auto-generated changelogs and review summaries on every push."
+        },
+        {
+          "title": "Sweep",
+          "text": "Turns GitHub issues into ready-to-merge pull requests autonomously."
+        }
+      ],
+      "id": "slide-3",
+      "cta_action": ""
+    },
+    {
+      "type": "content",
+      "title": "Test it before\nproduction does",
+      "subtitle": "Quality Layer",
+      "category": "Testing",
+      "slide_num": "4",
+      "cta": "",
+      "items": [
+        {
+          "title": "CodiumAI",
+          "text": "Generates meaningful unit tests with edge cases your suite missed."
+        },
+        {
+          "title": "Qodo Cover",
+          "text": "Iteratively raises coverage by writing and validating real tests."
+        },
+        {
+          "title": "Momentic",
+          "text": "Natural-language end-to-end tests that survive UI refactors."
+        }
+      ],
+      "id": "slide-4",
+      "cta_action": ""
+    },
+    {
+      "type": "content",
+      "title": "Ship to prod\nwithout the panic",
+      "subtitle": "Runtime & Ops",
+      "category": "DevOps",
+      "slide_num": "5",
+      "cta": "Save this stack",
+      "items": [
+        {
+          "title": "Sentry AI",
+          "text": "Auto-suggests fixes for production errors with full stack traces."
+        },
+        {
+          "title": "Resolve AI",
+          "text": "On-call agent that triages alerts before a human gets paged."
+        },
+        {
+          "title": "Pulumi Copilot",
+          "text": "Generates and reviews infra-as-code across AWS, GCP, and Azure."
+        },
+        {
+          "title": "Dagger",
+          "text": "Programmable CI pipelines with cacheable, reproducible builds."
+        }
+      ],
+      "id": "slide-5",
+      "cta_action": ""
+    },
+    {
+      "type": "outro",
+      "title": "Build like it's\n2030 already",
+      "subtitle": "One signal a day. Real tools, tested by working developers — never sponsored takes.",
+      "category": "Subscribe",
+      "slide_num": "6",
+      "cta": "Follow @ai.tools.daily.lab",
+      "items": [],
+      "id": "slide-6",
+      "cta_action": ""
+    }
+  ],
+  "series": "Developer Edition",
+  "template": "data-pulse",
+  "style": "base",
+  "caption": "A carousel generated with the data-pulse template.",
+  "hashtags": [
+    "#aitools",
+    "#artificialintelligence",
+    "#developers",
+    "#productivity",
+    "#tech"
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "name": "news-card",
+  "description": "News article card — real article image top 62%, headline and summary text panel bottom 38%. Designed for RSS-fetched news carousels.",
+  "style": [
+    "news"
+  ],
+  "best_for": [
+    "news",
+    "articles",
+    "tech",
+    "ai",
+    "roundup"
+  ],
+  "density": "low",
+  "tone": "editorial",
+  "tags": [
+    "news",
+    "image-heavy",
+    "editorial",
+    "real-content"
+  ]
+}

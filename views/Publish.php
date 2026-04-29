@@ -19,6 +19,24 @@ if (! empty($selected['category']) && ! empty($category_options)) {
         }
     }
 }
+$targetStatusLabel = function ($status) {
+    return [
+        'ready' => 'Ready',
+        'configured' => 'Configured',
+        'needs_settings' => 'Needs Settings',
+        'planned' => 'Planned',
+    ][(string) $status] ?? ucfirst(str_replace('_', ' ', (string) $status));
+};
+$templateLabel = function ($templateId) use ($template_meta) {
+    $template = $template_meta[(int) $templateId] ?? null;
+    if (! $template) {
+        return '';
+    }
+
+    $platform = trim((string) ($template['platform'] ?? ''));
+    $title = trim((string) ($template['title'] ?? ''));
+    return $platform !== '' ? $platform : $title;
+};
 ?>
 <div class="sp-wrap">
   <div class="sp-toolbar">
@@ -41,9 +59,9 @@ if (! empty($selected['category']) && ! empty($category_options)) {
     <h2>Publish Targets</h2>
     <div class="sp-target-grid">
       <?php foreach ($targets as $key => $target): ?>
-        <div class="sp-target <?= $target['status'] === 'ready' ? 'is-ready' : 'is-planned' ?>">
+        <div class="sp-target <?= in_array($target['status'], ['ready', 'configured'], true) ? 'is-ready' : 'is-planned' ?>">
           <strong><?= $h($target['label']) ?></strong>
-          <span><?= $target['status'] === 'ready' ? 'Ready' : 'Planned' ?></span>
+          <span><?= $h($targetStatusLabel($target['status'])) ?></span>
           <p><?= $h($target['description']) ?></p>
         </div>
       <?php endforeach; ?>
@@ -51,12 +69,12 @@ if (! empty($selected['category']) && ! empty($category_options)) {
   </section>
 
   <section class="sp-card">
-    <h2>Publish to Blog</h2>
+    <h2>Publish Generated Post</h2>
     <?php if (empty($rows)): ?>
-      <p class="sp-muted">Generate a post first, then publish it to the blog.</p>
+      <p class="sp-muted">Generate a post first, then choose where to publish it.</p>
     <?php else: ?>
       <?= form_open($publish_url) ?>
-        <input type="hidden" name="publish_blog" value="1">
+        <input type="hidden" name="publish_selected" value="1">
 
         <div class="sp-field">
           <label for="sp-generation">Generated Post</label>
@@ -67,10 +85,30 @@ if (! empty($selected['category']) && ! empty($category_options)) {
                 data-title="<?= $h($row['title'] ?: 'Generated social post') ?>"
                 data-category="<?= $h($row['category'] ?? '') ?>"
               >
-                #<?= (int) $row['id'] ?> · <?= $h($row['title'] ?: 'Generated social post') ?> · <?= $h(date('M j, Y g:ia', (int) $row['created_at'])) ?>
+                #<?= (int) $row['id'] ?><?= $templateLabel($row['template_id'] ?? 0) !== '' ? ' · [' . $h($templateLabel($row['template_id'] ?? 0)) . ']' : '' ?> · <?= $h($row['title'] ?: 'Generated social post') ?> · <?= $h(date('M j, Y g:ia', (int) $row['created_at'])) ?>
               </option>
             <?php endforeach; ?>
           </select>
+        </div>
+
+        <div class="sp-field">
+          <label>Publish To</label>
+          <div class="sp-checkbox-group">
+            <?php foreach ($targets as $key => $target): ?>
+              <?php $isBlog = $key === 'blog'; ?>
+              <label class="sp-checkbox-label">
+                <input
+                  name="publish_targets[]"
+                  type="checkbox"
+                  value="<?= $h($key) ?>"
+                  <?= $isBlog ? 'checked' : '' ?>
+                >
+                <?= $h($target['label']) ?>
+                <span class="sp-muted">(<?= $h($targetStatusLabel($target['status'])) ?>)</span>
+              </label>
+            <?php endforeach; ?>
+          </div>
+          <p class="sp-muted">Blog publishing is active. Other selected targets will be reported until their direct publishing integrations are finished.</p>
         </div>
 
         <div class="sp-field">
@@ -103,39 +141,12 @@ if (! empty($selected['category']) && ! empty($category_options)) {
         </div>
 
         <div class="sp-actions">
-          <button type="submit" class="button button--primary">Publish to Blog</button>
+          <button type="submit" class="button button--primary">Publish Selected</button>
         </div>
       <?= form_close() ?>
     <?php endif; ?>
   </section>
 
-  <section class="sp-card">
-    <h2>Published Blog Entries</h2>
-    <?php if (empty($published_blogs)): ?>
-      <p class="sp-muted">No generated blog entries have been published yet.</p>
-    <?php else: ?>
-      <?php foreach ($published_blogs as $blog): ?>
-        <article class="sp-post-item">
-          <h3><?= $h($blog['title'] ?: 'Generated blog entry') ?></h3>
-          <p class="sp-muted">
-            Entry #<?= (int) $blog['entry_id'] ?> · <?= $h($blog['status']) ?> · <?= $h(date('M j, Y g:ia', (int) $blog['created_at'])) ?>
-            <?php if (! empty($blog['generation_id'])): ?>
-              · Generated #<?= (int) $blog['generation_id'] ?>
-            <?php endif; ?>
-          </p>
-          <div class="sp-actions">
-            <a class="button button--primary" href="<?= $h($blog['edit_url']) ?>">Edit Entry</a>
-            <a class="button button--default" href="<?= $h($blog['url']) ?>" target="_blank" rel="noopener">View Blog Post</a>
-            <?= form_open($publish_url) ?>
-              <input type="hidden" name="delete_blog" value="1">
-              <input type="hidden" name="published_blog_id" value="<?= (int) $blog['id'] ?>">
-              <button type="submit" class="button button--danger">Delete Blog Entry</button>
-            <?= form_close() ?>
-          </div>
-        </article>
-      <?php endforeach; ?>
-    <?php endif; ?>
-  </section>
 </div>
 
 <script>

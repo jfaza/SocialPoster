@@ -1,0 +1,27 @@
+{
+  "name": "data-pulse",
+  "description": "Technical developer-dashboard carousel with a vivid blue palette, dot-grid texture, glowing orbs, and a navy header band. Cover uses a dark navy panel with a live-metrics card; content slides adapt their grid to 1–5 items; outro is a glowing dark navy hero.",
+  "style": [
+    "base",
+    "dashboard",
+    "technical",
+    "blue"
+  ],
+  "best_for": [
+    "developer tools",
+    "AI tooling roundups",
+    "SaaS feature breakdowns",
+    "technical newsletters"
+  ],
+  "density": "medium",
+  "tone": "technical, confident, signal-driven",
+  "tags": [
+    "dashboard",
+    "developer",
+    "blue",
+    "dot-grid",
+    "metrics",
+    "technical",
+    "saas"
+  ]
+}

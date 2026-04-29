@@ -26,6 +26,13 @@ $select = function (string $name, $current) use ($field_options, $h) {
     }
 };
 $editorActive = ! empty($editor_active);
+$recommendedInstagramInstructions = (string) ($instagram_carousel_instructions ?? '');
+$isInstagramTemplate = ($template['platform'] ?? '') === 'Instagram';
+$legacyInstagramInstructions = 'Create an Instagram carousel package with slide-by-slide copy, caption, hashtags/keywords, CTA, and a consistent branded carousel image prompt.';
+$displayPromptInstructions = (string) ($template['prompt_instructions'] ?? '');
+if ($isInstagramTemplate && trim($displayPromptInstructions) === $legacyInstagramInstructions) {
+    $displayPromptInstructions = $recommendedInstagramInstructions;
+}
 ?>
 <div class="sp-wrap">
   <div class="sp-toolbar">
@@ -152,7 +159,11 @@ $editorActive = ! empty($editor_active);
         </div>
         <div class="sp-field">
           <label for="sp-instructions">Prompt Instructions</label>
-          <textarea id="sp-instructions" name="prompt_instructions" rows="6"><?= $h($template['prompt_instructions']) ?></textarea>
+          <textarea id="sp-instructions" name="prompt_instructions" rows="6"><?= $h($displayPromptInstructions) ?></textarea>
+          <div id="sp-instagram-template-help" class="sp-template-help">
+            <p class="sp-muted">Instagram carousel templates generate one square cover/visual-system image plus carousel-ready slide copy. Use these stricter instructions if the output starts reading like a blog post.</p>
+            <button type="button" id="sp-use-instagram-instructions" class="button button--default">Use Instagram Carousel Instructions</button>
+          </div>
         </div>
 
         <div class="sp-actions">
@@ -191,6 +202,27 @@ $editorActive = ! empty($editor_active);
   const type = document.getElementById('sp-type');
   const platform = document.getElementById('sp-platform');
   const length = document.getElementById('sp-length');
+  const instructions = document.getElementById('sp-instructions');
+  const instagramHelp = document.getElementById('sp-instagram-template-help');
+  const instagramButton = document.getElementById('sp-use-instagram-instructions');
+  const instagramInstructions = <?= json_encode((string) ($instagram_carousel_instructions ?? '')) ?>;
+
+  function isInstagramTemplate() {
+    return platform && platform.value === 'Instagram';
+  }
+
+  function syncInstagramHelp() {
+    if (instagramHelp) {
+      instagramHelp.classList.toggle('is-visible', isInstagramTemplate());
+    }
+  }
+
+  if (instagramButton && instructions) {
+    instagramButton.addEventListener('click', function () {
+      instructions.value = instagramInstructions;
+      instructions.focus();
+    });
+  }
 
   function syncTitle() {
     if (title.dataset.touched === '1') {
@@ -208,7 +240,43 @@ $editorActive = ! empty($editor_active);
     field.addEventListener('change', syncTitle);
   });
 
+  if (platform) {
+    platform.addEventListener('change', syncInstagramHelp);
+  }
+
   syncTitle();
+  syncInstagramHelp();
+  <?php endif; ?>
+
+  <?php if ($editing): ?>
+  const platform = document.getElementById('sp-platform');
+  const instructions = document.getElementById('sp-instructions');
+  const instagramHelp = document.getElementById('sp-instagram-template-help');
+  const instagramButton = document.getElementById('sp-use-instagram-instructions');
+  const instagramInstructions = <?= json_encode((string) ($instagram_carousel_instructions ?? '')) ?>;
+
+  function isInstagramTemplate() {
+    return platform && platform.value === 'Instagram';
+  }
+
+  function syncInstagramHelp() {
+    if (instagramHelp) {
+      instagramHelp.classList.toggle('is-visible', isInstagramTemplate());
+    }
+  }
+
+  if (instagramButton && instructions) {
+    instagramButton.addEventListener('click', function () {
+      instructions.value = instagramInstructions;
+      instructions.focus();
+    });
+  }
+
+  if (platform) {
+    platform.addEventListener('change', syncInstagramHelp);
+  }
+
+  syncInstagramHelp();
   <?php endif; ?>
 })();
 </script>

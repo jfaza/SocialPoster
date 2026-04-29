@@ -1,0 +1,115 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "brand",
+    "accent",
+    "slides",
+    "series",
+    "template",
+    "style",
+    "caption",
+    "hashtags"
+  ],
+  "properties": {
+    "brand": {
+      "type": "string"
+    },
+    "accent": {
+      "type": "string"
+    },
+    "slides": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "type",
+          "title",
+          "subtitle",
+          "category",
+          "slide_num",
+          "cta",
+          "items",
+          "id",
+          "cta_action"
+        ],
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "cover",
+              "content",
+              "list",
+              "outro"
+            ]
+          },
+          "title": {
+            "type": "string"
+          },
+          "subtitle": {
+            "type": "string"
+          },
+          "category": {
+            "type": "string"
+          },
+          "slide_num": {
+            "type": "string"
+          },
+          "cta": {
+            "type": "string"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "title",
+                "text"
+              ],
+              "properties": {
+                "title": {
+                  "type": "string"
+                },
+                "text": {
+                  "type": "string"
+                }
+              }
+            },
+            "minItems": 0,
+            "maxItems": 4
+          },
+          "id": {
+            "type": "string"
+          },
+          "cta_action": {
+            "type": "string"
+          }
+        }
+      },
+      "minItems": 6,
+      "maxItems": 6
+    },
+    "series": {
+      "type": "string"
+    },
+    "template": {
+      "type": "string"
+    },
+    "style": {
+      "type": "string"
+    },
+    "caption": {
+      "type": "string"
+    },
+    "hashtags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 5,
+      "maxItems": 15
+    }
+  }
+}

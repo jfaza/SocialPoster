@@ -1,0 +1,147 @@
+{
+  "brand": "ai.tools.daily.lab",
+  "series": "Developer Edition",
+  "accent": "#C65A2E",
+  "template": "editorial-cards",
+  "style": "base",
+  "caption": "A curated breakdown of AI tools developers can use to code faster, research better, and automate more.",
+  "hashtags": [
+    "#aitools",
+    "#developers",
+    "#coding",
+    "#artificialintelligence",
+    "#productivity"
+  ],
+  "slides": [
+    {
+      "id": "slide-1",
+      "type": "cover",
+      "slide_num": "01 / 06",
+      "category": "AI Tools",
+      "title": "AI Tools\nfor Developers",
+      "subtitle": "The essential toolkit to build faster,\nresearch smarter, and ship more with AI.",
+      "cta": "",
+      "cta_action": "",
+      "items": []
+    },
+    {
+      "id": "slide-2",
+      "type": "content",
+      "slide_num": "02 / 06",
+      "category": "Coding Assistants",
+      "title": "Code. Review.\nShip faster.",
+      "subtitle": "",
+      "cta": "",
+      "cta_action": "",
+      "items": [
+        {
+          "tag": "Autocomplete + Chat",
+          "name": "GitHub Copilot",
+          "desc": "Real-time code suggestions across your IDE."
+        },
+        {
+          "tag": "Agent-first",
+          "name": "Cursor",
+          "desc": "AI-native editor for writing and refactoring features."
+        },
+        {
+          "tag": "Terminal Agent",
+          "name": "Claude Code",
+          "desc": "Repo-aware CLI agent for edits, tests, and iteration."
+        }
+      ]
+    },
+    {
+      "id": "slide-3",
+      "type": "content",
+      "slide_num": "03 / 06",
+      "category": "Research Tools",
+      "title": "Know more.\nBuild better.",
+      "subtitle": "",
+      "cta": "",
+      "cta_action": "",
+      "items": [
+        {
+          "tag": "Deep Research",
+          "name": "Perplexity AI",
+          "desc": "Search the web with sources and quick answers."
+        },
+        {
+          "tag": "Privacy-first",
+          "name": "Kagi",
+          "desc": "Cleaner search with summaries and less noise."
+        },
+        {
+          "tag": "Grounded Context",
+          "name": "NotebookLM",
+          "desc": "Ask questions against your own uploaded material."
+        }
+      ]
+    },
+    {
+      "id": "slide-4",
+      "type": "content",
+      "slide_num": "04 / 06",
+      "category": "UI Generation",
+      "title": "Describe it.\nSee it live.",
+      "subtitle": "",
+      "cta": "",
+      "cta_action": "",
+      "items": [
+        {
+          "tag": "React + Tailwind",
+          "name": "v0",
+          "desc": "Prompt-to-UI generation for web interfaces."
+        },
+        {
+          "tag": "Full Stack",
+          "name": "Lovable",
+          "desc": "Idea to app generation with backend support."
+        },
+        {
+          "tag": "Design to Code",
+          "name": "Builder.io",
+          "desc": "Turn designs and mockups into code faster."
+        }
+      ]
+    },
+    {
+      "id": "slide-5",
+      "type": "content",
+      "slide_num": "05 / 06",
+      "category": "Automation",
+      "title": "Let agents\ndo the work.",
+      "subtitle": "",
+      "cta": "",
+      "cta_action": "",
+      "items": [
+        {
+          "tag": "No-code Workflows",
+          "name": "n8n",
+          "desc": "Automate workflows with AI-capable nodes."
+        },
+        {
+          "tag": "Browser Agent",
+          "name": "Playwright + AI",
+          "desc": "Automate web tasks with browser control."
+        },
+        {
+          "tag": "Multi-agent",
+          "name": "LangGraph",
+          "desc": "Build stateful agent workflows with control."
+        }
+      ]
+    },
+    {
+      "id": "slide-6",
+      "type": "outro",
+      "slide_num": "06 / 06",
+      "category": "AI Tools Daily Lab · Developer Edition",
+      "title": "",
+      "subtitle": "Follow for daily picks on the tools, prompts, and workflows top developers are using right now.",
+      "cta": "Start building\nwith AI today.",
+      "cta_action": "Follow for daily drops",
+      "items": []
+    }
+  ]
+}

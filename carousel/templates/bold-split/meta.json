@@ -1,0 +1,29 @@
+{
+  "name": "bold-split",
+  "description": "Bold split-screen Instagram carousel with a strong left color block and a clean white content panel for developer-focused AI content.",
+  "style": [
+    "split-screen",
+    "developer-ui",
+    "bold-typography",
+    "high-contrast",
+    "terminal-inspired"
+  ],
+  "best_for": [
+    "AI tools roundups",
+    "developer education",
+    "workflow tips",
+    "product explainers",
+    "viral educational carousels"
+  ],
+  "density": "medium",
+  "tone": "confident",
+  "tags": [
+    "instagram-carousel",
+    "split-layout",
+    "ai-tools",
+    "developers",
+    "saas",
+    "dark-ui",
+    "orange-accent"
+  ]
+}
