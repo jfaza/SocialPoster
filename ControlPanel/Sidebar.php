@@ -51,33 +51,42 @@ class Sidebar extends AbstractSidebar
         $instagram = $sidebar->addHeader('Instagram')->addBasicList();
 
         $instagram->addItem('Create', $mk('instagram/create'))
+            ->withIcon('magic')
             ->isActive($startsWith('instagram/create'));
 
         $instagram->addItem('History', $mk('instagram/history'))
+            ->withIcon('clock')
             ->isActive($startsWith('instagram/history'));
 
         $instagram->addItem('Carousels', $mk('instagram/carousel'))
+            ->withIcon('images')
             ->isActive($startsWith('instagram/carousel'));
 
         $instagram->addItem('News Sources', $mk('instagram/news-sources'))
+            ->withIcon('rss')
             ->isActive($startsWith('instagram/news-sources'));
 
         $instagram->addItem('Publish', $mk('publish/instagram'))
+            ->withIcon('paper-plane')
             ->isActive($startsWith('publish/instagram'));
 
         // ── Settings (admin / config) ───────────────────────────
         $settings = $sidebar->addHeader('Settings')->addBasicList();
 
         $settings->addItem('OpenAI', $mk('settings'))
+            ->withIcon('key')
             ->isActive($startsWith('settings'));
 
         $settings->addItem('Instagram', $mk('instagram'))
+            ->withIcon('instagram')
             ->isActive($isExact('instagram'));
 
         $settings->addItem('Templates', $mk('templates'))
+            ->withIcon('layer-group')
             ->isActive($startsWith('templates'));
 
         $settings->addItem('Token Usage', $mk('usage'))
+            ->withIcon('chart-line')
             ->isActive($startsWith('usage'));
 
         ee()->view->sidebar = $sidebar->render();

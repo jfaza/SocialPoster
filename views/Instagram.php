@@ -285,18 +285,18 @@ $paneClass   = fn(int $i) => 'tab t-' . $i . ($activeIndex === $i ? ' tab-open' 
     <!-- Tab 2: Images -->
     <div class="<?= $paneClass(2) ?>">
 
-      <div class="sp-field" style="margin:20px 0 4px;">
+      <div class="sp-field sp-image-settings-note" style="margin:20px 0 4px;">
         <p class="sp-muted" style="background:#fffbeb;border:1px solid #fde68a;border-radius:6px;padding:10px 14px;margin:0;">
           <strong>Note:</strong> These settings apply to <strong>carousel slide images only</strong> (Instagram Create flow).
           News post images are always generated via <strong>OpenAI</strong> using the model configured in <a href="<?= $h($settings_url) ?>">OpenAI Settings</a>.
         </p>
       </div>
 
-      <?= form_open($save_image_settings_url) ?>
+      <?= form_open($save_image_settings_url, ['class' => 'sp-image-settings-form']) ?>
         <input type="hidden" name="save_instagram_image_settings" value="1">
 
-        <div class="sp-field" style="margin:20px 0 16px;">
-          <label>Carousel Slide Image Providers</label>
+        <div class="sp-field sp-provider-guide" style="margin:20px 0 16px;">
+          <label>Provider Guide</label>
           <div class="sp-muted">
             <p>Each carousel has a <strong>cover</strong> (slide 1, the hero) and <strong>content slides</strong> (slides 2–N with headings and bullets). You can use a different provider for each.</p>
             <p><strong>PHP GD</strong> &mdash; renders text onto a dark typographic slide on your server. Free, instant, text is always accurate. Best choice for content slides.</p>
@@ -343,4 +343,3 @@ $paneClass   = fn(int $i) => 'tab t-' . $i . ($activeIndex === $i ? ' tab-open' 
 
   </div><!-- /.tab-wrap -->
 </div><!-- /.sp-wrap -->
-
