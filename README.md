@@ -105,3 +105,9 @@ The workflow is defined in:
 ```text
 .github/workflows/ci.yml
 ```
+
+## License
+
+All rights reserved. The source is published for portfolio review; it may not
+be used, copied, or distributed without written consent. For licensing
+inquiries, contact javid@fazaeli.dev.
