@@ -73,6 +73,11 @@ class Publisher
             throw new \InvalidArgumentException('Generated post not found.');
         }
 
+        $existingEntry = $this->publishedBlogEntry($generationId);
+        if ($existingEntry) {
+            throw new \RuntimeException('This post is already published to the blog as entry #' . (int) $existingEntry->entry_id . ' ("' . $existingEntry->title . '"). Edit that entry instead, or delete it from Published to publish again.');
+        }
+
         $channel = $this->blogChannel();
 
         if (! $channel) {
@@ -218,6 +223,35 @@ class Publisher
 
         ee()->db->where('id', $publishedBlogId)->delete('socialposter_published_blogs');
         return true;
+    }
+
+    /**
+     * The live blog entry already published from this generation, if any.
+     * Records whose entry was deleted outside the add-on are dropped so the
+     * generation can be published again.
+     */
+    private function publishedBlogEntry(int $generationId)
+    {
+        if (! ee()->db->table_exists('socialposter_published_blogs')) {
+            return null;
+        }
+
+        $rows = ee()->db
+            ->where('generation_id', $generationId)
+            ->order_by('created_at', 'DESC')
+            ->get('socialposter_published_blogs')
+            ->result_array();
+
+        foreach ($rows as $row) {
+            $entry = ee('Model')->get('ChannelEntry', (int) $row['entry_id'])->first();
+            if ($entry) {
+                return $entry;
+            }
+
+            ee()->db->where('id', (int) $row['id'])->delete('socialposter_published_blogs');
+        }
+
+        return null;
     }
 
     private function recordPublishedBlog(int $generationId, $entry): void
