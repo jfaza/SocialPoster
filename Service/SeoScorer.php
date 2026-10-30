@@ -17,6 +17,8 @@ class SeoScorer
         $hasImageBrief = trim((string) ($post['image_brief'] ?? '')) !== '';
         $hasImagePrompt = trim((string) ($post['image_prompt'] ?? '')) !== '';
         $hasImagePath = $this->hasSavedImage($post);
+        $internalStatus = $this->internalLinkStatus(trim((string) ($post['internal_link'] ?? '')), $body);
+        $sourceCount = $this->specificSourceCount($body, trim((string) ($post['external_link'] ?? '')));
 
         $checks = [
             $this->check(
@@ -37,11 +39,11 @@ class SeoScorer
             ),
             $this->check(
                 'Primary keyword',
-                $primaryKeyword !== '' && $this->containsPhrase($title . ' ' . $intro . ' ' . $body, $primaryKeyword),
-                $primaryKeyword !== '' ? ($this->containsPhrase($title, $primaryKeyword) ? 12 : ($this->containsPhrase($text, $primaryKeyword) ? 8 : 0)) : 0,
+                $primaryKeyword !== '' && $this->keywordMatches($text, $primaryKeyword),
+                $primaryKeyword !== '' ? ($this->keywordMatches($title . ' ' . $intro, $primaryKeyword) ? 12 : ($this->keywordMatches($text, $primaryKeyword) ? 8 : 0)) : 0,
                 12,
                 $primaryKeyword !== '' ? $primaryKeyword : 'Missing',
-                'Put the main keyword in the title or early article copy.'
+                'Put the main keyword in the title or intro.'
             ),
             $this->check(
                 'Keyword set',
@@ -69,35 +71,35 @@ class SeoScorer
             ),
             $this->check(
                 'Internal link',
-                trim((string) ($post['internal_link'] ?? '')) !== '',
-                trim((string) ($post['internal_link'] ?? '')) !== '' ? 8 : 0,
+                $internalStatus === 'found',
+                $internalStatus === 'found' ? 8 : ($internalStatus === 'unverified' ? 6 : ($internalStatus === 'not_found' ? 2 : 0)),
                 8,
-                trim((string) ($post['internal_link'] ?? '')) !== '' ? 'Present' : 'Missing',
-                'Add one relevant internal link to support crawling and topical authority.'
+                ['found' => 'Links to a published post', 'unverified' => 'Present (not verified)', 'not_found' => 'Not a published post', 'missing' => 'Missing'][$internalStatus],
+                'Link one related post that is published on this site.'
             ),
             $this->check(
-                'External citation',
-                trim((string) ($post['external_link'] ?? '')) !== '' || preg_match('/https?:\/\//i', $body),
-                (trim((string) ($post['external_link'] ?? '')) !== '' || preg_match('/https?:\/\//i', $body)) ? 7 : 0,
+                'External sources',
+                $sourceCount >= 2,
+                $sourceCount >= 2 ? 7 : ($sourceCount === 1 ? 4 : 0),
                 7,
-                (trim((string) ($post['external_link'] ?? '')) !== '' || preg_match('/https?:\/\//i', $body)) ? 'Present' : 'Missing',
-                'Reference a credible external source when the topic needs support.'
+                $sourceCount . ' specific ' . ($sourceCount === 1 ? 'source' : 'sources'),
+                'Cite at least two specific external pages (not just homepages).'
             ),
             $this->check(
                 'Meta summary',
-                $this->titleLength($intro) >= 120 && $this->titleLength($intro) <= 170,
-                $this->rangePoints($this->titleLength($intro), 120, 170, 8),
+                $this->titleLength($intro) >= 120 && $this->titleLength($intro) <= 160,
+                $this->rangePoints($this->titleLength($intro), 120, 160, 8),
                 8,
                 $this->titleLength($intro) . ' characters',
-                'Keep the intro/meta summary around 120-170 characters.'
+                'Keep the intro/meta summary around 120-160 characters; search results cut off longer text.'
             ),
             $this->check(
-                'Image SEO',
+                'Image',
                 $hasImagePath && $hasImageBrief && $hasImagePrompt,
                 ($hasImagePath ? 3 : 0) + ($hasImageBrief ? 2 : 0) + ($hasImagePrompt ? 2 : 0),
                 7,
                 $hasImagePath ? 'Saved image' : ($hasImageBrief || $hasImagePrompt ? 'Prompted, no saved image' : 'Missing'),
-                'Keep a saved image, image brief, and production prompt for richer publishing.'
+                'Keep a saved image, image brief, and production prompt.'
             ),
         ];
 
@@ -194,14 +196,7 @@ class SeoScorer
 
     private function titleLength(string $value): int
     {
-        return strlen(trim($value));
-    }
-
-    private function containsPhrase(string $haystack, string $needle): bool
-    {
-        $haystack = strtolower($this->normalizeText($haystack));
-        $needle = strtolower($this->normalizeText($needle));
-        return $needle !== '' && strpos($haystack, $needle) !== false;
+        return mb_strlen(trim($value));
     }
 
     private function normalizeText(string $value): string
@@ -209,6 +204,93 @@ class SeoScorer
         $value = strip_tags($value);
         $value = preg_replace('/[^A-Za-z0-9]+/', ' ', $value);
         return trim((string) preg_replace('/\s+/', ' ', $value));
+    }
+
+    /**
+     * True when the keyword appears as a phrase, or when every word of it
+     * appears, ignoring case, punctuation, hyphens and possessive 's.
+     */
+    private function keywordMatches(string $haystack, string $keyword): bool
+    {
+        $words = $this->keywordWords($keyword);
+        if ($words === []) {
+            return false;
+        }
+
+        $haystackWords = $this->keywordWords($haystack);
+        if (strpos(' ' . implode(' ', $haystackWords) . ' ', ' ' . implode(' ', $words) . ' ') !== false) {
+            return true;
+        }
+
+        return array_diff($words, $haystackWords) === [];
+    }
+
+    private function keywordWords(string $value): array
+    {
+        $value = strtolower(strip_tags($value));
+        $value = str_replace(["\u{2019}", "\u{2018}", '`'], "'", $value);
+        $value = preg_replace("/'s\b/", '', $value);
+        $value = preg_replace('/[^a-z0-9]+/', ' ', (string) $value);
+        $stopWords = ['a', 'an', 'and', 'the', 'of', 'for', 'to', 'in', 'on', 'with', 'vs', 'versus', 'or'];
+        $words = [];
+        foreach (explode(' ', trim((string) $value)) as $word) {
+            if ($word === '' || in_array($word, $stopWords, true)) {
+                continue;
+            }
+            // Treat simple plurals as the same word: databases -> database.
+            $words[] = strlen($word) > 3 && substr($word, -1) === 's' && substr($word, -2) !== 'ss' ? substr($word, 0, -1) : $word;
+        }
+
+        return $words;
+    }
+
+    /** 'found', 'not_found', 'unverified' (no database available) or 'missing'. */
+    private function internalLinkStatus(string $link, string $body): string
+    {
+        if ($link === '' && ! preg_match('~\]\((/blog/article/[^)\s]+)\)~', $body, $match)) {
+            return 'missing';
+        }
+
+        $link = $link !== '' ? $link : $match[1];
+        if (! preg_match('~/blog/article/([a-z0-9_-]+)~i', $link, $slug)) {
+            return 'not_found';
+        }
+
+        if (! function_exists('ee') || ! isset(ee()->db)) {
+            return 'unverified';
+        }
+
+        $found = ee()->db
+            ->select('t.entry_id')
+            ->from('channel_titles t')
+            ->join('channels c', 'c.channel_id = t.channel_id')
+            ->where('c.channel_name', 'blog')
+            ->where('t.url_title', $slug[1])
+            ->where('t.status', 'open')
+            ->limit(1)
+            ->get();
+
+        return $found->num_rows() > 0 ? 'found' : 'not_found';
+    }
+
+    /** Distinct external pages (not bare homepages, not this site) cited in the body. */
+    private function specificSourceCount(string $body, string $externalLink): int
+    {
+        preg_match_all('~https?://[^\s)<>"\]]+~i', $body . ' ' . $externalLink, $matches);
+        $siteHost = function_exists('ee') && isset(ee()->config) ? (string) parse_url((string) ee()->config->item('site_url'), PHP_URL_HOST) : '';
+        $pages = [];
+        foreach ($matches[0] as $url) {
+            $url = rtrim($url, '.,;:!?');
+            $parts = parse_url($url);
+            $host = strtolower((string) ($parts['host'] ?? ''));
+            $path = trim((string) ($parts['path'] ?? ''), '/');
+            if ($host === '' || $path === '' || ($siteHost !== '' && $host === strtolower($siteHost))) {
+                continue;
+            }
+            $pages[$host . '/' . strtolower($path)] = true;
+        }
+
+        return count($pages);
     }
 
     private function headings(string $markdown): array
