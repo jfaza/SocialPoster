@@ -26,6 +26,7 @@ class OpenAiClient
                         'Do not ask the image model to render text unless the user explicitly requests it.',
                         'Today is ' . gmdate('F j, Y') . '. Judge freshness against this date.',
                         'News freshness: only frame an article or post as news ("what changed", "now", "new", "just released", "this week") when it is based on a supplied news item published within the last 3 days. Anything older, or any topic chosen from your own knowledge, is not news: write it as an evergreen how-to or explainer with no news framing, and name newer alternatives where they exist.',
+                        'Write for the reader, never about the prompt: do not mention the supplied context, excerpt, prompt, or instructions anywhere in the output, including source notes. Say what the source reports and, where it matters, what has not been confirmed yet.',
                         'Website article titles: at most 65 characters, specific and plain. Do not use the formula "X: What Changed, What Matters, and How Teams Should..." or chain several clauses after a colon.',
                         'intro_text doubles as the meta description: one or two complete sentences, under 155 characters.',
                         'For website articles, keep post_text to the article itself: put sources in a final "## Sources" section with real, specific pages, and do not add hashtags, a links list, or a recommended-topics section to post_text. When you mention a related article, link it inline.',
