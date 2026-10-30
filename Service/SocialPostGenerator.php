@@ -4,7 +4,7 @@ namespace JavidFazaeli\SocialPoster\Service;
 
 class SocialPostGenerator
 {
-    private const DEFAULT_TEXT_MODEL = 'gpt-5.4';
+    private const DEFAULT_TEXT_MODEL = 'gpt-6.1-sol';
 
     protected string $table = 'socialposter_generations';
 
@@ -33,7 +33,7 @@ class SocialPostGenerator
             'openai_project_id' => '',
             'anthropic_api_key' => '',
             'text_model' => self::DEFAULT_TEXT_MODEL,
-            'image_model' => 'gpt-image-1.5',
+            'image_model' => 'gpt-image-2.5-sunburst',
             'image_size' => '1024x1024',
             'image_quality' => 'medium',
             'carousel_slides' => '6',
@@ -62,8 +62,10 @@ class SocialPostGenerator
     {
         return [
             'openai' => [
-                'gpt-5.4'      => 'GPT-5.4',
-                'gpt-5.4-mini' => 'GPT-5.4 Mini',
+                'gpt-6.1-sol'   => 'GPT-6.1 Sol (recommended)',
+                'gpt-6.1-terra' => 'GPT-6.1 Terra (faster, cheaper)',
+                'gpt-6-astra'   => 'GPT-6 Astra (best, most expensive)',
+                'gpt-6-luna'    => 'GPT-6 Luna (cheapest, short tasks)',
             ],
             'anthropic' => [
                 'claude-opus-4-7'          => 'Claude Opus 4.7',
@@ -81,10 +83,9 @@ class SocialPostGenerator
     public function imageModels(): array
     {
         return [
-            'gpt-image-2' => 'GPT Image 2',
-            'gpt-image-1.5' => 'GPT Image 1.5',
-            'chatgpt-image-latest' => 'ChatGPT Image Latest',
-            'gpt-image-1' => 'GPT Image 1',
+            'gpt-image-2.5-sunburst' => 'GPT Image 2.5 Sunburst (recommended)',
+            'gpt-image-2.5-flare'    => 'GPT Image 2.5 Flare (faster)',
+            'gpt-image-2'            => 'GPT Image 2',
         ];
     }
 
@@ -162,7 +163,7 @@ class SocialPostGenerator
             'text_model' => trim((string) ($input['text_model'] ?? $current['text_model'] ?? self::DEFAULT_TEXT_MODEL)) ?: self::DEFAULT_TEXT_MODEL,
             'image_model' => array_key_exists(($input['image_model'] ?? ''), $this->imageModels())
                 ? (string) $input['image_model']
-                : (array_key_exists(($current['image_model'] ?? ''), $this->imageModels()) ? (string) $current['image_model'] : 'gpt-image-1.5'),
+                : (array_key_exists(($current['image_model'] ?? ''), $this->imageModels()) ? (string) $current['image_model'] : 'gpt-image-2.5-sunburst'),
             'image_size' => in_array(($input['image_size'] ?? ''), ['1024x1024', '1024x1536', '1536x1024'], true)
                 ? (string) $input['image_size']
                 : (in_array(($current['image_size'] ?? ''), ['1024x1024', '1024x1536', '1536x1024'], true) ? (string) $current['image_size'] : '1024x1024'),
@@ -862,9 +863,9 @@ class SocialPostGenerator
             'Create one Instagram single-image post idea that connects the strongest recent article/theme to the audience.',
         ]);
 
-        $assistModel = trim((string) ($settings['text_model'] ?? 'gpt-5.4'));
+        $assistModel = trim((string) ($settings['text_model'] ?? 'gpt-6.1-sol'));
         if ($assistModel === '' || str_starts_with($assistModel, 'claude-')) {
-            $assistModel = 'gpt-5.4';
+            $assistModel = 'gpt-6.1-sol';
         }
 
         $recentGenerations = $this->normalizeRecentGenerationMemory((array) ($options['recent_generations'] ?? []));
@@ -2003,7 +2004,7 @@ class SocialPostGenerator
         if ($apiKey === '') {
             throw new \RuntimeException('OpenAI API key is not configured.');
         }
-        $model  = (string) ($settings['image_model'] ?? 'gpt-image-1.5');
+        $model  = (string) ($settings['image_model'] ?? 'gpt-image-2.5-sunburst');
         $prompt = $this->composeSlideImagePrompt($slideData);
         return $this->openai->generateImage($apiKey, $model, $prompt, '1024x1024', 'medium');
     }

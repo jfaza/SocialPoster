@@ -1251,23 +1251,18 @@ class Publisher
             $html[] = $this->addHeadingAnchors($this->markdownToHtml((string) $post['post_text']), $tocAnchors);
         }
 
-        $links = [];
-        if (! empty($post['internal_link'])) {
-            $links[] = 'Internal: ' . (string) $post['internal_link'];
-        }
-        if (! empty($post['external_link'])) {
-            $links[] = 'External: ' . (string) $post['external_link'];
-        }
-        if ($links) {
-            $html[] = $this->linksHtml($links);
-        }
-
-        if (! empty($post['recommended_topics'])) {
-            $html[] = $this->markdownToHtml("## Recommended Topics\n\n" . $this->markdownList((array) $post['recommended_topics']));
-        }
-
-        if (! empty($post['hashtags'])) {
-            $html[] = $this->hashtagsHtml((array) $post['hashtags']);
+        // Sources live in the article body. Hashtags and recommended topics are
+        // social and planning output, so they stay out of blog posts. A related
+        // internal post is linked once, unless the body already links it.
+        $internal = trim((string) ($post['internal_link'] ?? ''));
+        if ($internal !== '') {
+            [, $internalUrl] = $this->splitLinkLabel('Internal: ' . $internal);
+            $internalUrl = $internalUrl !== '' ? $internalUrl : $internal;
+            $body = implode("\n", $html);
+            if (strpos($body, $this->href($internalUrl)) === false && strpos($body, $internalUrl) === false) {
+                $linkText = $this->internalLinkTitle($internalUrl) ?: $internalUrl;
+                $html[] = '<p>Related reading: <a href="' . $this->escapeAttr($this->href($internalUrl)) . '">' . $this->escapeHtml($linkText) . '</a></p>';
+            }
         }
 
         return implode("\n\n", array_filter($html));
@@ -1386,25 +1381,6 @@ class Publisher
         return implode("\n", $lines);
     }
 
-    private function hashtagsHtml(array $hashtags): string
-    {
-        $tags = [];
-
-        foreach ($this->cleanList($hashtags) as $tag) {
-            $tag = ltrim($tag, '#');
-            $tag = preg_replace('/[^A-Za-z0-9_]+/', '', $tag);
-            if ($tag !== '') {
-                $tags[] = '#' . $tag;
-            }
-        }
-
-        if (! $tags) {
-            return '';
-        }
-
-        return '<p class="socialposter-hashtags">' . $this->escapeHtml(implode(' ', array_unique($tags))) . '</p>';
-    }
-
     private function markdownToHtml(string $markdown): string
     {
         ee()->load->library('typography');
@@ -1444,24 +1420,6 @@ class Publisher
         }
 
         return '<h2 id="table-of-contents">Table of Contents</h2>' . "\n" . '<ul>' . "\n" . implode("\n", $links) . "\n" . '</ul>';
-    }
-
-    private function linksHtml(array $links): string
-    {
-        $items = [];
-
-        foreach ($links as $link) {
-            [$label, $url] = $this->splitLinkLabel($link);
-            if ($url === '') {
-                $items[] = '<li>' . $this->escapeHtml($label) . '</li>';
-                continue;
-            }
-
-            $linkText = strtolower($label) === 'internal' ? $this->internalLinkTitle($url) : '';
-            $items[] = '<li>' . $this->escapeHtml($label) . ': <a href="' . $this->escapeAttr($this->href($url)) . '" target="_blank" rel="noopener">' . $this->escapeHtml($linkText ?: $url) . '</a></li>';
-        }
-
-        return '<h2 id="links">Links</h2>' . "\n" . '<ul>' . "\n" . implode("\n", $items) . "\n" . '</ul>';
     }
 
     private function internalLinkTitle(string $url): string
@@ -1918,15 +1876,37 @@ class Publisher
     private function seoDescription(array $post): string
     {
         $source = trim((string) ($post['intro_text'] ?? '')) ?: trim((string) ($post['post_text'] ?? ''));
-        $source = preg_replace('/\s+/', ' ', strip_tags($source));
-        return substr((string) $source, 0, 160);
+        $source = trim((string) preg_replace('/\s+/', ' ', strip_tags((string) preg_replace('/[#*_`>\[\]]/', '', $source))));
+        if (mb_strlen($source) <= 160) {
+            return $source;
+        }
+
+        // Whole sentences that fit; otherwise cut at a word and mark it.
+        $out = '';
+        foreach (preg_split('/(?<=[.!?])\s+/', $source) as $sentence) {
+            if (mb_strlen(trim($out . ' ' . $sentence)) > 160) {
+                break;
+            }
+            $out = trim($out . ' ' . $sentence);
+        }
+        if ($out !== '') {
+            return $out;
+        }
+
+        $cut = mb_substr($source, 0, 157);
+        $cut = preg_replace('/\s+\S*$/', '', $cut);
+        return rtrim((string) $cut, ' ,;:-') . '…';
     }
 
     private function uniqueUrlTitle(string $title, int $channelId): string
     {
         $slug = ee('Format')->make('Text', $title)->urlSlug()->compile();
         $slug = trim((string) $slug, '-_.') ?: 'socialposter-entry';
-        $slug = substr($slug, 0, URL_TITLE_MAX_LENGTH);
+        // Keep addresses readable: whole words, about 70 characters at most.
+        if (strlen($slug) > 70) {
+            $cut = substr($slug, 0, 71);
+            $slug = rtrim(substr($cut, 0, (int) strrpos($cut, '-')) ?: substr($slug, 0, 70), '-_.');
+        }
         $candidate = $slug;
         $i = 2;
 

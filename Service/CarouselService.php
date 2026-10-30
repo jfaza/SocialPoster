@@ -108,9 +108,9 @@ class CarouselService
             throw new \RuntimeException('OpenAI API key is not configured. Add it in SocialPoster Settings.');
         }
 
-        $model = trim((string) ($settings['text_model'] ?? 'gpt-5.4'));
+        $model = trim((string) ($settings['text_model'] ?? 'gpt-6.1-sol'));
         if ($model === '' || str_starts_with($model, 'claude-')) {
-            $model = 'gpt-5.4';
+            $model = 'gpt-6.1-sol';
         }
 
         $prompt = $this->buildTemplatePrompt($name, $instructions);
@@ -186,7 +186,7 @@ class CarouselService
         }
 
         $settings    = ee('socialposter:generator')->getSettings();
-        $model       = trim((string) ($settings['text_model'] ?? 'gpt-5.4'));
+        $model       = trim((string) ($settings['text_model'] ?? 'gpt-6.1-sol'));
         $isAnthropic = str_starts_with($model, 'claude-');
 
         // Per-generation slide count overrides the global setting
@@ -302,9 +302,9 @@ class CarouselService
             'Create one Instagram carousel plan that connects the strongest recent article/theme to the audience.',
         ]);
 
-        $assistModel = trim((string) ($settings['text_model'] ?? 'gpt-5.4'));
+        $assistModel = trim((string) ($settings['text_model'] ?? 'gpt-6.1-sol'));
         if ($assistModel === '' || str_starts_with($assistModel, 'claude-')) {
-            $assistModel = 'gpt-5.4';
+            $assistModel = 'gpt-6.1-sol';
         }
 
         $assist = [];
@@ -354,7 +354,7 @@ class CarouselService
         $designPrompt  = (string) ($options['design_prompt'] ?? '');
 
         $settings = ee('socialposter:generator')->getSettings();
-        $model    = trim((string) ($settings['text_model'] ?? 'gpt-5.4'));
+        $model    = trim((string) ($settings['text_model'] ?? 'gpt-6.1-sol'));
         $isAnthropic = str_starts_with($model, 'claude-');
 
         $globalSlideCount = max(3, min(12, (int) ($settings['carousel_slides'] ?? 6)));
@@ -428,7 +428,7 @@ class CarouselService
         $existingSlide = $allSlides[$slideIndex];
         $schema        = $this->buildSingleSlideSchema($existingSlide);
         $settings      = ee('socialposter:generator')->getSettings();
-        $model         = trim((string) ($settings['text_model'] ?? 'gpt-5.4'));
+        $model         = trim((string) ($settings['text_model'] ?? 'gpt-6.1-sol'));
         $isAnthropic   = str_starts_with($model, 'claude-');
 
         if ($isAnthropic) {

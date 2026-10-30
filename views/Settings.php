@@ -1,8 +1,8 @@
 <?php
 ee()->load->helper('form');
 $h = fn($value) => htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
-$textModel    = $settings['text_model']    ?? 'gpt-5.4';
-$imageModel   = $settings['image_model']   ?? 'gpt-image-1.5';
+$textModel    = $settings['text_model']    ?? 'gpt-6.1-sol';
+$imageModel   = $settings['image_model']   ?? 'gpt-image-2.5-sunburst';
 $imageSize    = $settings['image_size']    ?? '1024x1024';
 $quality      = $settings['image_quality'] ?? 'medium';
 
