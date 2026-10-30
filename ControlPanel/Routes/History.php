@@ -70,6 +70,25 @@ class History extends AbstractRoute
             ee()->functions->redirect(ee('CP/URL')->make('addons/settings/socialposter/history/' . $id));
         }
 
+        if ($id > 0 && ee('Request')->post('run_review')) {
+            try {
+                ee('socialposter:review')->review($id);
+                ee('CP/Alert')->makeBanner('socialposter-history')
+                    ->asSuccess()
+                    ->withTitle('Review updated')
+                    ->addToBody('The editor review was run on the current draft.')
+                    ->defer();
+            } catch (\Throwable $e) {
+                ee('CP/Alert')->makeBanner('socialposter-history')
+                    ->asIssue()
+                    ->withTitle('Review failed')
+                    ->addToBody($e->getMessage())
+                    ->defer();
+            }
+
+            ee()->functions->redirect(ee('CP/URL')->make('addons/settings/socialposter/history/' . $id));
+        }
+
         if (ee('Request')->post('save_post')) {
             $generator->update($id, [
                 'title' => ee()->input->post('title', true),
@@ -131,6 +150,9 @@ class History extends AbstractRoute
                 'mode' => 'edit',
                 'post' => $post,
                 'seo_score' => ee('socialposter:seoScorer')->score($post),
+                'review' => ee('socialposter:review')->latest($id),
+                'review_available' => ee('socialposter:review')->available(),
+                'duplicates' => ee('socialposter:review')->duplicates($post),
                 'rows' => [],
                 'index_url' => $coreUrls['index_url'],
                 'settings_url' => $coreUrls['settings_url'],

@@ -488,6 +488,79 @@ class OpenAiClient
         throw new \RuntimeException('OpenAI did not return image data.');
     }
 
+    /**
+     * Editorial review of a finished article: concrete, fixable problems that a
+     * structural SEO score cannot see (accuracy, freshness, unsupported claims).
+     */
+    public function reviewArticle(string $apiKey, string $model, string $article): array
+    {
+        $response = $this->postJson('/responses', $apiKey, [
+            'model' => $model,
+            'input' => [
+                [
+                    'role' => 'system',
+                    'content' => implode("\n", [
+                        'You are a strict technical editor reviewing a blog article before it is published on a software developer\'s portfolio site.',
+                        'Today is ' . gmdate('F j, Y') . '. You cannot browse the web: judge from your own knowledge and the text, and flag risks rather than claiming certainty.',
+                        'Report only concrete, fixable problems, at most 8, most important first. Check for:',
+                        '- factual claims that look wrong or outdated as of today;',
+                        '- specific numbers, versions, dates, prices or benchmarks with no supporting source;',
+                        '- news framing ("new", "now", "just released", "what changed", "this quarter") for something that is not from the last 3 days;',
+                        '- whether the article delivers what its title promises;',
+                        '- filler, repetition, or generic statements that add nothing;',
+                        '- sources that are vague, homepages, or do not support the claims made;',
+                        '- any mention of a prompt, supplied context, excerpt, or instructions;',
+                        '- placeholders such as [X], TBD, or invented metrics.',
+                        'For each issue, quote the exact sentence (under 200 characters) and give a one-sentence fix.',
+                        'Verdict: "ready" when there are no high or medium issues, "fix_first" when the issues are fixable edits, "rewrite" when the premise is wrong or most of it is outdated.',
+                        'Summary: one plain sentence for the author.',
+                    ]),
+                ],
+                [
+                    'role' => 'user',
+                    'content' => $article,
+                ],
+            ],
+            'text' => [
+                'format' => [
+                    'type' => 'json_schema',
+                    'name' => 'socialposter_review',
+                    'strict' => true,
+                    'schema' => [
+                        'type' => 'object',
+                        'additionalProperties' => false,
+                        'required' => ['verdict', 'summary', 'issues'],
+                        'properties' => [
+                            'verdict' => ['type' => 'string', 'enum' => ['ready', 'fix_first', 'rewrite']],
+                            'summary' => ['type' => 'string'],
+                            'issues' => [
+                                'type' => 'array',
+                                'items' => [
+                                    'type' => 'object',
+                                    'additionalProperties' => false,
+                                    'required' => ['severity', 'category', 'quote', 'fix'],
+                                    'properties' => [
+                                        'severity' => ['type' => 'string', 'enum' => ['high', 'medium', 'low']],
+                                        'category' => ['type' => 'string', 'enum' => ['accuracy', 'unsupported_claim', 'freshness', 'title_promise', 'filler', 'sources', 'prompt_leak', 'placeholder', 'other']],
+                                        'quote' => ['type' => 'string'],
+                                        'fix' => ['type' => 'string'],
+                                    ],
+                                ],
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+        ]);
+
+        $data = json_decode($this->extractOutputText($response), true);
+        if (! is_array($data) || ! isset($data['verdict'])) {
+            throw new \RuntimeException('OpenAI returned an unreadable review.');
+        }
+
+        return $data;
+    }
+
     public function generatePlan(string $apiKey, string $model, string $prompt): array
     {
         $response = $this->postJson('/responses', $apiKey, [

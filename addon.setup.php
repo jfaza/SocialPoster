@@ -2,6 +2,7 @@
 
 use JavidFazaeli\SocialPoster\Service\AnthropicClient;
 use JavidFazaeli\SocialPoster\Service\CarouselService;
+use JavidFazaeli\SocialPoster\Service\ContentReview;
 use JavidFazaeli\SocialPoster\Service\GdSlideRenderer;
 use JavidFazaeli\SocialPoster\Service\IdeogramClient;
 use JavidFazaeli\SocialPoster\Service\ImageStorage;
@@ -60,6 +61,12 @@ return [
         },
         'SeoScorer' => function($addon) {
             return ee('socialposter:seoScorer');
+        },
+        'review' => function($addon) {
+            return new ContentReview(ee('socialposter:openai'));
+        },
+        'ContentReview' => function($addon) {
+            return ee('socialposter:review');
         },
         'Publisher' => function($addon) {
             return ee('socialposter:publisher');

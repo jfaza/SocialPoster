@@ -1168,6 +1168,69 @@
   font-size: 13px;
 }
 
+.sp-review-panel {
+  margin: 0 0 12px;
+  padding: 14px 16px;
+  border: 1px solid var(--sp-border-soft);
+  border-radius: var(--sp-radius-sm);
+  background: #fff;
+}
+
+.sp-review-panel.is-strong { border-color: var(--sp-success-border); background: var(--sp-success-soft); }
+.sp-review-panel.is-warning { border-color: var(--sp-warning-border); background: var(--sp-warning-soft); }
+.sp-review-panel.is-weak { border-color: var(--sp-danger-border); background: var(--sp-danger-soft); }
+
+.sp-review-panel > strong,
+.sp-review-head strong {
+  display: block;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.sp-review-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.sp-review-head p,
+.sp-review-panel > p {
+  margin: 6px 0 0;
+}
+
+.sp-review-issues,
+.sp-review-duplicates {
+  margin: 10px 0 0;
+  padding-left: 20px;
+}
+
+.sp-review-issues li {
+  margin: 0 0 10px;
+}
+
+.sp-review-tag {
+  display: block;
+  color: var(--sp-muted);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+
+.sp-review-issues li.is-high .sp-review-tag { color: var(--sp-danger); }
+
+.sp-review-issues q {
+  display: block;
+  margin: 3px 0;
+  font-style: italic;
+}
+
+.sp-review-issues p {
+  margin: 2px 0 0;
+  font-size: 13px;
+}
+
 .sp-seo-check small {
   display: block;
   margin-top: 6px;

@@ -269,6 +269,66 @@ $historyItemUrlPattern = (string) ($history_item_url_pattern ?? '');
             </div>
           <?php endforeach; ?>
         </div>
+
+        <?php
+          $verdictLabels = ['ready' => 'Ready to publish', 'fix_first' => 'Fix before publishing', 'rewrite' => 'Needs a rewrite'];
+          $verdictClass = ['ready' => 'is-strong', 'fix_first' => 'is-warning', 'rewrite' => 'is-weak'];
+          $categoryLabels = ['accuracy' => 'Accuracy', 'unsupported_claim' => 'Unsupported claim', 'freshness' => 'Freshness', 'title_promise' => 'Title promise', 'filler' => 'Filler', 'sources' => 'Sources', 'prompt_leak' => 'Mentions the prompt', 'placeholder' => 'Placeholder', 'other' => 'Other'];
+          $reviewVerdict = (string) ($review['verdict'] ?? '');
+        ?>
+        <div class="sp-review-panel <?= $review ? ($verdictClass[$reviewVerdict] ?? '') : '' ?>">
+          <div class="sp-review-head">
+            <div>
+              <strong>Editor review<?= $review ? ' · ' . $h($verdictLabels[$reviewVerdict] ?? $reviewVerdict) : '' ?></strong>
+              <?php if ($review): ?>
+                <p class="sp-muted">Reviewed <?= $h(date('M j, Y g:ia', (int) $review['created_at'])) ?> by <?= $h($review['model']) ?>. Checks accuracy, freshness, sources and filler; it can't browse, so treat flags as things to verify.</p>
+              <?php else: ?>
+                <p class="sp-muted">Not reviewed yet. An AI editor checks accuracy, freshness, sources and filler (about a cent per run).</p>
+              <?php endif; ?>
+            </div>
+            <?php if (! empty($review_available)): ?>
+              <?= form_open($save_url) ?>
+                <input type="hidden" name="run_review" value="1">
+                <button type="submit" class="button button--secondary"><?= $review ? 'Re-run review' : 'Run review' ?></button>
+              <?= form_close() ?>
+            <?php endif; ?>
+          </div>
+          <?php if ($review): ?>
+            <?php if (! empty($review['summary'])): ?><p><?= $h($review['summary']) ?></p><?php endif; ?>
+            <?php if (! empty($review['issues'])): ?>
+              <ol class="sp-review-issues">
+                <?php foreach ($review['issues'] as $issue): ?>
+                  <li class="is-<?= $h($issue['severity'] ?? 'low') ?>">
+                    <span class="sp-review-tag"><?= $h(ucfirst((string) ($issue['severity'] ?? ''))) ?> · <?= $h($categoryLabels[$issue['category'] ?? 'other'] ?? 'Other') ?></span>
+                    <?php if (! empty($issue['quote'])): ?><q><?= $h($issue['quote']) ?></q><?php endif; ?>
+                    <?php if (! empty($issue['fix'])): ?><p>Fix: <?= $h($issue['fix']) ?></p><?php endif; ?>
+                  </li>
+                <?php endforeach; ?>
+              </ol>
+            <?php else: ?>
+              <p class="sp-muted">No issues found.</p>
+            <?php endif; ?>
+          <?php endif; ?>
+        </div>
+
+        <div class="sp-review-panel <?= empty($duplicates) ? 'is-strong' : 'is-warning' ?>">
+          <strong>Duplicate check · <?= empty($duplicates) ? 'No overlap found' : count($duplicates) . ' similar ' . (count($duplicates) === 1 ? 'post' : 'posts') ?></strong>
+          <?php if (empty($duplicates)): ?>
+            <p class="sp-muted">No published post or recent draft covers the same topic.</p>
+          <?php else: ?>
+            <ul class="sp-review-duplicates">
+              <?php foreach ($duplicates as $duplicate): ?>
+                <li>
+                  <?php if (($duplicate['kind'] ?? '') === 'published'): ?>
+                    Published: <a href="<?= $h($duplicate['url']) ?>" target="_blank" rel="noopener"><?= $h($duplicate['title']) ?></a>
+                  <?php else: ?>
+                    Draft #<?= (int) $duplicate['id'] ?>: <a href="<?= $h(str_replace('__ID__', (string) (int) $duplicate['id'], $history_item_url_pattern)) ?>"><?= $h($duplicate['title']) ?></a>
+                  <?php endif; ?>
+                </li>
+              <?php endforeach; ?>
+            </ul>
+          <?php endif; ?>
+        </div>
       <?php endif; ?>
 
       <?php if ($isFacebookTemplate && ! empty($socialQuality)): ?>

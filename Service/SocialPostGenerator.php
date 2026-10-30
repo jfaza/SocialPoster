@@ -513,6 +513,17 @@ class SocialPostGenerator
         $record['topic_source'] = $topicSource;
         $record['accepted_after_retry'] = $topicAttemptCount > 1;
 
+        // Website articles get an editorial review straight away; a failed
+        // review is logged and never blocks the generated draft.
+        if ($template && strtolower(trim((string) ($template['platform'] ?? ''))) === 'website') {
+            try {
+                ee('socialposter:review')->review((int) $record['id']);
+            } catch (\Throwable $e) {
+                ee()->load->library('logger');
+                ee()->logger->developer('SocialPoster review failed for #' . (int) $record['id'] . ': ' . $e->getMessage());
+            }
+        }
+
         return $this->normalizeRecord($record);
     }
 
