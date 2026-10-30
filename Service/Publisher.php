@@ -185,7 +185,8 @@ class Publisher
         $entry->save();
 
         if ($imageFile && $imageField !== null && $imageField->field_type === 'grid') {
-            $this->saveGridImage((int) $entry->entry_id, $imageField, $imageFile, $title);
+            // Hero images are decorative: no caption, so the title isn't repeated under the image.
+            $this->saveGridImage((int) $entry->entry_id, $imageField, $imageFile, '');
         }
 
         if ($categoryId > 0) {

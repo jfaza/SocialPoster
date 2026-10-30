@@ -67,8 +67,8 @@ When changing CP behavior, review the affected route and view together. When cha
 ## OpenAI Models
 
 Configured in `Service/SocialPostGenerator.php`. Current defaults:
-- Text: `gpt-5.4`
-- Image: `gpt-image-1.5`
+- Text: `gpt-6.1-sol` (options: `gpt-6.1-terra`, `gpt-6-astra`, `gpt-6-luna`)
+- Image: `gpt-image-2.5-sunburst` (options: `gpt-image-2.5-flare`, `gpt-image-2`)
 
 ## Rules
 
