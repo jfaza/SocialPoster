@@ -22,3 +22,9 @@ build/
 *.log
 tmp/
 cache/
+
+# Local Python environment for the carousel renderer
+carousel/venv/
+
+# Rendered carousel slides (generated output; previews are kept)
+carousel/templates/*/exports/
