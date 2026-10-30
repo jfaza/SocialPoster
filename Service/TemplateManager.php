@@ -677,7 +677,7 @@ class TemplateManager
         if ($profile !== '') {
             $profileStructure = match ($profile) {
                 'website_seo_article' => 'search-intent intro, table of contents, explanatory sections, examples/proof points, practical steps, FAQ, conclusion with CTA.',
-                'hot_tech_dev_article' => 'timely hook, technical context, what changed, why it matters, practical developer and buyer implications, implementation guidance, risks and tradeoffs, next steps, FAQ or key takeaway, CTA.',
+                'hot_tech_dev_article' => 'strong opening hook, technical context, what changed (only for news under 3 days old) or how it works, why it matters, practical developer and buyer implications, implementation guidance, risks and tradeoffs, next steps, FAQ or key takeaway, CTA.',
                 'howto_tutorial' => 'problem statement, prerequisites, step-by-step process, warnings/common mistakes, validation checklist, next steps, CTA.',
                 'instagram_carousel' => 'carousel hook, slide-by-slide teaching points, caption, hashtags, CTA, visual direction.',
                 'facebook_short_post' => 'opening hook, one clear practical point, short supporting context or example, concise takeaway, comment-friendly CTA.',

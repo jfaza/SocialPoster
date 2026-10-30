@@ -1083,18 +1083,10 @@ class Scheduler
 
     private function promptFromTemplate(array $template): string
     {
-        $parts = [
-            'Generate a fresh content package using the selected SocialPoster template.',
-            'Template: ' . (string) ($template['title'] ?? ''),
-            'Goal: ' . (string) ($template['goal'] ?? ''),
-            'Audience: ' . (string) ($template['audience'] ?? ''),
-            'Platform: ' . (string) ($template['platform'] ?? ''),
-            'Instructions: ' . (string) ($template['prompt_instructions'] ?? ''),
-            'Content structure: ' . ee('socialposter:templates')->articleStructureFor($template),
-            'Internal link requirements: use only relative internal URLs beginning with /, or exact site URLs supplied by the user. Do not invent placeholder domains.',
-        ];
-
-        return implode("\n", array_filter($parts, fn($part) => trim($part) !== ''));
+        // The template's goal, audience, instructions and structure are added at
+        // generation time from the template itself, so schedules never carry a
+        // stale copy of them.
+        return 'Generate a fresh content package using the selected SocialPoster template.';
     }
 
     private function legacyFrequencyFromRecurrence(array $recurrence): string
