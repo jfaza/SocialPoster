@@ -6,142 +6,185 @@ $isInstagramPage = $pageMode === 'instagram';
 $selectedTemplateId = (int) ($selected_template_id ?? 0);
 $generalFieldsClass = $isInstagramPage ? 'is-hidden' : '';
 $instagramBuilderClass = $isInstagramPage ? 'sp-instagram-builder' : 'sp-instagram-builder is-hidden';
+$hotArticles = $hot_articles ?? [];
+$hotArticlesMeta = $hot_articles_meta ?? [];
 ?>
 <div class="sp-wrap">
-  <div class="sp-toolbar">
+  <div class="sp-toolbar sp-toolbar--generator">
     <?php if ($isInstagramPage): ?>
-      <a class="button button--default" href="<?= $h($general_url) ?>">General Generator</a>
-      <a class="button button--default" href="<?= $h($instagram_settings_url) ?>">Instagram Settings</a>
+      <a class="button button--default" href="<?= $h($history_url) ?>">History</a>
+      <a class="button button--default" href="<?= $h($templates_url) ?>">Template Library</a>
     <?php else: ?>
-      <a class="button button--default" href="<?= $h($general_settings_url) ?>">Settings</a>
-      <a class="button button--default" href="<?= $h($instagram_generate_url) ?>">Instagram Generate</a>
+      <a class="button button--default" href="<?= $h($history_url) ?>">History</a>
+      <a class="button button--default" href="<?= $h($news_sources_url) ?>">News Sources</a>
+      <a class="button button--default" href="<?= $h($templates_url) ?>">Template Library</a>
     <?php endif; ?>
-    <a class="button button--default" href="<?= $h($history_url) ?>"><?= $isInstagramPage ? 'Generated Posts' : 'History' ?></a>
-    <a class="button button--default" href="<?= $h($templates_url) ?>">Templates</a>
   </div>
 
-  <div class="tab-wrap sp-native-tabs">
-    <div class="tab-bar">
-      <div class="tab-bar__tabs">
-        <button type="button" class="tab-bar__tab js-tab-button active" rel="sp-generate-tab">Generate</button>
-        <?php if (! $isInstagramPage): ?>
-          <button type="button" id="sp-result-tab-button" class="tab-bar__tab js-tab-button" rel="sp-result-tab">Result</button>
-        <?php endif; ?>
-      </div>
-    </div>
-
-    <section class="sp-card tab sp-generate-tab tab-open">
+  <section class="sp-card sp-generator-shell">
+      <div class="sp-generator-intro">
       <h2><?= $isInstagramPage ? 'Generate Instagram Post' : 'Generate Social Post' ?></h2>
       <p class="sp-muted">
         <?= $isInstagramPage
             ? 'Pick an Instagram template and build the carousel prompt, caption, and image plan for that post.'
             : 'Describe the topic, audience, tone, and any links or portfolio context to include.' ?>
       </p>
+      </div>
       <form id="socialposter-form" method="post" action="<?= $h($action_url) ?>">
         <input type="hidden" name="csrf_token" value="<?= $h($csrf_token) ?>">
         <input type="hidden" name="XID" value="<?= $h($csrf_token) ?>">
-        <div class="sp-field">
-          <label for="socialposter-template">Template</label>
-          <select id="socialposter-template" name="template_id">
-            <?php foreach ($template_options as $value => $label): ?>
-              <option value="<?= (int) $value ?>" <?= (int) $value === $selectedTemplateId ? 'selected' : '' ?>><?= $h($label) ?></option>
-            <?php endforeach; ?>
-          </select>
-        </div>
-        <div class="sp-field">
-          <label for="socialposter-starter">Starter</label>
-          <select id="socialposter-starter"></select>
-        </div>
-        <div class="sp-actions sp-starter-actions">
-          <button type="button" id="socialposter-apply-starter" class="button button--default">Use Starter</button>
-          <span id="socialposter-starter-note" class="sp-muted"></span>
-        </div>
+        <div class="sp-generator-grid">
+          <div class="sp-generator-main">
+            <div class="sp-planning-panel sp-panel-section">
+              <h3>1. Choose Direction</h3>
+              <div class="sp-field">
+                <label for="socialposter-template">Template</label>
+                <select id="socialposter-template" name="template_id">
+                  <?php foreach ($template_options as $value => $label): ?>
+                    <option value="<?= (int) $value ?>" <?= (int) $value === $selectedTemplateId ? 'selected' : '' ?>><?= $h($label) ?></option>
+                  <?php endforeach; ?>
+                </select>
+              </div>
+              <div class="sp-field">
+                <label for="socialposter-starter">Starter</label>
+                <select id="socialposter-starter"></select>
+              </div>
+              <div class="sp-actions sp-starter-actions">
+                <button type="button" id="socialposter-apply-starter" class="button button--default">Use Starter</button>
+                <span id="socialposter-starter-note" class="sp-muted"></span>
+              </div>
 
-        <div class="sp-planning-panel">
-          <h3><?= $isInstagramPage ? 'Content Planning' : 'Planning' ?></h3>
-          <div class="sp-field">
-            <label for="sp-plan-title">Title</label>
-            <input id="sp-plan-title" name="title" type="text" placeholder="<?= $isInstagramPage ? 'Working title for this carousel' : 'Working title for this post' ?>">
-          </div>
-          <div class="sp-field">
-            <label for="sp-plan-brief">Brief</label>
-            <textarea id="sp-plan-brief" name="brief" rows="4" placeholder="<?= $isInstagramPage ? 'Short carousel brief: audience, angle, promise, and constraints.' : 'Short content brief: goal, audience, key angle, and constraints.' ?>"></textarea>
-          </div>
-          <div class="sp-field">
-            <label for="sp-plan-keywords"><?= $isInstagramPage ? 'Keywords / Hashtag Themes' : 'Keywords' ?></label>
-            <input id="sp-plan-keywords" name="keywords" type="text" placeholder="<?= $isInstagramPage ? 'SEO, AI visibility, website clarity, content strategy' : 'SEO, AI visibility, website clarity' ?>">
-          </div>
-          <div class="sp-actions">
-            <button type="button" id="sp-generate-title" class="button button--default">Generate Title</button>
-            <button type="button" id="sp-generate-brief" class="button button--default">Generate Brief</button>
-            <button type="button" id="sp-generate-images" class="button button--default"><?= $isInstagramPage ? 'Build Carousel Brief' : 'Generate Image Descriptions' ?></button>
-            <span id="sp-plan-status" class="sp-muted"></span>
-          </div>
-        </div>
-
-        <div id="sp-instagram-builder" class="<?= $h($instagramBuilderClass) ?>">
-          <h3>Instagram Carousel Plan</h3>
-          <div class="sp-field">
-            <label for="sp-ig-topic">Topic</label>
-            <input id="sp-ig-topic" type="text" placeholder="Example: Why traditional SEO is not enough anymore">
-          </div>
-          <div class="sp-mini-grid">
-            <div class="sp-field">
-              <label for="sp-ig-audience">Audience</label>
-              <input id="sp-ig-audience" type="text" value="business owners, founders, and marketing teams">
+              <?php if (! $isInstagramPage): ?>
+              <div class="sp-field">
+                <label>Topic Source</label>
+                <div class="sp-source-mode" role="tablist" aria-label="Topic source">
+                  <button type="button" id="sp-source-manual" class="sp-source-mode__button is-active">Write from Scratch</button>
+                  <button type="button" id="sp-source-hot" class="sp-source-mode__button">Use Hot Article</button>
+                </div>
+              </div>
+              <?php endif; ?>
             </div>
-            <div class="sp-field">
-              <label for="sp-ig-slide-count">Slides</label>
-              <select id="sp-ig-slide-count">
-                <?php foreach ([6, 7, 8] as $slideCount): ?>
-                  <option value="<?= (int) $slideCount ?>" <?= $slideCount === 7 ? 'selected' : '' ?>><?= (int) $slideCount ?></option>
-                <?php endforeach; ?>
-              </select>
+
+            <?php if (! $isInstagramPage): ?>
+            <section id="sp-hot-articles-panel" class="sp-panel-section is-hidden">
+              <div class="sp-hot-toolbar">
+                <div>
+                  <strong>Hot Articles</strong>
+                  <p id="sp-hot-meta" class="sp-muted"></p>
+                </div>
+                <div class="sp-actions">
+                  <a class="button button--default" href="<?= $h($news_sources_url) ?>">Manage Sources</a>
+                  <button type="button" id="sp-hot-refresh-btn" class="button button--default">Refresh Hot Articles</button>
+                </div>
+              </div>
+              <div id="sp-hot-status" class="sp-muted">Pick a current article when you want the post anchored to live tech or developer news.</div>
+              <div id="sp-hot-article-grid" class="sp-article-grid sp-hot-article-grid"></div>
+            </section>
+            <?php endif; ?>
+
+            <div class="sp-planning-panel sp-panel-section">
+              <h3>2. Prepare the Post</h3>
+              <div class="sp-field">
+                <label for="sp-plan-title">Title</label>
+                <input id="sp-plan-title" name="title" type="text" placeholder="<?= $isInstagramPage ? 'Working title for this carousel' : 'Working title for this post' ?>">
+              </div>
+              <div class="sp-field">
+                <label for="sp-plan-brief">Brief</label>
+                <textarea id="sp-plan-brief" name="brief" rows="4" placeholder="<?= $isInstagramPage ? 'Short carousel brief: audience, angle, promise, and constraints.' : 'Short content brief: goal, audience, key angle, and constraints.' ?>"></textarea>
+              </div>
+              <div class="sp-field">
+                <label for="sp-plan-keywords"><?= $isInstagramPage ? 'Keywords / Hashtag Themes' : 'Keywords' ?></label>
+                <input id="sp-plan-keywords" name="keywords" type="text" placeholder="<?= $isInstagramPage ? 'SEO, AI visibility, website clarity, content strategy' : 'SEO, AI visibility, website clarity' ?>">
+              </div>
+              <?php if (! $isInstagramPage): ?>
+              <div class="sp-field">
+                <label for="socialposter-image-brief">Image Brief</label>
+                <textarea id="socialposter-image-brief" name="image_brief" rows="4" placeholder="Example: editorial hero image, no text, clean workspace, natural light, confident but not corporate."></textarea>
+              </div>
+              <?php endif; ?>
+              <div class="sp-actions">
+                <button type="button" id="sp-generate-plan" class="button button--default"><?= $isInstagramPage ? 'Build Carousel Plan' : 'Generate Plan' ?></button>
+                <span id="sp-plan-status" class="sp-muted"></span>
+              </div>
             </div>
-            <div class="sp-field">
-              <label for="sp-ig-cta">CTA</label>
-              <input id="sp-ig-cta" type="text" value="soft CTA to work with Javid Fazaeli">
+
+            <div id="sp-instagram-builder" class="<?= $h($instagramBuilderClass) ?> sp-panel-section">
+              <h3>3. Shape the Carousel</h3>
+              <div class="sp-field">
+                <label for="sp-ig-topic">Topic</label>
+                <input id="sp-ig-topic" type="text" placeholder="Example: Why traditional SEO is not enough anymore">
+              </div>
+              <div class="sp-mini-grid">
+                <div class="sp-field">
+                  <label for="sp-ig-audience">Audience</label>
+                  <input id="sp-ig-audience" type="text" value="business owners, founders, and marketing teams">
+                </div>
+                <div class="sp-field">
+                  <label for="sp-ig-slide-count">Slides</label>
+                  <select id="sp-ig-slide-count">
+                    <?php foreach ([6, 7, 8] as $slideCount): ?>
+                      <option value="<?= (int) $slideCount ?>" <?= $slideCount === 7 ? 'selected' : '' ?>><?= (int) $slideCount ?></option>
+                    <?php endforeach; ?>
+                  </select>
+                </div>
+                <div class="sp-field">
+                  <label for="sp-ig-cta">CTA</label>
+                  <input id="sp-ig-cta" type="text" value="soft CTA to work with Javid Fazaeli">
+                </div>
+              </div>
+              <div class="sp-field">
+                <label for="sp-ig-outline">Slide Outline</label>
+                <textarea id="sp-ig-outline" rows="7" placeholder="Slide 1: Hook&#10;Slide 2: Problem&#10;Slide 3: Framework&#10;Slide 4: Example&#10;Slide 5: CTA"></textarea>
+              </div>
+              <div class="sp-field">
+                <label for="sp-ig-caption">Caption Direction</label>
+                <textarea id="sp-ig-caption" rows="4" placeholder="Write a concise caption that expands the core idea, invites comments, and avoids hype."></textarea>
+              </div>
+              <div class="sp-field">
+                <label for="sp-ig-hashtags">Hashtag Direction</label>
+                <input id="sp-ig-hashtags" type="text" value="#SEO, #AIO, #ContentStrategy, #WebDesign, #DigitalMarketing">
+              </div>
+
+              <h3>Cover Visual Direction</h3>
+              <p class="sp-muted">The current Instagram generator creates one square cover image, so keep this focused on the carousel cover or reusable visual system.</p>
+              <div class="sp-field">
+                <label for="sp-ig-cover-visual">Cover Image Brief</label>
+                <textarea id="sp-ig-cover-visual" rows="4" placeholder="Square Instagram carousel cover, editorial and premium, no logos, no readable text, visually aligned with the slide outline."></textarea>
+              </div>
             </div>
-          </div>
-          <div class="sp-field">
-            <label for="sp-ig-outline">Slide Outline</label>
-            <textarea id="sp-ig-outline" rows="7" placeholder="Slide 1: Hook&#10;Slide 2: Problem&#10;Slide 3: Framework&#10;Slide 4: Example&#10;Slide 5: CTA"></textarea>
-          </div>
-          <div class="sp-field">
-            <label for="sp-ig-caption">Caption Direction</label>
-            <textarea id="sp-ig-caption" rows="4" placeholder="Write a concise caption that expands the core idea, invites comments, and avoids hype."></textarea>
-          </div>
-          <div class="sp-field">
-            <label for="sp-ig-hashtags">Hashtag Direction</label>
-            <input id="sp-ig-hashtags" type="text" value="#SEO, #AIO, #ContentStrategy, #WebDesign, #DigitalMarketing">
+
+            <div id="sp-general-fields" class="<?= $h($generalFieldsClass) ?> sp-panel-section">
+              <h3>3. Optional Request Override</h3>
+              <div class="sp-field">
+                <label for="socialposter-prompt">Additional Instructions</label>
+                <p class="sp-muted">Leave this blank to generate from the plan above. Use it only when you want to add extra context, constraints, or a custom angle.</p>
+                <textarea id="socialposter-prompt" name="prompt" rows="10" placeholder="Optional: add extra context, constraints, links, or a more specific angle for this post."></textarea>
+              </div>
+            </div>
+
+            <div class="sp-actions sp-generator-submit">
+              <button id="socialposter-submit" type="submit" class="button button--primary">Generate</button>
+              <span id="socialposter-status" class="sp-muted"></span>
+            </div>
           </div>
 
-          <h3>Cover Visual Direction</h3>
-          <p class="sp-muted">The current Instagram generator creates one square cover image, so keep this focused on the carousel cover or reusable visual system.</p>
-          <div class="sp-field">
-            <label for="sp-ig-cover-visual">Cover Image Brief</label>
-            <textarea id="sp-ig-cover-visual" rows="4" placeholder="Square Instagram carousel cover, editorial and premium, no logos, no readable text, visually aligned with the slide outline."></textarea>
-          </div>
-        </div>
-
-        <div id="sp-general-fields" class="<?= $h($generalFieldsClass) ?>">
-          <div class="sp-field">
-            <label for="socialposter-prompt">Prompt</label>
-            <textarea id="socialposter-prompt" name="prompt" rows="10" required placeholder="Example: Create a post about my new ExpressionEngine portfolio project for web developers and potential clients."></textarea>
-          </div>
-          <div class="sp-field">
-            <label for="socialposter-image-brief">Image Brief</label>
-            <textarea id="socialposter-image-brief" name="image_brief" rows="4" placeholder="Example: editorial hero image, no text, clean workspace, natural light, confident but not corporate."></textarea>
-          </div>
-        </div>
-        <div class="sp-actions">
-          <button id="socialposter-submit" type="submit" class="button button--primary">Generate</button>
-          <span id="socialposter-status" class="sp-muted"></span>
+          <aside class="sp-generator-side">
+            <div class="sp-summary sp-panel-section">
+              <h3>Workflow</h3>
+              <p class="sp-muted"><?= $isInstagramPage ? 'Choose a template, build a plan, refine the carousel structure, then generate.' : 'Choose a template, optionally anchor it to a hot article, prepare the post, and generate. Add extra instructions only when you need a custom angle.' ?></p>
+              <div class="sp-generator-notes">
+                <div><strong>Template</strong><span>The template sets the structure and output style.</span></div>
+                <div><strong>Prepare</strong><span>Set the title, brief, keywords, and image brief before generating.</span></div>
+                <div><strong>Override</strong><span>Additional instructions are optional and only needed for extra context or constraints.</span></div>
+                <div><strong>Generate</strong><span>The final request is assembled from the plan, with any optional override added in.</span></div>
+              </div>
+            </div>
+          </aside>
         </div>
       </form>
-    </section>
+  </section>
 
-    <section id="socialposter-output" class="sp-card sp-output tab sp-result-tab">
+    <section id="socialposter-output" class="sp-card sp-output is-hidden">
       <div class="sp-output-head">
         <div>
           <h2 id="sp-title">Generated Post</h2>
@@ -196,7 +239,6 @@ $instagramBuilderClass = $isInstagramPage ? 'sp-instagram-builder' : 'sp-instagr
         <ul id="sp-topics" class="sp-list"></ul>
       </div>
     </section>
-  </div>
 </div>
 
 <script>
@@ -205,8 +247,6 @@ $instagramBuilderClass = $isInstagramPage ? 'sp-instagram-builder' : 'sp-instagr
   const status = document.getElementById('socialposter-status');
   const submit = document.getElementById('socialposter-submit');
   const output = document.getElementById('socialposter-output');
-  const generateTab = document.querySelector('.sp-generate-tab');
-  const resultTabButton = document.getElementById('sp-result-tab-button');
   const message = document.getElementById('sp-message');
   const prompt = document.getElementById('socialposter-prompt');
   const imageBrief = document.getElementById('socialposter-image-brief');
@@ -235,8 +275,19 @@ $instagramBuilderClass = $isInstagramPage ? 'sp-instagram-builder' : 'sp-instagr
   const slideImageStatus = document.getElementById('sp-slide-image-status');
   const slideImageGrid = document.getElementById('sp-slide-image-grid');
   const csrfToken = <?= json_encode((string) $csrf_token) ?>;
+  const newsSourcesUrl = <?= json_encode((string) ($news_sources_url ?? '')) ?>;
+  const hotGrid = document.getElementById('sp-hot-article-grid');
+  const hotRefreshBtn = document.getElementById('sp-hot-refresh-btn');
+  const hotStatus = document.getElementById('sp-hot-status');
+  const hotMeta = document.getElementById('sp-hot-meta');
+  const hotPanel = document.getElementById('sp-hot-articles-panel');
+  const sourceManualButton = document.getElementById('sp-source-manual');
+  const sourceHotButton = document.getElementById('sp-source-hot');
+  const initialHotArticles = <?= json_encode($hotArticles, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?>;
+  const initialHotMeta = <?= json_encode($hotArticlesMeta, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?>;
   let promptTouched = false;
   let imageBriefTouched = false;
+  let sourceMode = 'manual';
 
   function isInstagramTemplate() {
     const meta = templateMeta[template.value] || {};
@@ -259,6 +310,21 @@ $instagramBuilderClass = $isInstagramPage ? 'sp-instagram-builder' : 'sp-instagr
     instagramBuilder.classList.toggle('is-hidden', !instagram);
     starter.parentElement.classList.toggle('is-hidden', instagram);
     starterButton.parentElement.classList.toggle('is-hidden', instagram);
+  }
+
+  function syncSourceMode(nextMode) {
+    if (!hotPanel || isInstagramPage) {
+      return;
+    }
+
+    sourceMode = nextMode === 'hot' ? 'hot' : 'manual';
+    hotPanel.classList.toggle('is-hidden', sourceMode !== 'hot');
+    if (sourceManualButton) {
+      sourceManualButton.classList.toggle('is-active', sourceMode === 'manual');
+    }
+    if (sourceHotButton) {
+      sourceHotButton.classList.toggle('is-active', sourceMode === 'hot');
+    }
   }
 
   function carouselImagePlan() {
@@ -324,10 +390,10 @@ $instagramBuilderClass = $isInstagramPage ? 'sp-instagram-builder' : 'sp-instagr
         });
       })
       .then(function (result) {
-        if (mode === 'title' || !planTitle.value.trim()) {
+        if (mode === 'creative' || mode === 'title' || !planTitle.value.trim()) {
           planTitle.value = result.title || planTitle.value;
         }
-        if (mode === 'brief' || !planBrief.value.trim()) {
+        if (mode === 'creative' || mode === 'brief' || !planBrief.value.trim()) {
           planBrief.value = result.brief || planBrief.value;
         }
         if (result.keywords && result.keywords.length) {
@@ -355,7 +421,9 @@ $instagramBuilderClass = $isInstagramPage ? 'sp-instagram-builder' : 'sp-instagr
         if (mode === 'images' || mode === 'creative') {
           applyImagePlan(result.images || []);
         }
-        planStatus.textContent = mode === 'creative' ? 'Carousel brief ready' : 'Done';
+        planStatus.textContent = mode === 'creative'
+          ? (isInstagramPage ? 'Carousel plan ready' : 'Plan ready')
+          : 'Done';
       })
       .catch(function (error) {
         planStatus.textContent = error && error.message ? error.message : 'Planning failed.';
@@ -410,6 +478,149 @@ $instagramBuilderClass = $isInstagramPage ? 'sp-instagram-builder' : 'sp-instagr
     });
   }
 
+  function esc(value) {
+    return String(value || '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  }
+
+  function formatPublishedDate(value) {
+    if (!value) {
+      return '';
+    }
+
+    try {
+      return new Date(value).toLocaleDateString();
+    } catch (error) {
+      return '';
+    }
+  }
+
+  function updateHotMeta(meta, count) {
+    if (!hotMeta) {
+      return;
+    }
+
+    meta = meta || {};
+    if (!meta.exists) {
+      hotMeta.textContent = 'Cache table is not available yet. Run the add-on update, then refresh.';
+      return;
+    }
+    if (!count) {
+      hotMeta.textContent = 'No cached articles yet.';
+      return;
+    }
+
+    const age = meta.age_seconds;
+    const ageText = typeof age === 'number'
+      ? (age < 90 ? 'just now' : Math.round(age / 60) + ' min ago')
+      : 'unknown age';
+    hotMeta.textContent = count + ' cached articles · refreshed ' + ageText + (meta.is_stale ? ' · stale' : '');
+  }
+
+  function hotArticleContext(article) {
+    const lines = [
+      'Use this current source context for a timely post. Treat it as the latest available article context and avoid older unrelated model or product references.',
+      'Article title: ' + (article.title || ''),
+      article.source_name ? 'Source: ' + article.source_name : '',
+      article.published_at ? 'Published: ' + article.published_at : '',
+      article.url ? 'URL: ' + article.url : '',
+      article.excerpt ? 'Excerpt: ' + article.excerpt : '',
+      'Write for developers and technical buyers. Explain what changed, why it matters, practical implications, risks, and next steps.'
+    ];
+
+    return lines.filter(Boolean).join("\n");
+  }
+
+  function applyHotArticle(article) {
+    if (!article) {
+      return;
+    }
+
+    if (!planTitle.value.trim()) {
+      planTitle.value = article.title || '';
+    }
+
+    const briefParts = [
+      article.source_name ? 'Source: ' + article.source_name : '',
+      article.excerpt || '',
+      article.url ? 'Reference: ' + article.url : ''
+    ].filter(Boolean);
+    planBrief.value = briefParts.join("\n");
+
+    const context = hotArticleContext(article);
+    prompt.value = context;
+    promptTouched = true;
+
+    if (!imageBrief.value.trim()) {
+      imageBrief.value = 'Editorial technology article image, realistic technical workspace, no readable text, directly related to: ' + (article.title || 'the topic');
+      imageBriefTouched = true;
+    }
+
+    if (hotStatus) {
+      hotStatus.textContent = 'Loaded current article context into the generator. You can edit it before generating.';
+    }
+
+    prompt.focus();
+  }
+
+  function renderHotArticles(articles, meta) {
+    if (!hotGrid) {
+      return;
+    }
+
+    hotGrid.innerHTML = '';
+    if (!articles || !articles.length) {
+      hotGrid.innerHTML = '<p class="sp-muted">No cached hot articles yet. Refresh to build the cache.</p>';
+      updateHotMeta(meta, 0);
+      return;
+    }
+
+    articles.forEach(function (article) {
+      const card = document.createElement('div');
+      card.className = 'sp-article-card';
+      const date = formatPublishedDate(article.published_at);
+      const excerpt = article.excerpt ? article.excerpt.substring(0, 180) + (article.excerpt.length > 180 ? '…' : '') : '';
+      const thumb = article.image_url
+        ? '<img src="' + esc(article.image_url) + '" alt="" loading="lazy" class="sp-article-thumb">'
+        : '<div class="sp-article-no-thumb"></div>';
+
+      card.innerHTML =
+        '<div class="sp-article-card-inner">' +
+          thumb +
+          '<div class="sp-article-meta">' +
+            '<div class="sp-article-title">' + esc(article.title) + '</div>' +
+            (excerpt ? '<div class="sp-article-excerpt">' + esc(excerpt) + '</div>' : '') +
+            '<div class="sp-article-footer">' +
+              (article.source_name ? '<span class="sp-hot-source">' + esc(article.source_name) + '</span>' : '') +
+              (date ? '<span class="sp-article-date sp-muted">' + esc(date) + '</span>' : '') +
+              (article.hot_score ? '<span class="sp-hot-score">' + esc(Math.round(article.hot_score)) + '</span>' : '') +
+            '</div>' +
+            '<div class="sp-actions" style="margin-top:12px;">' +
+              (article.url ? '<a class="button button--default" href="' + esc(article.url) + '" target="_blank" rel="noopener">Open Article</a>' : '') +
+              '<button type="button" class="button button--primary sp-hot-use-btn">Use This Topic</button>' +
+            '</div>' +
+          '</div>' +
+        '</div>';
+
+      const useButton = card.querySelector('.sp-hot-use-btn');
+      if (useButton) {
+        useButton.addEventListener('click', function () {
+          applyHotArticle(article);
+        });
+      }
+      card.addEventListener('dblclick', function () {
+        applyHotArticle(article);
+      });
+      hotGrid.appendChild(card);
+    });
+
+    updateHotMeta(meta, articles.length);
+  }
+
   function setInternalLink(url, title) {
     const el = document.getElementById('sp-internal');
     el.innerHTML = '';
@@ -450,52 +661,36 @@ $instagramBuilderClass = $isInstagramPage ? 'sp-instagram-builder' : 'sp-instagr
     return historyUrl + '/' + String(id);
   }
 
-  function openResultTab() {
-    if (isInstagramPage) {
-      output.classList.add('tab-open');
-      output.scrollIntoView({behavior: 'smooth', block: 'start'});
+  function buildGeneralPrompt() {
+    const sections = [];
+    const title = planTitle.value.trim();
+    const brief = planBrief.value.trim();
+    const keywords = planKeywords.value.trim();
+    const extra = prompt.value.trim();
+
+    if (title) {
+      sections.push('Working title: ' + title);
+    }
+    if (brief) {
+      sections.push('Brief: ' + brief);
+    }
+    if (keywords) {
+      sections.push('Keywords: ' + keywords);
+    }
+    if (extra) {
+      sections.push('User prompt:\n' + extra);
+    }
+
+    return sections.join("\n\n").trim();
+  }
+
+  function showResult() {
+    if (!output) {
       return;
     }
-
-    document.querySelectorAll('.sp-native-tabs .tab').forEach(function (tab) {
-      tab.classList.remove('tab-open');
-    });
-    document.querySelectorAll('.sp-native-tabs .js-tab-button').forEach(function (button) {
-      button.classList.remove('active');
-    });
-    output.classList.add('tab-open');
-    if (resultTabButton) {
-      resultTabButton.classList.add('active');
-    }
+    output.classList.remove('is-hidden');
+    output.scrollIntoView({behavior: 'smooth', block: 'start'});
   }
-
-  function openGenerateTab() {
-    document.querySelectorAll('.sp-native-tabs .tab').forEach(function (tab) {
-      tab.classList.remove('tab-open');
-    });
-    document.querySelectorAll('.sp-native-tabs .js-tab-button').forEach(function (button) {
-      button.classList.remove('active');
-    });
-    if (generateTab) {
-      generateTab.classList.add('tab-open');
-    }
-    const generateButton = document.querySelector('[rel="sp-generate-tab"]');
-    if (generateButton) {
-      generateButton.classList.add('active');
-    }
-  }
-
-  document.querySelectorAll('.sp-native-tabs .js-tab-button').forEach(function (button) {
-    button.addEventListener('click', function () {
-      const targetClass = button.getAttribute('rel');
-      document.querySelectorAll('.sp-native-tabs .tab').forEach(function (tab) {
-        tab.classList.toggle('tab-open', tab.classList.contains(targetClass));
-      });
-      document.querySelectorAll('.sp-native-tabs .js-tab-button').forEach(function (tabButton) {
-        tabButton.classList.toggle('active', tabButton === button);
-      });
-    });
-  });
 
   function currentStarter() {
     const list = starters[template.value] || [];
@@ -554,14 +749,21 @@ $instagramBuilderClass = $isInstagramPage ? 'sp-instagram-builder' : 'sp-instagr
     prompt.focus();
   });
 
-  document.getElementById('sp-generate-title').addEventListener('click', function () {
-    runPlanner('title');
-  });
-  document.getElementById('sp-generate-brief').addEventListener('click', function () {
-    runPlanner('brief');
-  });
-  document.getElementById('sp-generate-images').addEventListener('click', function () {
-    runPlanner(isInstagramPage ? 'creative' : 'images');
+  if (sourceManualButton) {
+    sourceManualButton.addEventListener('click', function () {
+      syncSourceMode('manual');
+    });
+  }
+  if (sourceHotButton) {
+    sourceHotButton.addEventListener('click', function () {
+      syncSourceMode('hot');
+    });
+  }
+
+  syncSourceMode('manual');
+
+  document.getElementById('sp-generate-plan').addEventListener('click', function () {
+    runPlanner('creative');
   });
 
   function showSlideImageProgress(count) {
@@ -621,36 +823,77 @@ $instagramBuilderClass = $isInstagramPage ? 'sp-instagram-builder' : 'sp-instagr
 
   refreshStarters();
 
+  if (hotRefreshBtn) {
+    hotRefreshBtn.addEventListener('click', function () {
+      hotRefreshBtn.disabled = true;
+      if (hotStatus) {
+        hotStatus.textContent = 'Refreshing feeds and rebuilding hot article cache...';
+      }
+
+      fetch(form.action, {
+        method: 'POST',
+        body: new URLSearchParams({
+          csrf_token: csrfToken,
+          XID: csrfToken,
+          hot_news: '1',
+          refresh: '1'
+        }),
+        credentials: 'same-origin',
+        headers: {'X-Requested-With': 'XMLHttpRequest'}
+      })
+        .then(function (response) { return response.json(); })
+        .then(function (json) {
+          hotRefreshBtn.disabled = false;
+          if (!json.success) {
+            if (hotStatus) {
+              hotStatus.textContent = 'Error: ' + (json.message || 'unknown');
+            }
+            return;
+          }
+
+          if (hotStatus) {
+            hotStatus.textContent = json.errors && json.errors.length
+              ? 'Refreshed with ' + json.errors.length + ' source warning(s).'
+              : 'Hot articles refreshed.';
+          }
+          renderHotArticles(json.articles || [], json.meta || {});
+        })
+        .catch(function (error) {
+          hotRefreshBtn.disabled = false;
+          if (hotStatus) {
+            hotStatus.textContent = 'Failed: ' + error.message;
+          }
+        });
+    });
+  }
+
+  renderHotArticles(initialHotArticles || [], initialHotMeta || {});
+
   form.addEventListener('submit', function (event) {
     event.preventDefault();
+    const formData = new FormData(form);
+
     if (isInstagramPage || isInstagramTemplate()) {
-      prompt.value = buildInstagramPrompt();
-      imageBrief.value = carouselImagePlan() || 'Square Instagram carousel cover / visual system, no logos, no readable text.';
+      formData.set('prompt', buildInstagramPrompt());
+      formData.set('image_brief', carouselImagePlan() || 'Square Instagram carousel cover / visual system, no logos, no readable text.');
     } else {
-      const planningLines = [];
-      if (planTitle.value.trim()) {
-        planningLines.push('Working title: ' + planTitle.value.trim());
+      const assembledPrompt = buildGeneralPrompt();
+      if (!assembledPrompt) {
+        status.textContent = 'Add a brief, title, keywords, or optional instructions first.';
+        return;
       }
-      if (planBrief.value.trim()) {
-        planningLines.push('Brief: ' + planBrief.value.trim());
-      }
-      if (planKeywords.value.trim()) {
-        planningLines.push('Keywords: ' + planKeywords.value.trim());
-      }
-      if (planningLines.length) {
-        prompt.value = planningLines.join("\n") + "\n\nUser prompt:\n" + prompt.value;
-      }
+      formData.set('prompt', assembledPrompt);
     }
+
     status.textContent = 'Generating...';
     submit.disabled = true;
     submit.textContent = 'Generating...';
-    openGenerateTab();
     resultActions.classList.add('is-hidden');
     message.textContent = '';
 
     fetch(form.action, {
       method: 'POST',
-      body: new FormData(form),
+      body: formData,
       credentials: 'same-origin',
       headers: {'X-Requested-With': 'XMLHttpRequest'}
     })
@@ -674,7 +917,7 @@ $instagramBuilderClass = $isInstagramPage ? 'sp-instagram-builder' : 'sp-instagr
         });
       })
       .then(function (data) {
-        openResultTab();
+        showResult();
         if (!data.success) {
           message.textContent = data.message || 'Unable to generate post.';
           status.textContent = '';
@@ -732,7 +975,7 @@ $instagramBuilderClass = $isInstagramPage ? 'sp-instagram-builder' : 'sp-instagr
         }
       })
       .catch(function (error) {
-        openResultTab();
+        showResult();
         message.textContent = error && error.message ? error.message : 'Request failed. Check your settings and try again.';
         status.textContent = '';
         submit.disabled = false;

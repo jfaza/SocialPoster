@@ -7,18 +7,23 @@ use ExpressionEngine\Service\Addon\Controllers\Mcp\AbstractRoute;
 class Templates extends AbstractRoute
 {
     use LoadsStyle;
+    use BuildsRouteContext;
 
     protected $route_path = 'templates';
-    protected $cp_page_title = 'SocialPoster Templates';
+    protected $cp_page_title = 'SocialPoster Template Library';
 
     public function process($id = false)
     {
         $this->addBreadcrumb('index', 'SocialPoster');
-        $this->addBreadcrumb('templates', 'Templates');
+        $this->addBreadcrumb('templates', 'Template Library');
         $this->loadStyle();
 
         $templates = ee('socialposter:templates');
+        $carousel = ee('socialposter:carousel');
+        $coreUrls = $this->coreRouteContext();
         $id = (int) $id;
+        $carouselGuidePath = dirname(__DIR__, 2) . '/carousel/prompts/template/template_generator.txt';
+        $carouselGuide = is_file($carouselGuidePath) ? trim((string) file_get_contents($carouselGuidePath)) : '';
 
         if (ee('Request')->post('save_template')) {
             try {
@@ -26,6 +31,7 @@ class Templates extends AbstractRoute
                     'title' => ee()->input->post('title', true),
                     'content_type' => ee()->input->post('content_type', true),
                     'platform' => ee()->input->post('platform', true),
+                    'generation_profile' => ee()->input->post('generation_profile', true),
                     'length_preset' => ee()->input->post('length_preset', true),
                     'word_count' => ee()->input->post('word_count', true),
                     'tone' => ee()->input->post('tone', true),
@@ -75,16 +81,21 @@ class Templates extends AbstractRoute
         }
 
         $this->setBody('Templates', [
-            'templates_url' => ee('CP/URL')->make('addons/settings/socialposter/templates')->compile(),
+            'templates_url' => $coreUrls['templates_url'],
             'new_template_url' => ee('CP/URL')->make('addons/settings/socialposter/templates', ['tab' => 'editor'])->compile(),
             'save_url' => ee('CP/URL')->make('addons/settings/socialposter/templates' . ($id > 0 ? '/' . $id : ''))->compile(),
-            'calendar_url' => ee('CP/URL')->make('addons/settings/socialposter/calendar')->compile(),
-            'index_url' => ee('CP/URL')->make('addons/settings/socialposter')->compile(),
+            'calendar_url' => $coreUrls['calendar_url'],
+            'index_url' => $coreUrls['index_url'],
+            'history_url' => $coreUrls['history_url'],
+            'action_url' => ee('socialposter:generator')->actionUrl(),
+            'csrf_token' => ee('socialposter:generator')->csrfToken(),
             'rows' => $templates->all(),
             'editing' => $editing,
             'editor_active' => $editorActive,
             'field_options' => $templates->fieldOptions(),
             'instagram_carousel_instructions' => $templates->instagramCarouselInstructions(),
+            'carousel_templates' => $carousel->listTemplates(),
+            'carousel_template_guide' => $carouselGuide,
         ]);
 
         return $this;

@@ -1,14 +1,7 @@
 <?php
 ee()->load->helper('form');
+$spView = require __DIR__ . '/_view_helpers.php';
 $h = fn($value) => htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
-
-$truncate = function (string $text, int $max = 140) {
-    $text = trim(preg_replace('/\s+/', ' ', $text) ?? '');
-    if ($text === '' || mb_strlen($text) <= $max) {
-        return $text;
-    }
-    return mb_substr($text, 0, $max - 1) . '…';
-};
 ?>
 <div class="sp-wrap sp-pubig">
 
@@ -18,9 +11,10 @@ $truncate = function (string $text, int $max = 140) {
       <p class="sp-muted">Review your generated Instagram posts and push them live. Posts without an image are disabled until you generate or attach one.</p>
     </div>
     <nav class="sp-pubig-nav">
-      <a class="button button--default" href="<?= $h($instagram_create_url) ?>">Create Post</a>
+      <a class="button button--default" href="<?= $h($instagram_create_url) ?>">Create</a>
       <a class="button button--default" href="<?= $h($instagram_history_url) ?>">History</a>
-      <a class="button button--default" href="<?= $h($publish_blog_url) ?>">Publish Blog</a>
+      <a class="button button--default" href="<?= $h($instagram_carousel_url) ?>">Carousels</a>
+      <a class="button button--default" href="<?= $h($instagram_settings_url) ?>">Settings</a>
     </nav>
   </header>
 
@@ -47,7 +41,7 @@ $truncate = function (string $text, int $max = 140) {
           $thumb     = (string) ($post['image_url'] ?? '');
           $title     = trim((string) ($post['title'] ?? ''));
           $caption   = trim((string) ($post['post_text'] ?? $post['caption'] ?? ''));
-          $excerpt   = $truncate($caption, 160);
+          $excerpt   = $spView->excerpt($caption, 160, '…');
           $source    = trim((string) ($post['source'] ?? ''));
           $editUrl   = $instagram_history_url . '/' . $id;
         ?>
@@ -125,4 +119,3 @@ $truncate = function (string $text, int $max = 140) {
   <?php endif; ?>
 
 </div>
-

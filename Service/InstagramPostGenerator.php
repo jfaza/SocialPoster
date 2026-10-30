@@ -5,4 +5,9 @@ namespace JavidFazaeli\SocialPoster\Service;
 class InstagramPostGenerator extends SocialPostGenerator
 {
     protected string $table = 'socialposter_instagram_posts';
+
+    public function contentType(): string
+    {
+        return 'instagram';
+    }
 }

@@ -7,6 +7,7 @@ use ExpressionEngine\Service\Addon\Controllers\Mcp\AbstractRoute;
 class History extends AbstractRoute
 {
     use LoadsStyle;
+    use BuildsRouteContext;
 
     /**
      * @var string
@@ -29,8 +30,12 @@ class History extends AbstractRoute
         $this->loadStyle();
 
         $generator = ee('socialposter:generator');
+        $scheduler = ee('socialposter:scheduler');
         $templates = ee('socialposter:templates');
         $templateMeta = $templates->metaById();
+        $publisher = ee('socialposter:publisher');
+        $coreUrls = $this->coreRouteContext();
+        $publishUrls = $this->publishRouteContext();
 
         $id = (int) $id;
 
@@ -117,18 +122,31 @@ class History extends AbstractRoute
                 ee()->functions->redirect(ee('CP/URL')->make('addons/settings/socialposter/instagram/history/' . $id));
             }
 
+            $publishedBlogMap = $this->publishedBlogMap([$post['id'] ?? 0], $publisher);
+            $publishedFacebookMap = $this->publishedFacebookMap([$post['id'] ?? 0]);
+            $scheduleMap = $this->scheduleMap([$post['schedule_id'] ?? 0]);
+            $scheduleRunMap = $scheduler->latestRunsByContent('website', [(int) ($post['id'] ?? 0)]);
+
             $this->setBody('History', [
                 'mode' => 'edit',
                 'post' => $post,
                 'seo_score' => ee('socialposter:seoScorer')->score($post),
                 'rows' => [],
-                'index_url' => ee('CP/URL')->make('addons/settings/socialposter')->compile(),
-                'settings_url' => ee('CP/URL')->make('addons/settings/socialposter/settings')->compile(),
-                'history_url' => ee('CP/URL')->make('addons/settings/socialposter/history')->compile(),
-                'history_item_url_pattern' => ee('CP/URL')->make('addons/settings/socialposter/history/__ID__')->compile(),
+                'index_url' => $coreUrls['index_url'],
+                'settings_url' => $coreUrls['settings_url'],
+                'history_url' => $coreUrls['history_url'],
+                'history_item_url_pattern' => $this->cpUrl('history/__ID__'),
+                'publish_url' => $coreUrls['publish_url'],
+                'publish_facebook_url' => $publishUrls['publish_facebook_url'],
+                'published_url' => $coreUrls['published_url'],
+                'calendar_url' => $coreUrls['calendar_url'],
                 'save_url' => ee('CP/URL')->make('addons/settings/socialposter/history/' . $id)->compile(),
                 'template_options' => $templates->options(),
                 'template_meta' => $templateMeta,
+                'published_blog_record' => $publishedBlogMap[(int) ($post['id'] ?? 0)] ?? null,
+                'published_facebook_record' => $publishedFacebookMap[(int) ($post['id'] ?? 0)] ?? null,
+                'schedule_record' => $scheduleMap[(int) ($post['schedule_id'] ?? 0)] ?? null,
+                'schedule_run_record' => $scheduleRunMap[(int) ($post['id'] ?? 0)] ?? null,
             ]);
 
             return $this;
@@ -139,19 +157,139 @@ class History extends AbstractRoute
             $allRows,
             fn(array $row) => ! $this->isInstagramPost($row, $templateMeta)
         ));
+        $generationIds = array_map(fn(array $row) => (int) ($row['id'] ?? 0), $blogRows);
+        $scheduleIds = array_map(fn(array $row) => (int) ($row['schedule_id'] ?? 0), $blogRows);
+        $publishedBlogMap = $this->publishedBlogMap($generationIds, $publisher);
+        $publishedFacebookMap = $this->publishedFacebookMap($generationIds);
+        $scheduleMap = $this->scheduleMap($scheduleIds);
+        $scheduleRunMap = $scheduler->latestRunsByContent('website', $generationIds);
+        $stats = $this->reviewStats($blogRows, $publishedBlogMap, $publishedFacebookMap);
 
         $this->setBody('History', [
             'mode' => 'list',
             'rows' => ee('socialposter:seoScorer')->scoreMany($blogRows),
-            'index_url' => ee('CP/URL')->make('addons/settings/socialposter')->compile(),
-            'settings_url' => ee('CP/URL')->make('addons/settings/socialposter/settings')->compile(),
-            'history_url' => ee('CP/URL')->make('addons/settings/socialposter/history')->compile(),
-            'history_item_url_pattern' => ee('CP/URL')->make('addons/settings/socialposter/history/__ID__')->compile(),
+            'index_url' => $coreUrls['index_url'],
+            'settings_url' => $coreUrls['settings_url'],
+            'history_url' => $coreUrls['history_url'],
+            'history_item_url_pattern' => $this->cpUrl('history/__ID__'),
+            'publish_url' => $coreUrls['publish_url'],
+            'publish_facebook_url' => $publishUrls['publish_facebook_url'],
+            'published_url' => $coreUrls['published_url'],
+            'calendar_url' => $coreUrls['calendar_url'],
             'template_options' => $templates->options(),
             'template_meta' => $templateMeta,
+            'published_blog_map' => $publishedBlogMap,
+            'published_facebook_map' => $publishedFacebookMap,
+            'schedule_map' => $scheduleMap,
+            'schedule_run_map' => $scheduleRunMap,
+            'review_stats' => $stats,
         ]);
 
         return $this;
+    }
+
+    private function publishedBlogMap(array $generationIds, $publisher): array
+    {
+        $generationIds = array_values(array_filter(array_map('intval', $generationIds)));
+        if (! $generationIds) {
+            return [];
+        }
+
+        $records = [];
+        foreach ($publisher->publishedBlogs(200) as $row) {
+            $generationId = (int) ($row['generation_id'] ?? 0);
+            if ($generationId < 1 || ! in_array($generationId, $generationIds, true)) {
+                continue;
+            }
+
+            if (! isset($records[$generationId]) || (int) ($row['created_at'] ?? 0) > (int) ($records[$generationId]['created_at'] ?? 0)) {
+                $records[$generationId] = $row;
+            }
+        }
+
+        return $records;
+    }
+
+    private function publishedFacebookMap(array $generationIds): array
+    {
+        $generationIds = array_values(array_filter(array_map('intval', $generationIds)));
+        if (! $generationIds || ! ee()->db->table_exists('socialposter_published_facebook')) {
+            return [];
+        }
+
+        $rows = ee()->db
+            ->where_in('generation_id', $generationIds)
+            ->order_by('created_at', 'DESC')
+            ->get('socialposter_published_facebook')
+            ->result_array();
+
+        $records = [];
+        foreach ($rows as $row) {
+            $generationId = (int) ($row['generation_id'] ?? 0);
+            if ($generationId > 0 && ! isset($records[$generationId])) {
+                $records[$generationId] = $row;
+            }
+        }
+
+        return $records;
+    }
+
+    private function scheduleMap(array $scheduleIds): array
+    {
+        $scheduleIds = array_values(array_filter(array_map('intval', $scheduleIds)));
+        if (! $scheduleIds || ! ee()->db->table_exists('socialposter_schedules')) {
+            return [];
+        }
+
+        $rows = ee()->db
+            ->where_in('id', $scheduleIds)
+            ->get('socialposter_schedules')
+            ->result_array();
+
+        $records = [];
+        foreach ($rows as $row) {
+            $records[(int) $row['id']] = $row;
+        }
+
+        return $records;
+    }
+
+    private function reviewStats(array $rows, array $publishedBlogMap, array $publishedFacebookMap): array
+    {
+        $stats = [
+            'total' => count($rows),
+            'ready_to_publish' => 0,
+            'published_blog' => 0,
+            'published_facebook' => 0,
+            'scheduled_origin' => 0,
+            'image_issues' => 0,
+        ];
+
+        foreach ($rows as $row) {
+            $generationId = (int) ($row['id'] ?? 0);
+            $hasBlog = isset($publishedBlogMap[$generationId]);
+            $hasFacebook = isset($publishedFacebookMap[$generationId]);
+            $hasImageIssue = ! empty($row['image_missing']);
+            $hasSchedule = (int) ($row['schedule_id'] ?? 0) > 0;
+
+            if ($hasBlog) {
+                $stats['published_blog']++;
+            }
+            if ($hasFacebook) {
+                $stats['published_facebook']++;
+            }
+            if ($hasSchedule) {
+                $stats['scheduled_origin']++;
+            }
+            if ($hasImageIssue) {
+                $stats['image_issues']++;
+            }
+            if (! $hasBlog && ! $hasImageIssue) {
+                $stats['ready_to_publish']++;
+            }
+        }
+
+        return $stats;
     }
 
     private function isInstagramPost(array $post, array $templateMeta): bool

@@ -7,6 +7,7 @@ use ExpressionEngine\Service\Addon\Controllers\Mcp\AbstractRoute;
 class Settings extends AbstractRoute
 {
     use LoadsStyle;
+    use BuildsRouteContext;
 
     /**
      * @var string
@@ -29,6 +30,7 @@ class Settings extends AbstractRoute
         $this->loadStyle();
 
         $generator = ee('socialposter:generator');
+        $coreUrls = $this->coreRouteContext();
 
         if (ee('Request')->post('save_settings')) {
             try {
@@ -63,9 +65,11 @@ class Settings extends AbstractRoute
         $settings = $generator->getSettings();
 
         $this->setBody('Settings', [
-            'save_url' => ee('CP/URL')->make('addons/settings/socialposter/settings')->compile(),
-            'index_url' => ee('CP/URL')->make('addons/settings/socialposter')->compile(),
-            'history_url' => ee('CP/URL')->make('addons/settings/socialposter/history')->compile(),
+            'save_url' => $coreUrls['settings_url'],
+            'index_url' => $coreUrls['index_url'],
+            'history_url' => $coreUrls['history_url'],
+            'templates_url' => $coreUrls['templates_url'],
+            'usage_url' => $coreUrls['usage_url'],
             'settings' => $settings,
             'text_models' => $generator->textModels(),
             'image_models' => $generator->imageModels(),

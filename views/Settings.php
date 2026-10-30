@@ -5,7 +5,6 @@ $textModel    = $settings['text_model']    ?? 'gpt-5.4';
 $imageModel   = $settings['image_model']   ?? 'gpt-image-1.5';
 $imageSize    = $settings['image_size']    ?? '1024x1024';
 $quality      = $settings['image_quality'] ?? 'medium';
-$carouselSlides = (int) ($settings['carousel_slides'] ?? 6);
 
 $mask = function ($value) {
     $value = trim((string) $value);
@@ -21,8 +20,9 @@ $currentModelValid = array_key_exists($textModel, $allTextModels);
 ?>
 <div class="sp-wrap">
   <p class="sp-toolbar">
-    <a class="button button--default" href="<?= $h($index_url) ?>">Generator</a>
-    <a class="button button--default" href="<?= $h($history_url) ?>">History</a>
+    <a class="button button--default" href="<?= $h($index_url) ?>">Create</a>
+    <a class="button button--default" href="<?= $h($templates_url) ?>">Template Library</a>
+    <a class="button button--default" href="<?= $h($usage_url) ?>">Usage</a>
   </p>
 
   <?= form_open($save_url, ['class' => 'sp-settings-form']) ?>
@@ -120,22 +120,9 @@ $currentModelValid = array_key_exists($textModel, $allTextModels);
       </div>
     </div>
 
-    <!-- ── Carousel ───────────────────────────────────────── -->
-    <div class="sp-card">
-      <h2>Carousel</h2>
-
-      <div class="sp-field" style="max-width:200px;">
-        <label for="carousel_slides">Number of Slides</label>
-        <input type="number" id="carousel_slides" name="carousel_slides"
-               value="<?= $carouselSlides ?>" min="3" max="12" step="1">
-        <p class="sp-muted">3–12 slides per carousel generation.</p>
-      </div>
-    </div>
-
     <div class="sp-actions">
       <button type="submit" class="button button--primary">Save Settings</button>
     </div>
 
   <?= form_close() ?>
 </div>
-

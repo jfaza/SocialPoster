@@ -1,79 +1,49 @@
 <?php
 ee()->load->helper('form');
+$spView = require __DIR__ . '/_view_helpers.php';
 $h = fn($value) => htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
 $pageModeRaw = (string) ($page_mode ?? 'general');
 $pageMode = in_array($pageModeRaw, ['instagram', 'news'], true) ? $pageModeRaw : 'general';
 $isInstagramPage = $pageMode === 'instagram';
 $isNewsPage = $pageMode === 'news';
 $historyTitle = (string) ($history_title ?? 'Generated Posts');
-$templateBadge = function ($templateId) use ($template_meta, $h) {
-    $template = $template_meta[(int) $templateId] ?? null;
-    if (! $template) {
-        return '';
-    }
-
-    $platform = trim((string) ($template['platform'] ?? ''));
-    $title = trim((string) ($template['title'] ?? ''));
-    $label = $platform !== '' ? $platform : $title;
-    if ($label === '') {
-        return '';
-    }
-
-    $class = strtolower(preg_replace('/[^a-z0-9]+/', '-', $label));
-    return '<span class="sp-template-badge sp-template-badge--' . $h(trim((string) $class, '-')) . '">' . $h($label) . '</span>';
-};
-$isInstagramTemplate = function ($templateId) use ($template_meta) {
-    $template = $template_meta[(int) $templateId] ?? null;
-    if (! $template) {
-        return false;
-    }
-
-    $platform = strtolower(trim((string) ($template['platform'] ?? '')));
-    $title = strtolower(trim((string) ($template['title'] ?? '')));
-    return $platform === 'instagram' || strpos($title, 'instagram carousel') !== false;
-};
-$splitInstagramPost = function ($text) {
-    $text = (string) $text;
-    $parts = preg_split('/\n\s*(?:#{1,6}\s*)?Instagram Caption:?\s*\n/i', $text, 2);
-    if (is_array($parts) && count($parts) === 2) {
-        return [trim($parts[0]), trim($parts[1])];
-    }
-
-    return [trim($text), ''];
-};
-$historyItemUrl = function ($id) use ($history_item_url_pattern, $history_url) {
-    $pattern = (string) ($history_item_url_pattern ?? '');
-    if ($pattern !== '') {
-        return str_replace('__ID__', (string) (int) $id, $pattern);
-    }
-
-    return rtrim((string) $history_url, '/') . '/' . (int) $id;
-};
+$publishedBlogMap = is_array($published_blog_map ?? null) ? $published_blog_map : [];
+$publishedFacebookMap = is_array($published_facebook_map ?? null) ? $published_facebook_map : [];
+$scheduleMap = is_array($schedule_map ?? null) ? $schedule_map : [];
+$scheduleRunMap = is_array($schedule_run_map ?? null) ? $schedule_run_map : [];
+$reviewStats = is_array($review_stats ?? null) ? $review_stats : [];
+$templateMeta = is_array($template_meta ?? null) ? $template_meta : [];
+$historyItemUrlPattern = (string) ($history_item_url_pattern ?? '');
 ?>
 <div class="sp-wrap">
   <?php if ($isInstagramPage && ! empty($instagram_nav)): ?>
   <p class="sp-toolbar">
     <a class="button button--default" href="<?= $h($instagram_nav['create']) ?>">Create</a>
-    <a class="button button--default" href="<?= $h($instagram_nav['history']) ?>">History</a>
     <a class="button button--default" href="<?= $h($instagram_nav['carousels']) ?>">Carousels</a>
-    <a class="button button--default" href="<?= $h($instagram_nav['news_sources']) ?>">News Sources</a>
     <a class="button button--default" href="<?= $h($instagram_nav['publish']) ?>">Publish</a>
     <a class="button button--default" href="<?= $h($instagram_nav['settings']) ?>">Settings</a>
   </p>
   <?php else: ?>
   <p class="sp-toolbar">
-    <a class="button button--default" href="<?= $h($index_url) ?>"><?= $isNewsPage ? 'Generate Post' : 'Generator' ?></a>
-    <a class="button button--default" href="<?= $h($settings_url) ?>">Settings</a>
-    <a class="button button--default" href="<?= $h($history_url) ?>"><?= $historyTitle ?></a>
+    <a class="button button--default" href="<?= $h($index_url) ?>"><?= $isNewsPage ? 'Create Post' : 'Create' ?></a>
+    <a class="button button--default" href="<?= $h($publish_url) ?>">Publish</a>
+    <a class="button button--default" href="<?= $h($published_url) ?>">Published</a>
   </p>
   <?php endif; ?>
 
   <?php if (($mode ?? 'list') === 'edit' && ! empty($post)): ?>
     <?php
-      $isNews = $isNewsPage || (string) ($post['source'] ?? '') === 'news';
-      $isInstagram = ! $isNews && $isInstagramTemplate($post['template_id'] ?? 0);
-      [$carouselSlides, $instagramCaption] = $splitInstagramPost($post['post_text'] ?? '');
+      $postSource = (string) ($post['source'] ?? '');
+      $isNews = $isNewsPage || $postSource === 'news';
+      $isInstagramCarousel = ! $isNews && $spView->isInstagramTemplate($templateMeta, $post['template_id'] ?? 0);
+      $isInstagramSingle = ! $isNews && ! $isInstagramCarousel && ($isInstagramPage || $postSource === 'instagram');
+      $isInstagram = $isInstagramCarousel || $isInstagramSingle;
+      $isWebsiteTemplate = $spView->isWebsiteTemplate($templateMeta, $post['template_id'] ?? 0);
+      $isFacebookTemplate = $spView->isFacebookTemplate($templateMeta, $post['template_id'] ?? 0);
+      $socialQuality = $isFacebookTemplate ? $spView->socialQuality((string) ($post['post_text'] ?? '')) : [];
+      [$carouselSlides, $instagramCaption] = $spView->splitInstagramPost($post['post_text'] ?? '');
       $instagramSlideImageBriefs = array_values((array) ($post['instagram_slide_image_briefs'] ?? []));
+      $postTemplateTitle = $spView->templateTitle($templateMeta, $post['template_id'] ?? 0);
     ?>
 
     <?php if ($isNews): ?>
@@ -171,12 +141,110 @@ $historyItemUrl = function ($id) use ($history_item_url_pattern, $history_url) {
     </section>
 
     <?php else: ?>
-    <!-- ── INSTAGRAM CAROUSEL / GENERAL TEMPLATE ─────────── -->
+    <!-- ── INSTAGRAM / GENERAL TEMPLATE ───────────────────── -->
     <section class="sp-card">
-      <h2><?= $isInstagram ? 'Edit Instagram Carousel' : 'Edit Generated Post' ?></h2>
-      <p class="sp-muted">Generated <?= $h(date('M j, Y g:ia', (int) $post['created_at'])) ?><?= ! empty($post['source']) ? ' · ' . $h($post['source']) : '' ?></p>
+      <h2><?= $isInstagramCarousel ? 'Edit Instagram Carousel' : ($isInstagramSingle ? 'Edit Instagram Post' : 'Edit Generated Post') ?></h2>
+      <p class="sp-muted">
+        Generated <?= $h(date('M j, Y g:ia', (int) $post['created_at'])) ?><?= ! empty($post['source']) ? ' · ' . $h($post['source']) : '' ?>
+        <?php if ($postTemplateTitle !== ''): ?>
+          · Template: <?= $h($postTemplateTitle) ?>
+        <?php endif; ?>
+      </p>
 
-      <?php if (! $isInstagram && ! empty($seo_score)): ?>
+      <?php if (! $isInstagram): ?>
+        <?php
+          $blogRecord = is_array($published_blog_record ?? null) ? $published_blog_record : null;
+          $facebookRecord = is_array($published_facebook_record ?? null) ? $published_facebook_record : null;
+          $scheduleRecord = is_array($schedule_record ?? null) ? $schedule_record : null;
+          $scheduleRunRecord = is_array($schedule_run_record ?? null) ? $schedule_run_record : null;
+        ?>
+        <div class="sp-review-hub">
+          <div class="sp-review-summary">
+            <div class="sp-review-summary__head">
+              <h3>Review Status</h3>
+              <div class="sp-review-statuses">
+                <?php if ($blogRecord): ?>
+                  <?= $spView->statusBadge('Published to Blog', 'success', $h) ?>
+                <?php else: ?>
+                  <?= $spView->statusBadge('Draft', 'warning', $h) ?>
+                <?php endif; ?>
+                <?php if ($facebookRecord): ?>
+                  <?= $spView->statusBadge('Published to Facebook', 'info', $h) ?>
+                <?php endif; ?>
+                <?php if ($scheduleRecord): ?>
+                  <?= $spView->statusBadge('From Schedule', 'neutral', $h) ?>
+                <?php endif; ?>
+                <?php if (! empty($post['image_missing'])): ?>
+                  <?= $spView->statusBadge('Image Needs Repair', 'danger', $h) ?>
+                <?php endif; ?>
+              </div>
+            </div>
+            <div class="sp-review-grid">
+              <div>
+                <strong>Template</strong>
+                <p><?= $h($postTemplateTitle !== '' ? $postTemplateTitle : 'No template saved') ?></p>
+              </div>
+              <div>
+                <strong>Source</strong>
+                <p><?= $h((string) ($post['source'] ?? 'manual') ?: 'manual') ?></p>
+              </div>
+              <div>
+                <strong>Origin</strong>
+                <p>
+                  <?php if ($scheduleRecord): ?>
+                    Schedule: <?= $h((string) ($scheduleRecord['title'] ?? ('#' . (int) ($scheduleRecord['id'] ?? 0)))) ?>
+                  <?php else: ?>
+                    Manual generation
+                  <?php endif; ?>
+                </p>
+              </div>
+              <?php if ($scheduleRunRecord): ?>
+              <div>
+                <strong>Run Result</strong>
+                <p>
+                  <?= $h(date('M j, Y g:ia', (int) ($scheduleRunRecord['started_at'] ?? 0))) ?>
+                  · <?= $h(ucwords(str_replace('_', ' ', (string) ($scheduleRunRecord['status'] ?? 'success')))) ?>
+                </p>
+              </div>
+              <?php endif; ?>
+              <div>
+                <strong>Next Step</strong>
+                <p>
+                  <?php if ($isWebsiteTemplate && ! $blogRecord): ?>
+                    Publish this draft to Blog
+                  <?php elseif ($isFacebookTemplate && ! $facebookRecord): ?>
+                    Publish this post to Facebook
+                  <?php elseif ($isWebsiteTemplate && ! $facebookRecord): ?>
+                    Optional: publish this content to Facebook
+                  <?php else: ?>
+                    Review this content and any published outputs
+                  <?php endif; ?>
+                </p>
+              </div>
+            </div>
+            <div class="sp-actions sp-actions--review">
+              <?php if ($isWebsiteTemplate && ! $blogRecord): ?>
+                <a class="button button--primary" href="<?= $h($publish_url) ?>">Publish to Blog</a>
+              <?php elseif ($isWebsiteTemplate): ?>
+                <a class="button button--default" href="<?= $h($published_url) ?>">View Published</a>
+              <?php endif; ?>
+              <?php if ($isWebsiteTemplate || $isFacebookTemplate): ?>
+                <a class="button button--default" href="<?= $h($publish_facebook_url) ?>">
+                  <?= $facebookRecord ? 'Facebook Published' : 'Publish to Facebook' ?>
+                </a>
+              <?php endif; ?>
+              <?php if ($scheduleRecord): ?>
+                <a class="button button--default" href="<?= $h(rtrim((string) $calendar_url, '/') . '/' . (int) ($scheduleRecord['id'] ?? 0)) ?>#tab=t-1">Open Schedule</a>
+              <?php endif; ?>
+            </div>
+            <?php if ($scheduleRunRecord && ! empty($scheduleRunRecord['message'])): ?>
+              <p class="sp-muted">Schedule note: <?= $h($scheduleRunRecord['message']) ?></p>
+            <?php endif; ?>
+          </div>
+        </div>
+      <?php endif; ?>
+
+      <?php if ($isWebsiteTemplate && ! empty($seo_score)): ?>
         <div class="sp-seo-panel <?= (int) $seo_score['score'] >= 75 ? 'is-strong' : ((int) $seo_score['score'] >= 60 ? 'is-warning' : 'is-weak') ?>">
           <div class="sp-seo-score">
             <span><?= (int) $seo_score['score'] ?></span>
@@ -203,6 +271,32 @@ $historyItemUrl = function ($id) use ($history_item_url_pattern, $history_url) {
         </div>
       <?php endif; ?>
 
+      <?php if ($isFacebookTemplate && ! empty($socialQuality)): ?>
+        <div class="sp-social-panel <?= (int) $socialQuality['score'] >= 80 ? 'is-strong' : ((int) $socialQuality['score'] >= 60 ? 'is-warning' : 'is-weak') ?>">
+          <div class="sp-social-score">
+            <span><?= (int) $socialQuality['score'] ?></span>
+            <small>/100</small>
+          </div>
+          <div class="sp-social-summary">
+            <strong>Facebook Fit · <?= $h($socialQuality['grade']) ?></strong>
+            <p><?= $h($socialQuality['summary']) ?></p>
+            <p class="sp-muted"><?= (int) ($socialQuality['char_count'] ?? 0) ?> characters · tuned for short in-feed reading</p>
+          </div>
+        </div>
+
+        <div class="sp-social-checks">
+          <?php foreach ($socialQuality['checks'] as $check): ?>
+            <div class="sp-social-check <?= ! empty($check['passed']) ? 'is-pass' : 'is-fail' ?>">
+              <strong><?= $h($check['label']) ?></strong>
+              <p><?= $h($check['detail']) ?></p>
+              <?php if (empty($check['passed'])): ?>
+                <small><?= $h($check['recommendation']) ?></small>
+              <?php endif; ?>
+            </div>
+          <?php endforeach; ?>
+        </div>
+      <?php endif; ?>
+
       <?php if (! empty($post['image_missing'])): ?>
         <div class="alert inline warn">
           <p>Image file is missing for this generated post. Use Regenerate Image to repair it before publishing.</p>
@@ -216,7 +310,7 @@ $historyItemUrl = function ($id) use ($history_item_url_pattern, $history_url) {
       <?= form_open($save_url) ?>
         <input type="hidden" name="regenerate_image" value="1">
 
-        <?php if ($isInstagram): ?>
+        <?php if ($isInstagramCarousel): ?>
           <h3>Carousel Images</h3>
           <p class="sp-muted">Image 1 is the generated carousel cover/visual system. Additional slide images need separate generation/storage support before they can be published as a true multi-image carousel.</p>
           <div class="sp-carousel-image-grid">
@@ -268,6 +362,20 @@ $historyItemUrl = function ($id) use ($history_item_url_pattern, $history_url) {
               <?php endforeach; ?>
             </div>
           <?php endif; ?>
+        <?php elseif ($isInstagramSingle): ?>
+          <?php if (! empty($post['image_url'])): ?>
+            <p><img src="<?= $h($post['image_url']) ?>" alt="" class="sp-preview"></p>
+          <?php endif; ?>
+
+          <div class="sp-field">
+            <label for="sp-image-prompt">Image Prompt</label>
+            <textarea id="sp-image-prompt" name="image_prompt" rows="5"><?= $h($post['image_prompt'] ?? '') ?></textarea>
+          </div>
+
+          <div class="sp-field">
+            <label for="sp-image-brief">Image Instructions</label>
+            <textarea id="sp-image-brief" name="image_brief" rows="5"><?= $h($post['image_brief'] ?? '') ?></textarea>
+          </div>
         <?php else: ?>
           <div class="sp-field">
             <label for="sp-image-prompt">Image Prompt</label>
@@ -287,7 +395,7 @@ $historyItemUrl = function ($id) use ($history_item_url_pattern, $history_url) {
 
       <?= form_open($save_url, ['id' => $isInstagram ? 'sp-instagram-edit-form' : 'sp-edit-form']) ?>
         <input type="hidden" name="save_post" value="1">
-        <?php if ($isInstagram): ?>
+        <?php if ($isInstagramCarousel): ?>
           <input id="sp-post-text" name="post_text" type="hidden" value="<?= $h($post['post_text'] ?? '') ?>">
         <?php endif; ?>
 
@@ -310,7 +418,7 @@ $historyItemUrl = function ($id) use ($history_item_url_pattern, $history_url) {
           <textarea id="sp-prompt" name="prompt" rows="5"><?= $h($post['prompt'] ?? '') ?></textarea>
         </div>
 
-        <?php if ($isInstagram): ?>
+        <?php if ($isInstagramCarousel): ?>
           <div class="sp-field">
             <label for="sp-carousel-slides">Carousel Slide Copy</label>
             <p class="sp-muted">Keep only the slide-by-slide carousel copy here.</p>
@@ -321,6 +429,12 @@ $historyItemUrl = function ($id) use ($history_item_url_pattern, $history_url) {
             <label for="sp-instagram-caption">Instagram Caption</label>
             <p class="sp-muted">Meta publishes one caption for the whole Instagram carousel. Hashtags and @mentions belong here, not on individual slides.</p>
             <textarea id="sp-instagram-caption" rows="7"><?= $h($instagramCaption) ?></textarea>
+          </div>
+        <?php elseif ($isInstagramSingle): ?>
+          <div class="sp-field">
+            <label for="sp-post-text">Instagram Caption</label>
+            <p class="sp-muted">The caption that will be published with this single-image post.</p>
+            <textarea id="sp-post-text" name="post_text" rows="7"><?= $h($post['post_text'] ?? '') ?></textarea>
           </div>
         <?php else: ?>
           <div class="sp-field">
@@ -421,7 +535,7 @@ $historyItemUrl = function ($id) use ($history_item_url_pattern, $history_url) {
       <?= form_close() ?>
       <?php endif; ?>
     </section>
-    <?php if ($isInstagram): ?>
+    <?php if ($isInstagramCarousel): ?>
       <script>
       (function () {
         const form = document.getElementById('sp-instagram-edit-form');
@@ -443,6 +557,32 @@ $historyItemUrl = function ($id) use ($history_item_url_pattern, $history_url) {
   <?php else: ?>
   <section class="sp-card">
     <h2><?= $h($historyTitle) ?></h2>
+    <?php if (! $isInstagramPage && ! $isNewsPage && $reviewStats): ?>
+      <div class="sp-review-overview">
+        <article class="sp-review-stat">
+          <strong><?= (int) ($reviewStats['total'] ?? 0) ?></strong>
+          <span>Total drafts</span>
+        </article>
+        <article class="sp-review-stat">
+          <strong><?= (int) ($reviewStats['ready_to_publish'] ?? 0) ?></strong>
+          <span>Ready to publish</span>
+        </article>
+        <article class="sp-review-stat">
+          <strong><?= (int) ($reviewStats['published_blog'] ?? 0) ?></strong>
+          <span>Published to blog</span>
+        </article>
+        <article class="sp-review-stat">
+          <strong><?= (int) ($reviewStats['scheduled_origin'] ?? 0) ?></strong>
+          <span>Generated by schedule</span>
+        </article>
+        <?php if ((int) ($reviewStats['image_issues'] ?? 0) > 0): ?>
+          <article class="sp-review-stat is-danger">
+            <strong><?= (int) ($reviewStats['image_issues'] ?? 0) ?></strong>
+            <span>Image issues</span>
+          </article>
+        <?php endif; ?>
+      </div>
+    <?php endif; ?>
     <?php if (empty($rows)): ?>
       <p class="sp-muted"><?= $isInstagramPage ? 'No Instagram generations yet.' : ($isNewsPage ? 'No news posts yet.' : 'No SocialPoster generations yet.') ?></p>
     <?php else: ?>
@@ -451,9 +591,14 @@ $historyItemUrl = function ($id) use ($history_item_url_pattern, $history_url) {
         <?php
           $intro = trim((string) ($row['intro_text'] ?? ''));
           $keywords = array_slice((array) ($row['keywords'] ?? []), 0, 4);
-          $templateLabel = ! empty($row['template_id']) && ! empty($template_options[(int) $row['template_id']])
-              ? $template_options[(int) $row['template_id']]
-              : '';
+          $templateLabel = $spView->templateTitle($templateMeta, $row['template_id'] ?? 0);
+          $blogRecord = $publishedBlogMap[(int) ($row['id'] ?? 0)] ?? null;
+          $facebookRecord = $publishedFacebookMap[(int) ($row['id'] ?? 0)] ?? null;
+          $scheduleRecord = $scheduleMap[(int) ($row['schedule_id'] ?? 0)] ?? null;
+          $scheduleRunRecord = $scheduleRunMap[(int) ($row['id'] ?? 0)] ?? null;
+          $isWebsiteRow = $spView->isWebsiteTemplate($templateMeta, $row['template_id'] ?? 0);
+          $isFacebookRow = $spView->isFacebookTemplate($templateMeta, $row['template_id'] ?? 0);
+          $socialQualityRow = $isFacebookRow ? $spView->socialQuality((string) ($row['post_text'] ?? '')) : [];
         ?>
         <article class="sp-history-row">
           <div class="sp-history-thumb">
@@ -465,30 +610,78 @@ $historyItemUrl = function ($id) use ($history_item_url_pattern, $history_url) {
           </div>
           <div class="sp-history-main">
             <div class="sp-history-head">
-              <h3><?= $h($row['title'] ?: 'Generated social post') ?></h3>
-              <?= $templateBadge($row['template_id'] ?? 0) ?>
-              <?php
-                $pubTs = ($published_ids ?? [])[(int) ($row['id'] ?? 0)] ?? null;
-                if ($pubTs):
-              ?>
-                <span class="sp-published-badge">✓ Published <?= $h(date('M j', $pubTs)) ?></span>
-              <?php endif; ?>
-              <?php if (! $isInstagramPage && ! empty($row['seo_score'])): ?>
+              <div class="sp-history-title-block">
+                <h3><?= $h($row['title'] ?: 'Generated social post') ?></h3>
+                <div class="sp-history-statuses">
+                  <?= $spView->templateBadge($templateMeta, $row['template_id'] ?? 0, $h) ?>
+                  <?php if ($isWebsiteRow && $blogRecord): ?>
+                    <?= $spView->statusBadge('Published to Blog', 'success', $h) ?>
+                  <?php elseif ($isWebsiteRow): ?>
+                    <?= $spView->statusBadge('Draft', 'warning', $h) ?>
+                  <?php endif; ?>
+                  <?php if ($facebookRecord): ?>
+                    <?= $spView->statusBadge('Published to Facebook', 'info', $h) ?>
+                  <?php endif; ?>
+                  <?php if ($scheduleRecord): ?>
+                    <?= $spView->statusBadge('Scheduled Source', 'neutral', $h) ?>
+                  <?php endif; ?>
+                  <?php if (! empty($row['image_missing'])): ?>
+                    <?= $spView->statusBadge('Image Issue', 'danger', $h) ?>
+                  <?php endif; ?>
+                </div>
+              </div>
+              <?php if (! $isInstagramPage && $isWebsiteRow && ! empty($row['seo_score'])): ?>
                 <div class="sp-seo-inline <?= (int) $row['seo_score']['score'] >= 75 ? 'is-strong' : ((int) $row['seo_score']['score'] >= 60 ? 'is-warning' : 'is-weak') ?>">
                   <strong>SEO <?= (int) $row['seo_score']['score'] ?>/100</strong>
                   <span><?= $h($row['seo_score']['grade']) ?></span>
                 </div>
+              <?php elseif ($isFacebookRow && ! empty($socialQualityRow)): ?>
+                <div class="sp-social-inline <?= (int) $socialQualityRow['score'] >= 80 ? 'is-strong' : ((int) $socialQualityRow['score'] >= 60 ? 'is-warning' : 'is-weak') ?>">
+                  <strong>Facebook <?= (int) $socialQualityRow['score'] ?>/100</strong>
+                  <span><?= $h($socialQualityRow['grade']) ?></span>
+                </div>
               <?php endif; ?>
             </div>
             <p class="sp-muted">
-              #<?= (int) $row['id'] ?> · <?= $h(date('M j, Y g:ia', (int) $row['created_at'])) ?><?= ! empty($row['source']) ? ' · ' . $h($row['source']) : '' ?><?= $templateLabel !== '' ? ' · ' . $h($templateLabel) : '' ?>
+              #<?= (int) $row['id'] ?> · <?= $h(date('M j, Y g:ia', (int) $row['created_at'])) ?><?= ! empty($row['source']) ? ' · ' . $h($row['source']) : '' ?>
             </p>
+            <?php if ($templateLabel !== ''): ?>
+              <p class="sp-muted">Template: <?= $h($templateLabel) ?></p>
+            <?php endif; ?>
+            <?php if ($scheduleRecord): ?>
+              <p class="sp-muted">Origin: schedule <?= $h((string) ($scheduleRecord['title'] ?? ('#' . (int) ($scheduleRecord['id'] ?? 0)))) ?></p>
+              <p><a href="<?= $h(rtrim((string) $calendar_url, '/') . '/' . (int) ($scheduleRecord['id'] ?? 0)) ?>#tab=t-1">Open schedule</a></p>
+            <?php endif; ?>
+            <?php if ($scheduleRunRecord): ?>
+              <p class="sp-muted">
+                Scheduled run: <?= $h(date('M j, Y g:ia', (int) ($scheduleRunRecord['started_at'] ?? 0))) ?>
+                <?php if ((int) ($scheduleRunRecord['duplicate_retry_count'] ?? 0) > 0): ?>
+                  · Accepted after <?= (int) $scheduleRunRecord['duplicate_retry_count'] ?> duplicate <?= (int) $scheduleRunRecord['duplicate_retry_count'] === 1 ? 'retry' : 'retries' ?>
+                <?php else: ?>
+                  · <?= $h(ucfirst((string) ($scheduleRunRecord['topic_source'] ?? 'fresh'))) ?> topic chosen
+                <?php endif; ?>
+              </p>
+              <?php if (! empty($scheduleRunRecord['message'])): ?>
+                <p class="sp-muted"><?= $h($scheduleRunRecord['message']) ?></p>
+              <?php endif; ?>
+            <?php endif; ?>
             <?php if (! empty($row['image_missing'])): ?>
               <p class="sp-danger-text">Image file missing. Open this post and regenerate the image before publishing.</p>
             <?php endif; ?>
             <?php if ($intro !== ''): ?>
-              <p class="sp-history-excerpt"><?= $h(strlen($intro) > 220 ? substr($intro, 0, 217) . '...' : $intro) ?></p>
+              <p class="sp-history-excerpt"><?= $h($spView->excerpt($intro, 220)) ?></p>
             <?php endif; ?>
+            <p class="sp-review-next">
+              <?php if ($isWebsiteRow && ! $blogRecord): ?>
+                Next step: review and publish this draft to Blog.
+              <?php elseif ($isFacebookRow && ! $facebookRecord): ?>
+                Next step: review and publish this post to Facebook.
+              <?php elseif ($isWebsiteRow && ! $facebookRecord): ?>
+                Next step: optionally publish or adapt this post for Facebook.
+              <?php else: ?>
+                Next step: review published results or reuse this prompt.
+              <?php endif; ?>
+            </p>
             <div class="sp-history-meta">
               <?php if (! empty($row['category'])): ?>
                 <span><?= $h($row['category']) ?></span>
@@ -505,7 +698,16 @@ $historyItemUrl = function ($id) use ($history_item_url_pattern, $history_url) {
             </div>
           </div>
           <div class="sp-actions">
-            <a class="button button--primary" href="<?= $h($historyItemUrl($row['id'] ?? 0)) ?>">View / Edit</a>
+            <a class="button button--primary" href="<?= $h($spView->itemUrl($historyItemUrlPattern, (string) $history_url, $row['id'] ?? 0)) ?>">View / Edit</a>
+            <?php if (! $isInstagramPage && ! $isNewsPage && $isWebsiteRow): ?>
+              <a class="button button--default" href="<?= $h($blogRecord ? $published_url : $publish_url) ?>">
+                <?= $blogRecord ? 'Published' : 'Publish' ?>
+              </a>
+            <?php elseif (! $isInstagramPage && ! $isNewsPage && $isFacebookRow): ?>
+              <a class="button button--default" href="<?= $h($publish_facebook_url) ?>">
+                <?= $facebookRecord ? 'Facebook Published' : 'Publish to Facebook' ?>
+              </a>
+            <?php endif; ?>
             <?= form_open($history_url) ?>
               <input type="hidden" name="delete_id" value="<?= (int) $row['id'] ?>">
               <button type="submit" class="button button--danger">Delete</button>

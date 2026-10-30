@@ -48,6 +48,12 @@ class SocialPostGenerator
             'instagram_user_access_token' => '',
             'instagram_cover_provider' => 'openai',
             'instagram_slide_provider' => 'gd',
+            'facebook_app_id' => '',
+            'facebook_app_secret' => '',
+            'facebook_graph_version' => 'v24.0',
+            'facebook_page_id' => '',
+            'facebook_access_token' => '',
+            'facebook_user_access_token' => '',
             'ideogram_api_key' => '',
         ];
     }
@@ -123,6 +129,9 @@ class SocialPostGenerator
         $instagramIgAppSecret = trim((string) ($input['instagram_ig_app_secret'] ?? ''));
         $instagramAccessToken = trim((string) ($input['instagram_access_token'] ?? ''));
         $instagramUserAccessToken = trim((string) ($input['instagram_user_access_token'] ?? ''));
+        $facebookAppSecret = trim((string) ($input['facebook_app_secret'] ?? ''));
+        $facebookAccessToken = trim((string) ($input['facebook_access_token'] ?? ''));
+        $facebookUserAccessToken = trim((string) ($input['facebook_user_access_token'] ?? ''));
         $ideogramApiKey = trim((string) ($input['ideogram_api_key'] ?? ''));
         $this->validateSecretInput($apiKey, 'OpenAI API Key');
         $this->validateSecretInput($adminApiKey, 'OpenAI Admin API Key');
@@ -131,6 +140,9 @@ class SocialPostGenerator
         $this->validateSecretInput($instagramIgAppSecret, 'Instagram App Secret');
         $this->validateSecretInput($instagramAccessToken, 'Instagram Access Token');
         $this->validateSecretInput($instagramUserAccessToken, 'Instagram User Access Token');
+        $this->validateSecretInput($facebookAppSecret, 'Facebook App Secret');
+        $this->validateSecretInput($facebookAccessToken, 'Facebook Page Access Token');
+        $this->validateSecretInput($facebookUserAccessToken, 'Facebook User Access Token');
         $this->validateSecretInput($ideogramApiKey, 'Ideogram API Key');
 
         $carouselSlides = max(3, min(12, (int) ($input['carousel_slides'] ?? $current['carousel_slides'] ?? 6)));
@@ -180,6 +192,18 @@ class SocialPostGenerator
             'instagram_slide_provider' => in_array(($input['instagram_slide_provider'] ?? ''), ['openai', 'ideogram', 'gd', 'none'], true)
                 ? (string) $input['instagram_slide_provider']
                 : ($current['instagram_slide_provider'] ?? 'gd'),
+            'facebook_app_id' => trim((string) ($input['facebook_app_id'] ?? $current['facebook_app_id'])),
+            'facebook_app_secret' => $facebookAppSecret !== ''
+                ? $facebookAppSecret
+                : $current['facebook_app_secret'],
+            'facebook_graph_version' => $this->normalizeGraphVersion((string) ($input['facebook_graph_version'] ?? $current['facebook_graph_version'])),
+            'facebook_page_id' => trim((string) ($input['facebook_page_id'] ?? $current['facebook_page_id'])),
+            'facebook_access_token' => $facebookAccessToken !== ''
+                ? $facebookAccessToken
+                : $current['facebook_access_token'],
+            'facebook_user_access_token' => $facebookUserAccessToken !== ''
+                ? $facebookUserAccessToken
+                : $current['facebook_user_access_token'],
             'ideogram_api_key' => $ideogramApiKey !== ''
                 ? $ideogramApiKey
                 : $current['ideogram_api_key'],
@@ -228,6 +252,12 @@ class SocialPostGenerator
             'instagram_business_account_id' => ['socialposter_instagram_business_account_id', 'instagram_business_account_id'],
             'instagram_access_token' => ['socialposter_instagram_access_token', 'instagram_access_token'],
             'instagram_user_access_token' => ['socialposter_instagram_user_access_token', 'instagram_user_access_token'],
+            'facebook_app_id' => ['socialposter_facebook_app_id', 'facebook_app_id'],
+            'facebook_app_secret' => ['socialposter_facebook_app_secret', 'facebook_app_secret'],
+            'facebook_graph_version' => ['socialposter_facebook_graph_version', 'facebook_graph_version'],
+            'facebook_page_id' => ['socialposter_facebook_page_id', 'facebook_page_id'],
+            'facebook_access_token' => ['socialposter_facebook_access_token', 'facebook_access_token'],
+            'facebook_user_access_token' => ['socialposter_facebook_user_access_token', 'facebook_user_access_token'],
             'ideogram_api_key' => ['socialposter_ideogram_api_key', 'ideogram_api_key'],
         ];
 
@@ -271,6 +301,9 @@ class SocialPostGenerator
             'instagram_ig_app_secret',
             'instagram_access_token',
             'instagram_user_access_token',
+            'facebook_app_secret',
+            'facebook_access_token',
+            'facebook_user_access_token',
             'ideogram_api_key',
         ];
     }
@@ -303,6 +336,10 @@ class SocialPostGenerator
             'admin api key',
             'instagram app secret',
             'instagram access token',
+            'facebook app secret',
+            'facebook page access token',
+            'facebook user access token',
+            'facebook access token',
             'app secret',
             'access token',
             'optional app secret',
@@ -325,26 +362,68 @@ class SocialPostGenerator
         }
 
         $templateId = (int) ($meta['template_id'] ?? 0);
-        $template = $templateId > 0 ? ee('socialposter:templates')->find($templateId) : null;
-        $templateInstructions = $template ? ee('socialposter:templates')->instructionsFor($templateId) : '';
-        $generationPrompt = trim($templateInstructions . "\n\nUser prompt:\n" . $prompt);
+        $templates = ee('socialposter:templates');
+        $template = $templateId > 0 ? $templates->find($templateId) : null;
+        $templateProfile = $templates->generationProfileForTemplate($template);
+        $templateInstructions = $template ? $templates->instructionsFor($templateId) : '';
+        $baseGenerationPrompt = $this->assembleGenerationPrompt($prompt, $templateInstructions);
         $requestedSlideCount = $this->requestedInstagramSlideCount($prompt, $template);
-        if ($requestedSlideCount !== null) {
-            $generationPrompt .= "\n\nInstagram slide count requirement:\nReturn exactly {$requestedSlideCount} slides. "
-                . "table_of_contents must contain exactly {$requestedSlideCount} slide titles, one per slide. "
-                . "post_text must contain exactly {$requestedSlideCount} slide blocks before the Instagram Caption section.";
+        $recentGenerations = $this->normalizeRecentGenerationMemory((array) ($meta['recent_generations'] ?? []));
+        if ($recentGenerations === [] && ($templateId > 0 || $templateProfile !== '')) {
+            $recentGenerations = $this->recentGenerationMemory([
+                'template_id' => $templateId,
+                'generation_profile' => $templateProfile,
+                'limit' => 18,
+                'source' => (string) ($meta['source'] ?? ''),
+            ]);
         }
+        $maxTopicAttempts = max(1, min(3, (int) ($meta['max_topic_attempts'] ?? 1)));
         $siteContext = $this->siteContextInstructions($template);
-        if ($siteContext !== '') {
-            $generationPrompt .= "\n\n" . $siteContext;
-        }
         $requestedImageBrief = trim((string) ($meta['image_brief'] ?? ''));
-        if ($requestedImageBrief !== '') {
-            $generationPrompt .= "\n\nImage brief to follow:\n" . $requestedImageBrief;
-        }
+        $content = [];
+        $duplicateMatch = null;
+        $lastDuplicateMatchTitle = '';
+        $topicSource = trim((string) ($meta['topic_source'] ?? 'manual'));
+        $topicAttemptCount = 1;
 
-        $content = $this->generateStructuredContent($settings['api_key'], $settings['text_model'], $generationPrompt, $template, $prompt);
-        $this->validateGeneratedContent($content, $template, $prompt);
+        for ($attempt = 1; $attempt <= $maxTopicAttempts; $attempt++) {
+            $topicAttemptCount = $attempt;
+            $generationPrompt = $baseGenerationPrompt;
+            if ($requestedSlideCount !== null) {
+                $generationPrompt .= "\n\nInstagram slide count requirement:\nReturn exactly {$requestedSlideCount} slides. "
+                    . "table_of_contents must contain exactly {$requestedSlideCount} slide titles, one per slide. "
+                    . "post_text must contain exactly {$requestedSlideCount} slide blocks before the Instagram Caption section.";
+            }
+            if ($siteContext !== '') {
+                $generationPrompt .= "\n\n" . $siteContext;
+            }
+            $freshnessContract = $templates->profileFreshnessContract($templateProfile);
+            if ($freshnessContract !== '') {
+                $generationPrompt .= "\n\n" . $freshnessContract;
+            }
+            if ($requestedImageBrief !== '') {
+                $generationPrompt .= "\n\nImage brief to follow:\n" . $requestedImageBrief;
+            }
+            $generationPrompt .= $this->recentTopicGuardPrompt($recentGenerations, $attempt);
+
+            $content = $this->generateStructuredContent($settings['api_key'], $settings['text_model'], $generationPrompt, $template, $prompt);
+            $this->validateGeneratedContent($content, $template, $prompt);
+
+            $duplicateMatch = $this->duplicateTopicMatch($content, $recentGenerations);
+            if (! $duplicateMatch) {
+                break;
+            }
+
+            $lastDuplicateMatchTitle = trim((string) ($duplicateMatch['title'] ?? ''));
+
+            if ($attempt >= $maxTopicAttempts) {
+                throw new \RuntimeException(
+                    'Topic generation kept landing too close to a recent post (' . $duplicateMatch['title'] . '). '
+                    . 'Refresh hot articles or add a planned topic to force a different angle.',
+                    409
+                );
+            }
+        }
 
         $imageBrief = $requestedImageBrief !== '' ? $requestedImageBrief : trim((string) ($content['image_brief'] ?? ''));
         if ($imageBrief === '') {
@@ -427,8 +506,65 @@ class SocialPostGenerator
 
         ee()->db->insert($this->table, $record);
         $record['id'] = (int) ee()->db->insert_id();
+        $record['topic_attempt_count'] = $topicAttemptCount;
+        $record['duplicate_retry_count'] = max(0, $topicAttemptCount - 1);
+        $record['duplicate_match_title'] = $lastDuplicateMatchTitle;
+        $record['topic_source'] = $topicSource;
+        $record['accepted_after_retry'] = $topicAttemptCount > 1;
 
         return $this->normalizeRecord($record);
+    }
+
+    public function recentGenerationMemory(array $options = []): array
+    {
+        if (! ee()->db->table_exists($this->table)) {
+            return [];
+        }
+
+        $limit = max(1, min(50, (int) ($options['limit'] ?? 18)));
+        $templateId = (int) ($options['template_id'] ?? 0);
+        $generationProfile = trim((string) ($options['generation_profile'] ?? ''));
+        $source = trim((string) ($options['source'] ?? ''));
+        $templates = ee('socialposter:templates');
+
+        if (ee()->db->field_exists('template_id', $this->table)) {
+            if ($generationProfile === '' && $templateId > 0) {
+                $generationProfile = $templates->generationProfileForTemplate($templates->find($templateId));
+            }
+        }
+        $profileTemplateIds = $generationProfile !== '' ? $templates->templateIdsForProfile($generationProfile) : [];
+
+        $db = ee()->db->select('id, title, prompt, created_at');
+
+        if (ee()->db->field_exists('template_id', $this->table)) {
+            if ($profileTemplateIds !== []) {
+                $db->where_in('template_id', $profileTemplateIds);
+            } elseif ($templateId > 0) {
+                $db->where('template_id', $templateId);
+            }
+        }
+
+        if ($source !== '' && ee()->db->field_exists('source', $this->table)) {
+            $db->where('source', $source);
+        }
+
+        $rows = $db
+            ->order_by('created_at', 'DESC')
+            ->limit($limit)
+            ->get($this->table)
+            ->result_array();
+
+        return $this->normalizeRecentGenerationMemory($rows);
+    }
+
+    public function recentTopicGuardText(array $recentGenerations, int $attempt = 1): string
+    {
+        return $this->recentTopicGuardPrompt($this->normalizeRecentGenerationMemory($recentGenerations), $attempt);
+    }
+
+    public function duplicateTopicMatchText(string $candidate, array $recentGenerations): ?array
+    {
+        return $this->duplicateTextMatch(trim($candidate), $this->normalizeRecentGenerationMemory($recentGenerations));
     }
 
     public function generateNewsPost(array $article, array $options = []): array
@@ -562,6 +698,14 @@ class SocialPostGenerator
         return $this->imageStorage->saveBase64Png(base64_encode($binary), $title);
     }
 
+    private function assembleGenerationPrompt(string $prompt, string $templateInstructions = ''): string
+    {
+        return trim(implode("\n\n", array_filter([
+            trim($templateInstructions),
+            "User prompt:\n" . trim($prompt),
+        ], static fn($segment) => trim((string) $segment) !== '')));
+    }
+
     public function generateSingleImagePost(string $topic, array $options = []): array
     {
         $topic = trim($topic);
@@ -575,14 +719,27 @@ class SocialPostGenerator
             throw new \RuntimeException('OpenAI API key is not configured.');
         }
 
+        $recentGenerations = $this->normalizeRecentGenerationMemory((array) ($options['recent_generations'] ?? []));
+        $duplicateTopic = $this->duplicateTextMatch($topic, $recentGenerations);
+        if ($duplicateTopic) {
+            throw new \RuntimeException(
+                'That topic is too close to a recent post (' . $duplicateTopic['title'] . '). '
+                . 'Please choose a more distinct angle or topic.'
+            );
+        }
+
         $captionHint = trim((string) ($options['caption_prompt'] ?? ''));
         $imageHint   = trim((string) ($options['image_prompt'] ?? ''));
+        $imageMode   = trim((string) ($options['image_prompt_mode'] ?? 'combined'));
+        if (! in_array($imageMode, ['combined', 'image_only'], true)) {
+            $imageMode = 'combined';
+        }
 
         $userPrompt = 'Topic: ' . $topic;
         if ($captionHint !== '') {
             $userPrompt .= "\n\nCaption instructions:\n" . $captionHint;
         }
-        if ($imageHint !== '') {
+        if ($imageHint !== '' && $imageMode === 'combined') {
             $userPrompt .= "\n\nImage instructions:\n" . $imageHint;
         }
 
@@ -591,7 +748,17 @@ class SocialPostGenerator
         $hashtags     = $this->normalizeHashtags((array) ($content['hashtags'] ?? []));
         $rawImgPrompt = trim((string) ($content['image_prompt'] ?? $topic));
 
-        $imagePrompt   = $this->composeImagePrompt($rawImgPrompt, $imageHint, null);
+        if ($imageMode === 'image_only' && $imageHint !== '') {
+            $imagePrompt = $this->composeImagePrompt($imageHint, '', null);
+        } else {
+            $combinedImagePrompt = implode("\n\n", array_filter([
+                'Instagram single-image post visual for this topic: ' . $topic,
+                $caption !== '' ? 'Caption context: ' . $caption : '',
+                $imageHint !== '' ? 'User image instructions: ' . $imageHint : '',
+                $rawImgPrompt !== '' ? 'AI visual direction: ' . $rawImgPrompt : '',
+            ], fn($line) => trim($line) !== ''));
+            $imagePrompt = $this->composeImagePrompt($combinedImagePrompt, '', null);
+        }
         $imageSettings = $this->resolvedImageSettings($settings, null);
 
         $imageBase64 = $this->openai->generateImage(
@@ -642,6 +809,93 @@ class SocialPostGenerator
         return $this->normalizeRecord($record);
     }
 
+    public function assistSingleImagePost(array $articles, array $options = []): array
+    {
+        $settings = $this->getSettings();
+        $apiKey   = trim((string) ($settings['api_key'] ?? ''));
+        if ($apiKey === '') {
+            throw new \RuntimeException('OpenAI API key is not configured.');
+        }
+
+        $articles = array_values(array_filter($articles, 'is_array'));
+        if (! $articles) {
+            throw new \InvalidArgumentException('No recent articles were found for this source.');
+        }
+
+        $sourceName = trim((string) ($options['source_name'] ?? 'Selected source'));
+        $tone       = trim((string) ($options['tone'] ?? 'practical, polished, conversational'));
+        $goal       = trim((string) ($options['goal'] ?? 'educate and invite engagement'));
+        $audience   = trim((string) ($options['audience'] ?? 'developers, founders, and AI-curious business owners'));
+        $profile = trim((string) ($options['generation_profile'] ?? ''));
+        $templates = ee('socialposter:templates');
+        $planningContract = $templates->profilePlanningContract($profile);
+        $freshnessContract = $templates->profileFreshnessContract($profile);
+
+        $articleLines = [];
+        foreach (array_slice($articles, 0, 8) as $idx => $article) {
+            $title   = trim((string) ($article['title'] ?? ''));
+            $excerpt = trim((string) ($article['excerpt'] ?? ''));
+            $url     = trim((string) ($article['url'] ?? ''));
+            if ($title === '') {
+                continue;
+            }
+            $articleLines[] = implode("\n", array_filter([
+                'Article ' . ($idx + 1) . ': ' . $title,
+                $excerpt !== '' ? 'Excerpt: ' . mb_strimwidth($excerpt, 0, 260, '...') : '',
+                $url !== '' ? 'URL: ' . $url : '',
+            ]));
+        }
+
+        if (! $articleLines) {
+            throw new \InvalidArgumentException('No usable article titles were found for this source.');
+        }
+
+        $prompt = implode("\n\n", [
+            'Source: ' . $sourceName,
+            'Audience: ' . $audience,
+            'Tone: ' . $tone,
+            'Goal: ' . $goal,
+            $profile !== '' ? 'Behavior profile: ' . $templates->generationProfileLabel($profile) : '',
+            $planningContract,
+            $freshnessContract,
+            "Recent source context:\n" . implode("\n\n", $articleLines),
+            'Create one Instagram single-image post idea that connects the strongest recent article/theme to the audience.',
+        ]);
+
+        $assistModel = trim((string) ($settings['text_model'] ?? 'gpt-5.4'));
+        if ($assistModel === '' || str_starts_with($assistModel, 'claude-')) {
+            $assistModel = 'gpt-5.4';
+        }
+
+        $recentGenerations = $this->normalizeRecentGenerationMemory((array) ($options['recent_generations'] ?? []));
+        $assist = [];
+        $topic = '';
+
+        for ($attempt = 1; $attempt <= 3; $attempt++) {
+            $attemptPrompt = $prompt . $this->recentTopicGuardPrompt($recentGenerations, $attempt);
+            $assist = $this->openai->generateSingleImageAssist($apiKey, $assistModel, $attemptPrompt);
+            $topic = trim((string) ($assist['topic'] ?? ''));
+
+            if ($topic === '' || ! $this->duplicateTextMatch($topic, $recentGenerations)) {
+                break;
+            }
+
+            if ($attempt >= 3) {
+                throw new \RuntimeException('AI kept suggesting a topic too close to a recent Instagram post. Try a different source or refresh the feed.');
+            }
+        }
+
+        return [
+            'topic' => $topic,
+            'caption_prompt' => trim((string) ($assist['caption_prompt'] ?? '')),
+            'image_prompt' => trim((string) ($assist['image_prompt'] ?? '')),
+            'source_context' => implode(' | ', array_slice(array_map(
+                fn($article) => trim((string) ($article['title'] ?? '')),
+                $articles
+            ), 0, 3)),
+        ];
+    }
+
     public function plan(string $mode, array $input = []): array
     {
         $settings = $this->getSettings();
@@ -650,19 +904,26 @@ class SocialPostGenerator
         }
 
         $templateId = (int) ($input['template_id'] ?? 0);
-        $template = $templateId > 0 ? ee('socialposter:templates')->find($templateId) : null;
+        $templates = ee('socialposter:templates');
+        $template = $templateId > 0 ? $templates->find($templateId) : null;
+        $profile = $templates->generationProfileForTemplate($template);
         $platform = trim((string) ($template['platform'] ?? ''));
         $kind = in_array($mode, ['title', 'brief', 'images', 'creative'], true) ? $mode : 'brief';
+        $planningContract = $templates->profilePlanningContract($profile);
+        $freshnessContract = $templates->profileFreshnessContract($profile);
 
         $prompt = implode("\n", array_filter([
             'Planning task: Generate ' . $kind . ' support for a SocialPoster generation form.',
             'Template: ' . trim((string) ($template['title'] ?? 'No template')),
             'Platform: ' . ($platform !== '' ? $platform : 'General'),
+            $profile !== '' ? 'Behavior profile: ' . $templates->generationProfileLabel($profile) : '',
             'Current title: ' . trim((string) ($input['title'] ?? '')),
             'Current brief: ' . trim((string) ($input['brief'] ?? '')),
             'Current keywords: ' . trim((string) ($input['keywords'] ?? '')),
             'Current prompt/topic: ' . trim((string) ($input['prompt'] ?? '')),
             'Image plan context: ' . trim((string) ($input['image_plan'] ?? '')),
+            $planningContract,
+            $freshnessContract,
             $platform === 'Instagram'
                 ? 'For Instagram, return a clear topic, a useful slide outline with Slide 1, Slide 2, and so on, a caption direction, a hashtag direction, and one square cover visual direction that fits the whole carousel. Do not return separate image descriptions for every slide.'
                 : 'For images, return 1-3 concise image descriptions suitable for the selected content type.',
@@ -879,6 +1140,16 @@ class SocialPostGenerator
     public function csrfToken(): string
     {
         return ee()->functions->add_form_security_hash('{XID_HASH}');
+    }
+
+    public function tableName(): string
+    {
+        return $this->table;
+    }
+
+    public function contentType(): string
+    {
+        return 'website';
     }
 
     private function normalizeRecord(array $record): array
@@ -1156,6 +1427,175 @@ class SocialPostGenerator
 
         $retryPrompt = $generationPrompt . "\n\nYou did not generate enough slides. Generate ALL slides (6–8).";
         return $this->openai->generateContent($apiKey, $model, $retryPrompt);
+    }
+
+    private function normalizeRecentGenerationMemory(array $rows): array
+    {
+        return array_values(array_filter(array_map(function ($row) {
+            if (! is_array($row)) {
+                return null;
+            }
+
+            $title = trim((string) ($row['title'] ?? ''));
+            $prompt = trim((string) ($row['prompt'] ?? ''));
+            if ($title === '' && $prompt === '') {
+                return null;
+            }
+
+            return [
+                'id' => (int) ($row['id'] ?? 0),
+                'title' => $title,
+                'prompt' => $prompt,
+                'created_at' => (int) ($row['created_at'] ?? 0),
+            ];
+        }, $rows)));
+    }
+
+    private function recentTopicGuardPrompt(array $recentGenerations, int $attempt): string
+    {
+        if (! $recentGenerations) {
+            return '';
+        }
+
+        $lines = [];
+        foreach (array_slice($recentGenerations, 0, 12) as $row) {
+            $title = trim((string) ($row['title'] ?? ''));
+            $prompt = trim((string) ($row['prompt'] ?? ''));
+            $parts = [];
+            if ($title !== '') {
+                $parts[] = 'Title: ' . $title;
+            }
+            if ($prompt !== '') {
+                $parts[] = 'Prompt/topic: ' . mb_strimwidth($prompt, 0, 180, '...');
+            }
+            if ($parts) {
+                $lines[] = '- ' . implode(' | ', $parts);
+            }
+        }
+
+        if (! $lines) {
+            return '';
+        }
+
+        $instruction = $attempt > 1
+            ? 'Your previous attempt was too similar to a recent topic. Choose a distinctly different announcement, angle, vendor, framework, or implementation problem.'
+            : 'Avoid duplicating or lightly rewording recent topics. Do not pick the same announcement, the same product update, or the same core angle with cosmetic wording changes.';
+
+        return "\n\nRecent topic guard:\n"
+            . $instruction . "\n"
+            . "Avoid these recent topics:\n"
+            . implode("\n", $lines)
+            . "\nReturn a meaningfully different topic with a fresh angle.";
+    }
+
+    private function duplicateTopicMatch(array $content, array $recentGenerations): ?array
+    {
+        $candidate = $this->topicComparisonText($content);
+        return $this->duplicateTextMatch($candidate, $recentGenerations);
+    }
+
+    private function duplicateTextMatch(string $candidate, array $recentGenerations): ?array
+    {
+        if ($candidate === '') {
+            return null;
+        }
+
+        $candidateNormalized = $this->normalizeTopicFingerprint($candidate);
+        $candidateTokens = $this->topicTokens($candidateNormalized);
+
+        foreach ($recentGenerations as $row) {
+            $recentText = trim((string) ($row['title'] ?? ''));
+            if ($recentText === '') {
+                $recentText = trim((string) ($row['prompt'] ?? ''));
+            }
+            if ($recentText === '') {
+                continue;
+            }
+
+            $recentNormalized = $this->normalizeTopicFingerprint($recentText);
+            if ($recentNormalized === '') {
+                continue;
+            }
+
+            if ($candidateNormalized === $recentNormalized) {
+                return ['title' => $recentText, 'reason' => 'exact'];
+            }
+
+            if (strlen($candidateNormalized) > 18 && strlen($recentNormalized) > 18) {
+                if (str_contains($candidateNormalized, $recentNormalized) || str_contains($recentNormalized, $candidateNormalized)) {
+                    return ['title' => $recentText, 'reason' => 'contained'];
+                }
+            }
+
+            $recentTokens = $this->topicTokens($recentNormalized);
+            if ($this->topicTokenSimilarity($candidateTokens, $recentTokens) >= 0.74) {
+                return ['title' => $recentText, 'reason' => 'token_overlap'];
+            }
+
+            similar_text($candidateNormalized, $recentNormalized, $percent);
+            if ($percent >= 82.0) {
+                return ['title' => $recentText, 'reason' => 'string_similarity'];
+            }
+        }
+
+        return null;
+    }
+
+    private function topicComparisonText(array $content): string
+    {
+        $parts = [];
+        $title = trim((string) ($content['title'] ?? ''));
+        if ($title !== '') {
+            $parts[] = $title;
+        }
+
+        $toc = array_values(array_filter(array_map('trim', (array) ($content['table_of_contents'] ?? []))));
+        if ($toc) {
+            $parts[] = implode(' ', array_slice($toc, 0, 3));
+        }
+
+        return trim(implode(' ', $parts));
+    }
+
+    private function normalizeTopicFingerprint(string $value): string
+    {
+        $value = strtolower(trim($value));
+        $value = str_replace(['gpt-', 'gpt ', 'gpt'], ' gpt ', $value);
+        $value = preg_replace('/[^a-z0-9\.]+/i', ' ', $value);
+        $value = preg_replace('/\b(v|version)\s+(\d+(?:\.\d+)*)\b/i', ' $2 ', $value);
+        $value = preg_replace('/\s+/', ' ', (string) $value);
+        return trim((string) $value);
+    }
+
+    private function topicTokens(string $value): array
+    {
+        $stopWords = [
+            'a', 'an', 'and', 'are', 'as', 'at', 'be', 'blog', 'for', 'from', 'guide', 'how',
+            'in', 'into', 'is', 'it', 'of', 'on', 'or', 'post', 'the', 'this', 'to', 'what',
+            'why', 'with', 'your'
+        ];
+
+        $tokens = array_values(array_filter(array_map('trim', explode(' ', $value)), function ($token) use ($stopWords) {
+            return $token !== '' && ! in_array($token, $stopWords, true);
+        }));
+
+        return array_values(array_unique($tokens));
+    }
+
+    private function topicTokenSimilarity(array $left, array $right): float
+    {
+        if (! $left || ! $right) {
+            return 0.0;
+        }
+
+        $intersection = array_intersect($left, $right);
+        $union = array_unique(array_merge($left, $right));
+
+        if (! $union) {
+            return 0.0;
+        }
+
+        return count($intersection) / count($union);
     }
 
     private function instagramOutputSlideCount(array $content): int

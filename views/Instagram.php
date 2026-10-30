@@ -4,6 +4,7 @@ $h = fn($value) => htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
 $instagramGraphVersion = $settings['instagram_graph_version'] ?? 'v24.0';
 $coverProvider = $settings['instagram_cover_provider'] ?? 'openai';
 $slideProvider = $settings['instagram_slide_provider'] ?? 'gd';
+$carouselSlides = (int) ($settings['carousel_slides'] ?? 6);
 $mask = function ($value) {
     $value = trim((string) $value);
     if ($value === '') {
@@ -27,15 +28,22 @@ $activeIndex = $tabMap[$activeTab] ?? 0;
 $tabClass    = fn(int $i) => 'tab-bar__tab js-tab-button' . ($activeIndex === $i ? ' active' : '');
 $paneClass   = fn(int $i) => 'tab t-' . $i . ($activeIndex === $i ? ' tab-open' : '');
 ?>
-<div class="sp-wrap">
-  <p class="sp-toolbar">
-    <a class="button button--default" href="<?= $h($generate_url) ?>">Generate Post</a>
-    <a class="button button--default" href="<?= $h($general_url) ?>">General Generator</a>
-    <a class="button button--default" href="<?= $h($settings_url) ?>">OpenAI Settings</a>
-    <a class="button button--default" href="<?= $h($publish_url) ?>">Publish</a>
-  </p>
+<div class="sp-wrap sp-instagram-settings">
+  <header class="sp-channel-head">
+    <div>
+      <p class="sp-channel-kicker">Instagram</p>
+      <h1>Settings</h1>
+      <p class="sp-muted">Manage channel credentials, token tools, and image-generation settings for Instagram publishing.</p>
+    </div>
+    <nav class="sp-channel-nav">
+      <a class="button button--default" href="<?= $h($generate_url) ?>">Create</a>
+      <a class="button button--default" href="<?= $h($instagram_history_url) ?>">History</a>
+      <a class="button button--default" href="<?= $h($instagram_carousel_url) ?>">Carousels</a>
+      <a class="button button--default" href="<?= $h($publish_url) ?>">Publish</a>
+    </nav>
+  </header>
 
-  <div class="tab-wrap">
+  <div class="tab-wrap sp-channel-tabs">
     <div class="tab-bar">
       <div class="tab-bar__tabs">
         <button type="button" class="<?= $tabClass(0) ?>" rel="t-0">Credentials</button>
@@ -45,11 +53,11 @@ $paneClass   = fn(int $i) => 'tab t-' . $i . ($activeIndex === $i ? ' tab-open' 
     </div>
 
     <!-- Tab 0: Credentials -->
-    <div class="<?= $paneClass(0) ?>">
-      <?= form_open($save_url) ?>
+    <div class="<?= $paneClass(0) ?> sp-instagram-settings-pane">
+      <?= form_open($save_url, ['class' => 'sp-instagram-settings-form']) ?>
         <input type="hidden" name="save_instagram_settings" value="1">
 
-        <div class="sp-field" style="margin:20px 0 16px;">
+        <div class="sp-field sp-requirements-panel" style="margin:20px 0 16px;">
           <label>Meta Requirements</label>
           <div class="sp-muted">
             <p>Account: Instagram Professional account. Creator and Business accounts are supported by Meta's professional API flow.</p>
@@ -122,14 +130,14 @@ $paneClass   = fn(int $i) => 'tab t-' . $i . ($activeIndex === $i ? ' tab-open' 
     </div>
 
     <!-- Tab 1: Token Tools -->
-    <div class="<?= $paneClass(1) ?>">
+    <div class="<?= $paneClass(1) ?> sp-instagram-settings-pane sp-instagram-token-pane">
       <?php
         $tokenStatus = $token_status ?? null;
         $hasStatus   = is_array($tokenStatus) && ($tokenStatus['expires_at'] > 0 || ! empty($tokenStatus['error']) || ! empty($tokenStatus['type']));
       ?>
 
       <?php if ($hasStatus): ?>
-        <div class="sp-field" style="margin:20px 0 16px;">
+        <div class="sp-field sp-token-status-panel" style="margin:20px 0 16px;">
           <label>Saved Token Status</label>
           <?php if (! empty($tokenStatus['is_valid'])): ?>
             <p class="sp-muted">
@@ -283,7 +291,7 @@ $paneClass   = fn(int $i) => 'tab t-' . $i . ($activeIndex === $i ? ' tab-open' 
     </div>
 
     <!-- Tab 2: Images -->
-    <div class="<?= $paneClass(2) ?>">
+    <div class="<?= $paneClass(2) ?> sp-instagram-settings-pane sp-instagram-images-pane">
 
       <div class="sp-field sp-image-settings-note" style="margin:20px 0 4px;">
         <p class="sp-muted" style="background:#fffbeb;border:1px solid #fde68a;border-radius:6px;padding:10px 14px;margin:0;">
@@ -326,6 +334,13 @@ $paneClass   = fn(int $i) => 'tab t-' . $i . ($activeIndex === $i ? ' tab-open' 
             </select>
             <p class="sp-muted">Slides with headings and bullets. PHP GD is recommended — text is always accurate and free.</p>
           </div>
+        </div>
+
+        <div class="sp-field" style="max-width:220px; margin-top:10px;">
+          <label for="carousel_slides">Default Carousel Slides</label>
+          <input type="number" id="carousel_slides" name="carousel_slides"
+                 value="<?= $carouselSlides ?>" min="3" max="12" step="1">
+          <p class="sp-muted">Used as the default slide count for Instagram carousel generation.</p>
         </div>
 
         <div class="sp-field">

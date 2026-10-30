@@ -62,7 +62,9 @@ class NewsSources extends AbstractRoute
             'categories'      => \JavidFazaeli\SocialPoster\Service\NewsFeedService::categories(),
             'filter_category' => $filterCategory,
             'save_url'        => $selfUrl->compile(),
-            'create_url'      => ee('CP/URL')->make('addons/settings/socialposter/instagram/create')->compile(),
+            'back_url'        => ee('CP/URL')->make('addons/settings/socialposter/instagram/create')->compile(),
+            'back_label'      => 'Back to Create',
+            'page_intro'      => 'Manage the RSS and Atom feeds used for Instagram news and content ideas.',
         ]);
 
         return $this;

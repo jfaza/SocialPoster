@@ -1,6 +1,7 @@
 <?php
 ee()->load->helper('form');
 $h = fn($v) => htmlspecialchars((string) $v, ENT_QUOTES, 'UTF-8');
+$templates_url = $templates_url ?? '';
 
 $styleOptions = [
     'base'      => 'Base — practical and useful',
@@ -9,6 +10,19 @@ $styleOptions = [
 ];
 ?>
 <div class="sp-wrap">
+  <header class="sp-channel-head">
+    <div>
+      <p class="sp-channel-kicker">Instagram</p>
+      <h1>Create</h1>
+      <p class="sp-muted">Build news posts, single-image posts, or carousels from the same channel workspace.</p>
+    </div>
+    <nav class="sp-channel-nav">
+      <a class="button button--default" href="<?= $h($instagram_history_url) ?>">History</a>
+      <a class="button button--default" href="<?= $h($instagram_carousel_url) ?>">Carousels</a>
+      <a class="button button--default" href="<?= $h($publish_instagram_url) ?>">Publish</a>
+      <a class="button button--default" href="<?= $h($instagram_url) ?>">Settings</a>
+    </nav>
+  </header>
 
   <!-- Mode toggle -->
   <div class="sp-mode-bar">
@@ -56,7 +70,7 @@ $styleOptions = [
           </div>
           <div style="padding-bottom:0;">
             <button type="button" id="sp-news-load-btn" class="button button--default" disabled>Load Articles</button>
-            <a href="<?= $h($news_sources_url) ?>" class="sp-muted" style="font-size:12px;margin-left:12px;">Manage sources</a>
+            <a href="<?= $h($news_sources_url) ?>" class="sp-muted" style="font-size:12px;margin-left:12px;">Manage sources + hot articles</a>
           </div>
         </div>
         <div id="sp-news-load-status" class="sp-muted" style="margin-top:8px;"></div>
@@ -127,7 +141,60 @@ $styleOptions = [
       <h2>Generate Single Image Post</h2>
       <p class="sp-muted">AI writes an Instagram caption and hashtags, then generates one polished image to go with it.</p>
 
-      <div class="sp-field">
+      <div class="sp-single-assist-panel">
+        <h3>AI Assist</h3>
+        <p class="sp-muted">Pick one news source and let AI suggest a timely topic, caption direction, and image direction.</p>
+
+        <?php if (empty($news_sources)): ?>
+          <div class="sp-single-assist-empty">
+            <p class="sp-muted">No active news sources are configured yet.</p>
+            <a class="button button--default" href="<?= $h($news_sources_url) ?>">Manage News Sources</a>
+          </div>
+        <?php else: ?>
+          <div class="sp-mini-grid sp-mini-grid--3">
+            <div class="sp-field">
+              <label for="sp-single-source">News Source</label>
+              <select id="sp-single-source">
+                <option value="">Select a source</option>
+                <?php foreach ($news_sources as $src): ?>
+                  <option value="<?= (int) $src['id'] ?>"><?= $h($src['name']) ?><?= ! empty($src['category']) ? ' - ' . $h($src['category']) : '' ?></option>
+                <?php endforeach; ?>
+              </select>
+            </div>
+            <div class="sp-field">
+              <label for="sp-single-tone">Tone</label>
+              <select id="sp-single-tone">
+                <option value="practical, polished, conversational">Practical + polished</option>
+                <option value="bold, punchy, contrarian">Bold + punchy</option>
+                <option value="warm, reflective, first-person">Warm + reflective</option>
+                <option value="technical, precise, builder-focused">Technical + precise</option>
+              </select>
+            </div>
+            <div class="sp-field">
+              <label for="sp-single-goal">Goal</label>
+              <select id="sp-single-goal">
+                <option value="educate and invite engagement">Educate + engage</option>
+                <option value="explain the business impact and invite a DM">Business impact + DM</option>
+                <option value="teach one practical takeaway and ask a question">Practical takeaway</option>
+                <option value="position Javid Fazaeli as a helpful technical partner">Position expertise</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="sp-field">
+            <label for="sp-single-audience">Audience</label>
+            <input type="text" id="sp-single-audience" value="developers, founders, and AI-curious business owners">
+          </div>
+
+          <div class="sp-actions sp-single-assist-actions">
+            <button type="button" id="sp-single-assist-btn" class="button button--default">Generate Topic + Instructions</button>
+            <span id="sp-single-assist-status" class="sp-muted"></span>
+          </div>
+          <p id="sp-single-source-context" class="sp-muted sp-single-source-context"></p>
+        <?php endif; ?>
+      </div>
+
+      <div class="sp-field sp-generated-field">
         <label for="sp-single-topic">Topic / Subject</label>
         <input type="text" id="sp-single-topic"
                placeholder="e.g. morning coffee ritual, new product launch, behind-the-scenes studio"
@@ -135,16 +202,30 @@ $styleOptions = [
         <p class="sp-muted">A clear subject gets a more focused caption and image.</p>
       </div>
 
-      <div class="sp-field">
+      <div class="sp-field sp-generated-field">
         <label for="sp-single-caption-prompt">Caption Instructions <span class="sp-muted" style="font-weight:400;">(optional)</span></label>
         <textarea id="sp-single-caption-prompt" rows="3"
           placeholder="e.g. 'tone should be warm and conversational', 'mention the 3 key benefits', 'end with a question to drive comments'"></textarea>
       </div>
 
-      <div class="sp-field">
+      <div class="sp-field sp-generated-field">
         <label for="sp-single-image-hint">Image Instructions <span class="sp-muted" style="font-weight:400;">(optional)</span></label>
         <textarea id="sp-single-image-hint" rows="2"
           placeholder="e.g. 'golden-hour lighting, flat lay composition', 'dark moody background, product centre-frame', 'person looking away from camera'"></textarea>
+      </div>
+
+      <div class="sp-field">
+        <label>Final Image Prompt Source</label>
+        <div class="sp-radio-group sp-single-image-mode">
+          <label class="sp-radio">
+            <input type="radio" name="sp-single-image-mode" value="combined" checked>
+            <span>Caption + topic + image instructions</span>
+          </label>
+          <label class="sp-radio">
+            <input type="radio" name="sp-single-image-mode" value="image_only">
+            <span>Image instructions only</span>
+          </label>
+        </div>
       </div>
 
       <div class="sp-actions">
@@ -206,6 +287,9 @@ $styleOptions = [
       <div class="sp-mini-grid">
         <div class="sp-field">
           <label for="sp-carousel-tpl-select">Visual Template</label>
+          <?php if ($templates_url !== ''): ?>
+            <p class="sp-muted">Manage reusable visual templates from <a href="<?= $h($templates_url) ?>#tab=t-2">Carousel Templates</a>.</p>
+          <?php endif; ?>
           <select id="sp-carousel-tpl-select">
             <?php foreach ($carousel_templates as $tpl): ?>
               <option value="<?= $h($tpl['folder']) ?>">
@@ -286,12 +370,73 @@ $styleOptions = [
   /* ── Single Image generate ──────────────────────────────────── */
   var singleBtn    = document.getElementById('sp-single-generate-btn');
   var singleStatus = document.getElementById('sp-single-status');
+  var singleAssistBtn = document.getElementById('sp-single-assist-btn');
+  var singleAssistStatus = document.getElementById('sp-single-assist-status');
+  var singleSourceContext = document.getElementById('sp-single-source-context');
+
+  if (singleAssistBtn) {
+    singleAssistBtn.addEventListener('click', function () {
+      var sourceId = (document.getElementById('sp-single-source') || {}).value || '';
+      var tone     = (document.getElementById('sp-single-tone') || {}).value || '';
+      var goal     = (document.getElementById('sp-single-goal') || {}).value || '';
+      var audience = (document.getElementById('sp-single-audience') || {}).value || '';
+
+      if (! sourceId) { alert('Please select a news source.'); return; }
+
+      singleAssistBtn.disabled = true;
+      if (singleAssistStatus) singleAssistStatus.textContent = 'Reading latest articles and planning...';
+      if (singleSourceContext) singleSourceContext.textContent = '';
+
+      fetch(actionUrl, {
+        method: 'POST',
+        body: new URLSearchParams({
+          csrf_token:         csrfToken,
+          XID:                csrfToken,
+          single_assist_mode: '1',
+          source_id:          sourceId,
+          tone:               tone,
+          goal:               goal,
+          audience:           audience,
+        }),
+      })
+        .then(function (r) { return r.json(); })
+        .then(function (json) {
+          singleAssistBtn.disabled = false;
+          if (! json.success) {
+            if (singleAssistStatus) singleAssistStatus.textContent = 'Error: ' + (json.message || 'unknown');
+            return;
+          }
+
+          var result = json.result || {};
+          var topic = document.getElementById('sp-single-topic');
+          var caption = document.getElementById('sp-single-caption-prompt');
+          var image = document.getElementById('sp-single-image-hint');
+
+          if (topic && result.topic) topic.value = result.topic;
+          if (caption && result.caption_prompt) caption.value = result.caption_prompt;
+          if (image && result.image_prompt) image.value = result.image_prompt;
+
+          if (singleAssistStatus) singleAssistStatus.textContent = 'Suggestions added. Edit anything before generating.';
+          if (singleSourceContext && result.source_context) {
+            singleSourceContext.textContent = 'Based on: ' + result.source_context;
+          }
+        })
+        .catch(function (err) {
+          singleAssistBtn.disabled = false;
+          if (singleAssistStatus) singleAssistStatus.textContent = 'Request failed: ' + err.message;
+        });
+    });
+  }
 
   if (singleBtn) {
     singleBtn.addEventListener('click', function () {
       var topic        = (document.getElementById('sp-single-topic') || {}).value || '';
       var captionHint  = (document.getElementById('sp-single-caption-prompt') || {}).value || '';
       var imageHint    = (document.getElementById('sp-single-image-hint') || {}).value || '';
+      var imageMode    = 'combined';
+      document.querySelectorAll('input[name="sp-single-image-mode"]').forEach(function (radio) {
+        if (radio.checked) imageMode = radio.value;
+      });
 
       if (! topic.trim()) { alert('Please enter a topic.'); return; }
 
@@ -308,6 +453,7 @@ $styleOptions = [
           topic:             topic,
           caption_prompt:    captionHint,
           image_prompt_hint: imageHint,
+          image_prompt_mode: imageMode,
         }),
       })
         .then(function (r) { return r.json(); })
@@ -343,7 +489,6 @@ $styleOptions = [
     var newsStatus     = document.getElementById('sp-news-status');
     var imgHintWrap    = document.getElementById('sp-news-image-hint-wrap');
     var imgArticleWarn = document.getElementById('sp-news-img-article-warn');
-
     var selectedArticle = null;
 
     if (! sourceSelect) { return; }
@@ -393,12 +538,18 @@ $styleOptions = [
     }
 
     function renderArticles(articles) {
-      if (! articleGrid) return;
-      articleGrid.innerHTML = '';
+      renderArticleCards(articles, articleGrid, 'No articles found in this feed.');
+
+      if (articlesWrap) articlesWrap.style.display = '';
+      if (formWrap) formWrap.style.display = 'none';
+    }
+
+    function renderArticleCards(articles, grid, emptyMessage) {
+      if (! grid) return;
+      grid.innerHTML = '';
 
       if (articles.length === 0) {
-        articleGrid.innerHTML = '<p class="sp-muted">No articles found in this feed.</p>';
-        if (articlesWrap) articlesWrap.style.display = '';
+        grid.innerHTML = '<p class="sp-muted">' + esc(emptyMessage) + '</p>';
         return;
       }
 
@@ -423,9 +574,12 @@ $styleOptions = [
               '<div class="sp-article-title">' + esc(a.title) + '</div>' +
               (a.excerpt ? '<div class="sp-article-excerpt">' + esc(a.excerpt.substring(0, 160)) + (a.excerpt.length > 160 ? '…' : '') + '</div>' : '') +
               '<div class="sp-article-footer">' +
+                (a.source_name ? '<span class="sp-hot-source">' + esc(a.source_name) + '</span>' : '') +
                 (date ? '<span class="sp-article-date sp-muted">' + esc(date) + '</span>' : '') +
+                (a.hot_score ? '<span class="sp-hot-score">' + esc(Math.round(a.hot_score)) + '</span>' : '') +
                 (! a.image_url ? '<span class="sp-no-image-tag">No image</span>' : '') +
               '</div>' +
+              (a.score_reasons && a.score_reasons.length ? '<div class="sp-hot-reasons">' + a.score_reasons.slice(0, 3).map(esc).join(' · ') + '</div>' : '') +
             '</div>' +
           '</div>';
 
@@ -433,11 +587,8 @@ $styleOptions = [
           selectArticle(a, card);
         });
 
-        articleGrid.appendChild(card);
+        grid.appendChild(card);
       });
-
-      if (articlesWrap) articlesWrap.style.display = '';
-      if (formWrap) formWrap.style.display = 'none';
     }
 
     function selectArticle(a, card) {
@@ -469,6 +620,7 @@ $styleOptions = [
       var radioArticle = document.getElementById('sp-news-img-article');
       var radioNone    = document.getElementById('sp-news-img-none');
       if (a.image_url) {
+        if (radioArticle) radioArticle.disabled = false;
         if (radioArticle) radioArticle.checked = true;
         if (imgArticleWarn) imgArticleWarn.style.display = 'none';
       } else {

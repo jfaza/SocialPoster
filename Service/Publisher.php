@@ -18,6 +18,7 @@ class Publisher
     public function targets(): array
     {
         $instagramConfigured = $this->instagramConfigured();
+        $facebookConfigured = $this->facebookConfigured();
 
         return [
             'blog' => [
@@ -39,10 +40,22 @@ class Publisher
                 'label' => 'Instagram',
                 'status' => $instagramConfigured ? 'configured' : 'needs_settings',
                 'description' => $instagramConfigured
-                    ? 'Credentials are saved. Direct Instagram publishing is the next integration step.'
+                    ? 'Credentials are saved. Direct Instagram publishing is available from the Instagram Publish menu.'
                     : 'Add Instagram Graph API credentials in Settings before direct publishing is enabled.',
             ],
+            'facebook' => [
+                'label' => 'Facebook',
+                'status' => $facebookConfigured ? 'configured' : 'needs_settings',
+                'description' => $facebookConfigured
+                    ? 'Credentials are saved. Direct Facebook Page publishing is available from the Facebook Publish menu.'
+                    : 'Add Facebook Page credentials before direct publishing is enabled.',
+            ],
         ];
+    }
+
+    public function genericPublishTargets(): array
+    {
+        return array_intersect_key($this->targets(), array_flip(['blog']));
     }
 
     private function instagramConfigured(): bool
@@ -51,6 +64,14 @@ class Publisher
 
         return trim((string) ($settings['instagram_business_account_id'] ?? '')) !== ''
             && trim((string) ($settings['instagram_access_token'] ?? '')) !== '';
+    }
+
+    private function facebookConfigured(): bool
+    {
+        $settings = $this->generator->getSettings();
+
+        return $this->facebookPageId($settings) !== ''
+            && $this->facebookAccessToken($settings) !== '';
     }
 
     public function statusOptions(): array
@@ -206,6 +227,7 @@ class Publisher
         $caption = $this->instagramCaption($post);
 
         $containerId = $this->instagramCreateContainer($graphVersion, $igUserId, $imageUrl, $caption, $accessToken);
+        $this->instagramWaitForContainer($graphVersion, $containerId, $accessToken);
         $mediaId     = $this->instagramPublishContainer($graphVersion, $igUserId, $containerId, $accessToken);
 
         $this->recordPublishedInstagram($generationId, $mediaId, $caption);
@@ -214,6 +236,58 @@ class Publisher
             'media_id' => $mediaId,
             'caption'  => $caption,
         ];
+    }
+
+    public function publishToFacebook(int $generationId): array
+    {
+        $post = $this->generator->find($generationId);
+        if (! $post) {
+            throw new \InvalidArgumentException('Generated post not found.');
+        }
+
+        $settings     = $this->generator->getSettings();
+        $pageId       = $this->facebookPageId($settings);
+        $accessToken  = $this->facebookAccessToken($settings);
+        $graphVersion = $this->facebookGraphVersion($settings);
+
+        if ($pageId === '' || $accessToken === '') {
+            throw new \RuntimeException('Facebook Page credentials are not configured. Add them under Facebook Settings.');
+        }
+
+        $message  = $this->facebookMessage($post);
+        $imageUrl = $this->absoluteImageUrl($post);
+
+        if ($imageUrl !== '') {
+            $result = $this->facebookPublishPhoto($graphVersion, $pageId, $imageUrl, $message, $accessToken);
+        } else {
+            $result = $this->facebookPublishFeed($graphVersion, $pageId, $message, $accessToken);
+        }
+
+        $objectId = trim((string) ($result['post_id'] ?? $result['id'] ?? ''));
+        if ($objectId === '') {
+            throw new \RuntimeException('Facebook API: publish response did not include a post ID.');
+        }
+
+        $this->recordPublishedFacebook($generationId, $objectId, $message);
+
+        return [
+            'post_id' => $objectId,
+            'message' => $message,
+            'used_image' => $imageUrl !== '',
+        ];
+    }
+
+    public function publishedFacebooks(int $limit = 50): array
+    {
+        if (! ee()->db->table_exists('socialposter_published_facebook')) {
+            return [];
+        }
+
+        return ee()->db
+            ->order_by('created_at', 'DESC')
+            ->limit($limit)
+            ->get('socialposter_published_facebook')
+            ->result_array();
     }
 
     public function publishedInstagrams(int $limit = 50): array
@@ -262,6 +336,55 @@ class Publisher
         }
 
         return $caption;
+    }
+
+    private function facebookMessage(array $post): string
+    {
+        $message = trim((string) ($post['post_text'] ?? ''));
+        if ($message === '') {
+            $message = trim((string) ($post['intro_text'] ?? ''));
+        }
+        if ($message === '') {
+            $message = trim((string) ($post['title'] ?? ''));
+        }
+        $message = $this->plainSocialText($message);
+
+        $hashtags = array_filter(
+            (array) ($post['hashtags'] ?? []),
+            fn($t) => trim((string) $t) !== ''
+        );
+
+        if ($hashtags) {
+            $hashtagStr = implode(' ', array_map(
+                fn($t) => '#' . ltrim(trim((string) $t), '#'),
+                $hashtags
+            ));
+            $message = $message !== '' ? $message . "\n\n" . $hashtagStr : $hashtagStr;
+        }
+
+        return $message;
+    }
+
+    private function plainSocialText(string $text): string
+    {
+        $text = html_entity_decode(strip_tags($text), ENT_QUOTES, 'UTF-8');
+        $text = str_replace(["\r\n", "\r"], "\n", $text);
+
+        $text = preg_replace('/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/i', '$1: $2', $text);
+        $text = preg_replace('/!\[([^\]]*)\]\(([^)]+)\)/', '', $text);
+        $text = preg_replace('/^#{1,6}\s*/m', '', $text);
+        $text = preg_replace('/^\s*[-*+]\s+/m', '', $text);
+        $text = preg_replace('/^\s*\d+[.)]\s+/m', '', $text);
+        $text = preg_replace('/^\s*>\s?/m', '', $text);
+        $text = preg_replace('/^\s*---+\s*$/m', '', $text);
+        $text = preg_replace('/(\*\*|__)(.*?)\1/s', '$2', $text);
+        $text = preg_replace('/(\*|_)(.*?)\1/s', '$2', $text);
+        $text = preg_replace('/`([^`]+)`/', '$1', $text);
+        $text = preg_replace('/[ \t]+\n/', "\n", $text);
+        $text = preg_replace('/\n{3,}/', "\n\n", $text);
+        $text = preg_replace('/[ \t]{2,}/', ' ', $text);
+
+        return trim((string) $text);
     }
 
     private function absoluteImageUrl(array $post): string
@@ -314,6 +437,74 @@ class Publisher
         return $id;
     }
 
+    private function facebookPublishPhoto(string $version, string $pageId, string $imageUrl, string $message, string $accessToken): array
+    {
+        $url = 'https://graph.facebook.com/' . $version . '/' . $pageId . '/photos';
+        $response = $this->facebookGraphPost($url, [
+            'url'          => $imageUrl,
+            'message'      => $message,
+            'access_token' => $accessToken,
+        ]);
+
+        if (trim((string) ($response['id'] ?? $response['post_id'] ?? '')) === '') {
+            $message = (string) ($response['error']['message'] ?? 'Unknown error publishing photo.');
+            throw new \RuntimeException('Facebook API: ' . $message);
+        }
+
+        return $response;
+    }
+
+    private function facebookPublishFeed(string $version, string $pageId, string $message, string $accessToken): array
+    {
+        if (trim($message) === '') {
+            throw new \RuntimeException('Facebook publish requires text or an image.');
+        }
+
+        $url = 'https://graph.facebook.com/' . $version . '/' . $pageId . '/feed';
+        $response = $this->facebookGraphPost($url, [
+            'message'      => $message,
+            'access_token' => $accessToken,
+        ]);
+
+        if (trim((string) ($response['id'] ?? '')) === '') {
+            $message = (string) ($response['error']['message'] ?? 'Unknown error publishing feed post.');
+            throw new \RuntimeException('Facebook API: ' . $message);
+        }
+
+        return $response;
+    }
+
+    private function instagramWaitForContainer(string $version, string $containerId, string $accessToken): void
+    {
+        $url = 'https://graph.facebook.com/' . $version . '/' . $containerId;
+        $lastStatus = '';
+
+        for ($attempt = 1; $attempt <= 10; $attempt++) {
+            $response = $this->instagramGraphGet($url, [
+                'fields'       => 'status_code',
+                'access_token' => $accessToken,
+            ]);
+
+            $lastStatus = strtoupper(trim((string) ($response['status_code'] ?? '')));
+            if ($lastStatus === 'FINISHED') {
+                return;
+            }
+
+            if (in_array($lastStatus, ['ERROR', 'EXPIRED', 'PUBLISHED'], true)) {
+                throw new \RuntimeException('Instagram API: media container status is ' . $lastStatus . '.');
+            }
+
+            if ($attempt < 10) {
+                sleep(3);
+            }
+        }
+
+        throw new \RuntimeException(
+            'Instagram API: media container was not ready for publishing after 30 seconds'
+            . ($lastStatus !== '' ? ' (last status: ' . $lastStatus . ').' : '.')
+        );
+    }
+
     public function exchangeInstagramToken(string $shortToken): array
     {
         $shortToken = trim($shortToken);
@@ -331,6 +522,44 @@ class Publisher
         }
 
         $response = $this->instagramGraphGet(
+            'https://graph.facebook.com/' . $version . '/oauth/access_token',
+            [
+                'grant_type'        => 'fb_exchange_token',
+                'client_id'         => $appId,
+                'client_secret'     => $appSecret,
+                'fb_exchange_token' => $shortToken,
+            ]
+        );
+
+        $token = trim((string) ($response['access_token'] ?? ''));
+        if ($token === '') {
+            $msg = $response['error']['message'] ?? 'Token exchange did not return an access_token.';
+            throw new \RuntimeException($msg);
+        }
+
+        return [
+            'access_token' => $token,
+            'expires_in'   => (int) ($response['expires_in'] ?? 0),
+        ];
+    }
+
+    public function exchangeFacebookToken(string $shortToken): array
+    {
+        $shortToken = trim($shortToken);
+        if ($shortToken === '') {
+            throw new \InvalidArgumentException('Paste a token to exchange.');
+        }
+
+        $settings  = ee('socialposter:generator')->getSettings();
+        $appId     = $this->facebookAppId($settings);
+        $appSecret = $this->facebookAppSecret($settings);
+        $version   = $this->facebookGraphVersion($settings);
+
+        if ($appId === '' || $appSecret === '') {
+            throw new \RuntimeException('Facebook App ID and App Secret are required to exchange a token. Save those first.');
+        }
+
+        $response = $this->facebookGraphGet(
             'https://graph.facebook.com/' . $version . '/oauth/access_token',
             [
                 'grant_type'        => 'fb_exchange_token',
@@ -390,6 +619,44 @@ class Publisher
         return $pages;
     }
 
+    public function listFacebookPages(): array
+    {
+        $settings = ee('socialposter:generator')->getSettings();
+        $version  = $this->facebookGraphVersion($settings);
+        $token    = trim((string) ($settings['facebook_user_access_token'] ?? ''))
+                 ?: trim((string) ($settings['facebook_access_token'] ?? ''))
+                 ?: trim((string) ($settings['instagram_user_access_token'] ?? ''))
+                 ?: trim((string) ($settings['instagram_access_token'] ?? ''));
+
+        if ($token === '') {
+            throw new \RuntimeException('Save a Facebook user access token first, then list Pages.');
+        }
+
+        $response = $this->facebookGraphGet(
+            'https://graph.facebook.com/' . $version . '/me/accounts',
+            [
+                'access_token' => $token,
+                'fields'       => 'id,name,access_token,tasks',
+                'limit'        => 100,
+            ]
+        );
+
+        $pages = [];
+        foreach ((array) ($response['data'] ?? []) as $page) {
+            if (! is_array($page)) {
+                continue;
+            }
+            $pages[] = [
+                'id'           => (string) ($page['id'] ?? ''),
+                'name'         => (string) ($page['name'] ?? ''),
+                'access_token' => (string) ($page['access_token'] ?? ''),
+                'tasks'        => array_values((array) ($page['tasks'] ?? [])),
+            ];
+        }
+
+        return $pages;
+    }
+
     public function selectInstagramPage(string $pageId): array
     {
         $pageId = trim($pageId);
@@ -401,6 +668,25 @@ class Publisher
             if ($page['id'] === $pageId) {
                 if ($page['access_token'] === '') {
                     throw new \RuntimeException('Page found but has no access_token in the response. Make sure your user token has pages_show_list and pages_read_engagement scopes.');
+                }
+                return $page;
+            }
+        }
+
+        throw new \RuntimeException('Page not found in your account list.');
+    }
+
+    public function selectFacebookPage(string $pageId): array
+    {
+        $pageId = trim($pageId);
+        if ($pageId === '') {
+            throw new \InvalidArgumentException('No page selected.');
+        }
+
+        foreach ($this->listFacebookPages() as $page) {
+            if ($page['id'] === $pageId) {
+                if ($page['access_token'] === '') {
+                    throw new \RuntimeException('Page found but has no access_token in the response. Make sure your user token has pages_show_list and pages_manage_posts permissions.');
                 }
                 return $page;
             }
@@ -428,6 +714,44 @@ class Publisher
 
         try {
             $response = $this->instagramGraphGet(
+                'https://graph.facebook.com/' . $version . '/debug_token',
+                ['input_token' => $token, 'access_token' => $appId . '|' . $appSecret]
+            );
+        } catch (\Throwable $e) {
+            return $base + ['error' => $e->getMessage()];
+        }
+
+        $data = is_array($response['data'] ?? null) ? $response['data'] : [];
+
+        return [
+            'is_valid'   => (bool) ($data['is_valid'] ?? false),
+            'expires_at' => (int) ($data['expires_at'] ?? 0),
+            'scopes'     => array_values((array) ($data['scopes'] ?? [])),
+            'app_id'     => (string) ($data['app_id'] ?? ''),
+            'type'       => (string) ($data['type'] ?? ''),
+            'error'      => (string) ($data['error']['message'] ?? ''),
+        ];
+    }
+
+    public function inspectFacebookToken(?string $token = null): array
+    {
+        $settings  = ee('socialposter:generator')->getSettings();
+        $appId     = $this->facebookAppId($settings);
+        $appSecret = $this->facebookAppSecret($settings);
+        $version   = $this->facebookGraphVersion($settings);
+        $token     = $token !== null ? trim($token) : $this->facebookAccessToken($settings);
+
+        $base = ['is_valid' => false, 'expires_at' => 0, 'scopes' => [], 'app_id' => '', 'type' => '', 'error' => ''];
+
+        if ($token === '') {
+            return $base + ['error' => 'No access token saved.'];
+        }
+        if ($appId === '' || $appSecret === '') {
+            return $base + ['error' => 'Set Facebook App ID and App Secret to check token status.'];
+        }
+
+        try {
+            $response = $this->facebookGraphGet(
                 'https://graph.facebook.com/' . $version . '/debug_token',
                 ['input_token' => $token, 'access_token' => $appId . '|' . $appSecret]
             );
@@ -541,10 +865,184 @@ class Publisher
         return $result;
     }
 
+    public function testFacebookConnection(): array
+    {
+        $settings  = ee('socialposter:generator')->getSettings();
+        $token     = $this->facebookAccessToken($settings);
+        $pageId    = $this->facebookPageId($settings);
+        $appId     = $this->facebookAppId($settings);
+        $appSecret = $this->facebookAppSecret($settings);
+        $version   = $this->facebookGraphVersion($settings);
+        $required  = ['pages_manage_posts', 'pages_read_engagement', 'pages_show_list'];
+        $result = [
+            'token_valid'    => false,
+            'token_type'     => '',
+            'token_expires'  => '',
+            'scopes'         => [],
+            'missing_scopes' => $required,
+            'page_id'        => $pageId,
+            'page_name'      => '',
+            'errors'         => [],
+            'warnings'       => [],
+        ];
+
+        if ($token === '') {
+            $result['errors'][] = 'No Facebook Page access token saved.';
+            return $result;
+        }
+        if ($pageId === '') {
+            $result['errors'][] = 'Facebook Page ID is not set.';
+        }
+
+        if ($appId !== '' && $appSecret !== '') {
+            try {
+                $debug = $this->facebookGraphGet(
+                    'https://graph.facebook.com/' . $version . '/debug_token',
+                    ['input_token' => $token, 'access_token' => $appId . '|' . $appSecret]
+                );
+                $data = is_array($debug['data'] ?? null) ? $debug['data'] : [];
+                $result['token_valid'] = (bool) ($data['is_valid'] ?? false);
+                $result['token_type']  = (string) ($data['type'] ?? '');
+                $result['scopes']      = array_values((array) ($data['scopes'] ?? []));
+                $result['missing_scopes'] = array_values(array_diff($required, $result['scopes']));
+
+                $expiresAt = (int) ($data['expires_at'] ?? 0);
+                $result['token_expires'] = $expiresAt > 0
+                    ? date('M j, Y', $expiresAt) . ' (' . (int) floor(($expiresAt - time()) / 86400) . ' days)'
+                    : 'Does not expire';
+
+                if (! $result['token_valid']) {
+                    $result['errors'][] = 'Token is invalid or expired: ' . ($data['error']['message'] ?? 'unknown error');
+                }
+            } catch (\Throwable $e) {
+                $result['warnings'][] = 'Could not inspect token: ' . $e->getMessage();
+                $result['token_valid'] = true;
+                $result['missing_scopes'] = [];
+            }
+        } else {
+            $result['warnings'][] = 'App ID or App Secret not saved; skipping token scope check.';
+            $result['token_valid'] = true;
+            $result['missing_scopes'] = [];
+        }
+
+        if ($pageId !== '' && $result['token_valid'] && in_array('pages_read_engagement', $result['scopes'], true)) {
+            try {
+                $page = $this->facebookGraphGet(
+                    'https://graph.facebook.com/' . $version . '/' . $pageId,
+                    ['fields' => 'id,name', 'access_token' => $token]
+                );
+                $result['page_id']   = (string) ($page['id'] ?? '');
+                $result['page_name'] = (string) ($page['name'] ?? '');
+            } catch (\Throwable $e) {
+                $result['errors'][] = 'Facebook Page lookup failed: ' . $e->getMessage();
+            }
+        } elseif ($pageId !== '' && $result['token_valid']) {
+            $result['warnings'][] = 'Skipped Page lookup because the saved token is missing pages_read_engagement.';
+        }
+
+        return $result;
+    }
+
     private function graphVersion(array $settings): string
     {
         $version = trim((string) ($settings['instagram_graph_version'] ?? 'v24.0'));
         return $version !== '' ? $version : 'v24.0';
+    }
+
+    private function facebookGraphVersion(array $settings): string
+    {
+        $version = trim((string) ($settings['facebook_graph_version'] ?? $settings['instagram_graph_version'] ?? 'v24.0'));
+        return $version !== '' ? $version : 'v24.0';
+    }
+
+    private function facebookAppId(array $settings): string
+    {
+        return trim((string) ($settings['facebook_app_id'] ?? ''))
+            ?: trim((string) ($settings['instagram_app_id'] ?? ''));
+    }
+
+    private function facebookAppSecret(array $settings): string
+    {
+        return trim((string) ($settings['facebook_app_secret'] ?? ''))
+            ?: trim((string) ($settings['instagram_app_secret'] ?? ''));
+    }
+
+    private function facebookPageId(array $settings): string
+    {
+        return trim((string) ($settings['facebook_page_id'] ?? ''))
+            ?: trim((string) ($settings['instagram_page_id'] ?? ''));
+    }
+
+    private function facebookAccessToken(array $settings): string
+    {
+        return trim((string) ($settings['facebook_access_token'] ?? ''))
+            ?: trim((string) ($settings['instagram_access_token'] ?? ''));
+    }
+
+    private function facebookGraphGet(string $url, array $params): array
+    {
+        $url .= '?' . http_build_query($params);
+
+        $ch = curl_init($url);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT        => 30,
+            CURLOPT_USERAGENT      => 'SocialPoster/1.0',
+        ]);
+
+        $body   = curl_exec($ch);
+        $error  = curl_error($ch);
+        $status = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        if ($body === false || $body === '') {
+            throw new \RuntimeException('Facebook API request failed: ' . ($error ?: 'empty response'));
+        }
+
+        $decoded = json_decode((string) $body, true);
+        if (! is_array($decoded)) {
+            throw new \RuntimeException('Facebook API returned a non-JSON response.');
+        }
+
+        if ($status < 200 || $status >= 300) {
+            $msg = $decoded['error']['message'] ?? 'Facebook API request failed (HTTP ' . $status . ').';
+            throw new \RuntimeException($msg);
+        }
+
+        return $decoded;
+    }
+
+    private function facebookGraphPost(string $url, array $params): array
+    {
+        $ch = curl_init($url);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_POST           => true,
+            CURLOPT_POSTFIELDS     => http_build_query($params),
+            CURLOPT_TIMEOUT        => 30,
+            CURLOPT_USERAGENT      => 'SocialPoster/1.0',
+        ]);
+
+        $body   = curl_exec($ch);
+        $error  = curl_error($ch);
+        $status = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        if ($body === false || $body === '') {
+            throw new \RuntimeException('Facebook API request failed: ' . ($error ?: 'empty response'));
+        }
+
+        $decoded = json_decode((string) $body, true);
+        if (! is_array($decoded)) {
+            throw new \RuntimeException('Facebook API returned a non-JSON response.');
+        }
+
+        if ($status < 200 || $status >= 300) {
+            $msg = $decoded['error']['message'] ?? 'Facebook API request failed (HTTP ' . $status . ').';
+            throw new \RuntimeException($msg);
+        }
+
+        return $decoded;
     }
 
     private function instagramGraphGet(string $url, array $params): array
@@ -613,6 +1111,20 @@ class Publisher
             'generation_id' => $generationId,
             'media_id'      => $mediaId,
             'caption'       => $caption,
+            'created_at'    => ee()->localize->now,
+        ]);
+    }
+
+    private function recordPublishedFacebook(int $generationId, string $postId, string $message): void
+    {
+        if (! ee()->db->table_exists('socialposter_published_facebook')) {
+            return;
+        }
+
+        ee()->db->insert('socialposter_published_facebook', [
+            'generation_id' => $generationId,
+            'post_id'       => $postId,
+            'message'       => $message,
             'created_at'    => ee()->localize->now,
         ]);
     }

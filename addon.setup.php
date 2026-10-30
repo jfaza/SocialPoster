@@ -107,6 +107,7 @@ return [
         'socialposter:costs' => JavidFazaeli\SocialPoster\Commands\CommandCosts::class,
         'socialposter:run-schedule' => JavidFazaeli\SocialPoster\Commands\CommandRunSchedule::class,
         'socialposter:test-instagram' => JavidFazaeli\SocialPoster\Commands\CommandTestInstagram::class,
+        'socialposter:test-facebook' => JavidFazaeli\SocialPoster\Commands\CommandTestFacebook::class,
     ],
  
  

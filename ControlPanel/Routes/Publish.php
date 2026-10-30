@@ -7,6 +7,7 @@ use ExpressionEngine\Service\Addon\Controllers\Mcp\AbstractRoute;
 class Publish extends AbstractRoute
 {
     use LoadsStyle;
+    use BuildsRouteContext;
 
     protected $route_path = 'publish';
     protected $cp_page_title = 'SocialPoster Publish';
@@ -18,12 +19,15 @@ class Publish extends AbstractRoute
         $this->loadStyle();
 
         $publisher = ee('socialposter:publisher');
+        $coreUrls = $this->coreRouteContext();
+        $allTargets = $publisher->targets();
+        $publishTargets = $publisher->genericPublishTargets();
         $result = null;
 
         if (ee('Request')->post('publish_selected')) {
             $selectedTargets = ee()->input->post('publish_targets', true);
             $selectedTargets = is_array($selectedTargets) ? $selectedTargets : [];
-            $selectedTargets = array_values(array_intersect(array_map('strval', $selectedTargets), array_keys($publisher->targets())));
+            $selectedTargets = array_values(array_intersect(array_map('strval', $selectedTargets), array_keys($publishTargets)));
 
             if (empty($selectedTargets)) {
                 ee('CP/Alert')->makeBanner('socialposter-publish')
@@ -58,10 +62,10 @@ class Publish extends AbstractRoute
         }
 
         if (ee('Request')->post('publish_selected')) {
-            $notReadyTargets = array_diff($selectedTargets ?? [], ['blog']);
+            $notReadyTargets = array_diff($selectedTargets ?? [], array_keys($publishTargets));
             if (! empty($notReadyTargets)) {
                 $labels = [];
-                foreach ($publisher->targets() as $key => $target) {
+                foreach ($allTargets as $key => $target) {
                     if (in_array($key, $notReadyTargets, true)) {
                         $labels[] = (string) $target['label'];
                     }
@@ -83,23 +87,24 @@ class Publish extends AbstractRoute
                 if ((string) ($row['source'] ?? '') === 'news') {
                     return false;
                 }
+
                 $template = $templateMeta[(int) ($row['template_id'] ?? 0)] ?? null;
-                if ($template) {
-                    $platform = strtolower(trim((string) ($template['platform'] ?? '')));
-                    $title    = strtolower(trim((string) ($template['title'] ?? '')));
-                    if ($platform === 'instagram' || strpos($title, 'instagram carousel') !== false) {
-                        return false;
-                    }
+                if (! $template) {
+                    return false;
                 }
-                return true;
+
+                $platform = strtolower(trim((string) ($template['platform'] ?? '')));
+                return $platform === 'website';
             }
         ));
 
         $this->setBody('Publish', [
-            'publish_url' => ee('CP/URL')->make('addons/settings/socialposter/publish')->compile(),
-            'history_url' => ee('CP/URL')->make('addons/settings/socialposter/history')->compile(),
-            'index_url' => ee('CP/URL')->make('addons/settings/socialposter')->compile(),
-            'targets' => $publisher->targets(),
+            'publish_url' => $coreUrls['publish_url'],
+            'history_url' => $coreUrls['history_url'],
+            'index_url' => $coreUrls['index_url'],
+            'published_url' => $coreUrls['published_url'],
+            'targets' => $allTargets,
+            'publish_targets' => $publishTargets,
             'status_options' => $publisher->statusOptions(),
             'category_options' => $publisher->categoryOptions(),
             'rows' => $rows,

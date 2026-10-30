@@ -1,7 +1,9 @@
 <?php
 ee()->load->helper('form');
+$spView = require __DIR__ . '/_view_helpers.php';
 $h = fn($value) => htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
 $selected = $rows[0] ?? null;
+$publish_targets = $publish_targets ?? [];
 $categoryLabelKey = function ($value) {
     $value = strtolower(strip_tags((string) $value));
     $value = preg_replace('/[^a-z0-9]+/', ' ', $value);
@@ -19,29 +21,13 @@ if (! empty($selected['category']) && ! empty($category_options)) {
         }
     }
 }
-$targetStatusLabel = function ($status) {
-    return [
-        'ready' => 'Ready',
-        'configured' => 'Configured',
-        'needs_settings' => 'Needs Settings',
-        'planned' => 'Planned',
-    ][(string) $status] ?? ucfirst(str_replace('_', ' ', (string) $status));
-};
-$templateLabel = function ($templateId) use ($template_meta) {
-    $template = $template_meta[(int) $templateId] ?? null;
-    if (! $template) {
-        return '';
-    }
-
-    $platform = trim((string) ($template['platform'] ?? ''));
-    $title = trim((string) ($template['title'] ?? ''));
-    return $platform !== '' ? $platform : $title;
-};
+$templateMeta = is_array($template_meta ?? null) ? $template_meta : [];
 ?>
 <div class="sp-wrap">
   <div class="sp-toolbar">
-    <a class="button button--default" href="<?= $h($index_url) ?>">Generator</a>
+    <a class="button button--default" href="<?= $h($index_url) ?>">Create</a>
     <a class="button button--default" href="<?= $h($history_url) ?>">History</a>
+    <a class="button button--default" href="<?= $h($published_url) ?>">Published</a>
   </div>
 
   <?php if (! empty($result)): ?>
@@ -56,22 +42,10 @@ $templateLabel = function ($templateId) use ($template_meta) {
   <?php endif; ?>
 
   <section class="sp-card">
-    <h2>Publish Targets</h2>
-    <div class="sp-target-grid">
-      <?php foreach ($targets as $key => $target): ?>
-        <div class="sp-target <?= in_array($target['status'], ['ready', 'configured'], true) ? 'is-ready' : 'is-planned' ?>">
-          <strong><?= $h($target['label']) ?></strong>
-          <span><?= $h($targetStatusLabel($target['status'])) ?></span>
-          <p><?= $h($target['description']) ?></p>
-        </div>
-      <?php endforeach; ?>
-    </div>
-  </section>
-
-  <section class="sp-card">
-    <h2>Publish Generated Post</h2>
+    <h2>Publish to Blog</h2>
+    <p class="sp-muted">Choose a generated website draft, confirm the blog entry details, and publish it into ExpressionEngine.</p>
     <?php if (empty($rows)): ?>
-      <p class="sp-muted">Generate a post first, then choose where to publish it.</p>
+      <p class="sp-muted">Create a post with a Website template first, then publish it here.</p>
     <?php else: ?>
       <?= form_open($publish_url) ?>
         <input type="hidden" name="publish_selected" value="1">
@@ -80,36 +54,21 @@ $templateLabel = function ($templateId) use ($template_meta) {
           <label for="sp-generation">Generated Post</label>
           <select id="sp-generation" name="generation_id">
             <?php foreach ($rows as $row): ?>
+              <?php $rowTemplateLabel = $spView->templatePlatformLabel($templateMeta, $row['template_id'] ?? 0); ?>
               <option
                 value="<?= (int) $row['id'] ?>"
                 data-title="<?= $h($row['title'] ?: 'Generated social post') ?>"
                 data-category="<?= $h($row['category'] ?? '') ?>"
               >
-                #<?= (int) $row['id'] ?><?= $templateLabel($row['template_id'] ?? 0) !== '' ? ' · [' . $h($templateLabel($row['template_id'] ?? 0)) . ']' : '' ?> · <?= $h($row['title'] ?: 'Generated social post') ?> · <?= $h(date('M j, Y g:ia', (int) $row['created_at'])) ?>
+                #<?= (int) $row['id'] ?><?= $rowTemplateLabel !== '' ? ' · [' . $h($rowTemplateLabel) . ']' : '' ?> · <?= $h($row['title'] ?: 'Generated social post') ?> · <?= $h(date('M j, Y g:ia', (int) $row['created_at'])) ?>
               </option>
             <?php endforeach; ?>
           </select>
         </div>
 
-        <div class="sp-field">
-          <label>Publish To</label>
-          <div class="sp-checkbox-group">
-            <?php foreach ($targets as $key => $target): ?>
-              <?php $isBlog = $key === 'blog'; ?>
-              <label class="sp-checkbox-label">
-                <input
-                  name="publish_targets[]"
-                  type="checkbox"
-                  value="<?= $h($key) ?>"
-                  <?= $isBlog ? 'checked' : '' ?>
-                >
-                <?= $h($target['label']) ?>
-                <span class="sp-muted">(<?= $h($targetStatusLabel($target['status'])) ?>)</span>
-              </label>
-            <?php endforeach; ?>
-          </div>
-          <p class="sp-muted">Blog publishing is active. Other selected targets will be reported until their direct publishing integrations are finished.</p>
-        </div>
+        <?php foreach ($publish_targets as $key => $target): ?>
+          <input name="publish_targets[]" type="hidden" value="<?= $h($key) ?>">
+        <?php endforeach; ?>
 
         <div class="sp-field">
           <label for="sp-title">Blog Title</label>

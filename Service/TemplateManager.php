@@ -4,7 +4,10 @@ namespace JavidFazaeli\SocialPoster\Service;
 
 class TemplateManager
 {
+    private const TEMPLATE_SCAFFOLD_CACHE_VERSION = 'v1';
     private const INSTAGRAM_CAROUSEL_INSTRUCTIONS = 'You are an expert Instagram carousel creator and visual content strategist. Generate a complete Instagram carousel package with 6 to 8 slides minimum. Do not stop at slide 1. Every slide must include both text content and a unique image brief. post_text must be formatted slide by slide using labels such as "Slide 1 - Cover", "Slide 2 - ...", and so on. For each slide, include a heading plus concise bullets or short support lines, then add a short "Visual Direction:" line for that slide. Slide 1 must be a cover with a strong hook of 10 words or fewer and a subtitle if needed. Slides 2 through the next-to-last slide must teach one idea only, use 3 to 5 bullets maximum, and keep each bullet under 10 words. The final slide must reinforce value and include a CTA such as follow, save, comment, or DM. Tone must be clear, sharp, slightly bold, and free of fluff. Design direction should feel premium, modern, minimal, editorial, and AI-tech oriented with clean composition, no people, no logos, no readable text inside images, and strong 1:1 carousel aesthetics. Include one Instagram Caption section at the end with a publish-ready caption and hashtags. table_of_contents should contain slide titles only for internal structure. The system currently generates one image only, so image_brief and image_prompt must describe the main cover / visual system for the carousel, while the per-slide visual directions live inside post_text. Do not write a blog article, long paragraphs, FAQ sections, citations, internal links, external links, recommended topics, or generic advice.';
+    private const HOT_TECH_OLD_INSTRUCTIONS = 'Create a timely Website blog article from a supplied or hot technology/developer topic. Cover what changed, why it matters, practical implications for developers and technical buyers, implementation takeaways, risks and tradeoffs, citation/source ideas, semantic keywords, internal link suggestions, external reference ideas, recommended follow-up topics, and a realistic technical workspace image prompt.';
+    private const HOT_TECH_NEW_INSTRUCTIONS = 'Write a timely, technically credible blog article for a developer and technical-buyer audience using either a supplied topic or a current hot article/topic from the news feed. Lead with the actual change or announcement, explain why it matters now, separate signal from hype, and make the piece useful to someone deciding whether to pay attention, evaluate, or implement. Cover the context, what changed, who it affects, practical implementation takeaways, business and engineering tradeoffs, risks or limitations, and the clearest next steps. Prefer concrete examples, version names, product names, and source-backed claims over vague commentary. Include semantic SEO keywords, citation and reference ideas, internal link suggestions, external source ideas, recommended follow-up topics, and an image prompt for a realistic technical workspace or product context. Avoid filler, generic futurism, and outdated trend framing.';
 
     public function fieldOptions(): array
     {
@@ -30,6 +33,14 @@ class TemplateManager
                 'Reddit' => 'Reddit',
                 'Newsletter' => 'Newsletter',
                 'Multi-platform' => 'Multi-platform',
+            ],
+            'generation_profile' => [
+                '' => 'Generic / custom behavior',
+                'website_seo_article' => 'Website SEO article',
+                'hot_tech_dev_article' => 'Hot tech / dev article',
+                'howto_tutorial' => 'How-to tutorial',
+                'instagram_carousel' => 'Instagram carousel',
+                'facebook_short_post' => 'Facebook short post',
             ],
             'length_preset' => [
                 'short' => 'Short',
@@ -146,6 +157,7 @@ class TemplateManager
                 'title' => 'SEO Article - Long',
                 'content_type' => 'seo_article',
                 'platform' => 'Website',
+                'generation_profile' => 'website_seo_article',
                 'length_preset' => 'long',
                 'word_count' => 1800,
                 'tone' => 'expert, clear, practical',
@@ -162,85 +174,30 @@ class TemplateManager
                 'is_default' => 1,
             ],
             [
-                'title' => 'LinkedIn Authority Post',
-                'content_type' => 'social_post',
-                'platform' => 'LinkedIn',
-                'length_preset' => 'medium',
-                'word_count' => 450,
-                'tone' => 'confident, human, useful',
-                'audience' => 'founders, marketers, and web teams',
-                'goal' => 'build authority and start conversations',
-                'research_mode' => 'light research with one credible external reference',
-                'citation_count' => 1,
-                'internal_link_count' => 1,
-                'external_link_count' => 1,
-                'schema_type' => 'None',
-                'image_style' => 'realistic workplace scene',
-                'cta_style' => 'conversation starter',
-                'prompt_instructions' => 'Create a platform-neutral social package with a hook, concise post text, SEO keywords, one external link idea, one internal link idea, recommended follow-up topics, and a realistic social image prompt.',
-                'is_default' => 0,
-            ],
-            [
-                'title' => 'Content Cluster Plan',
-                'content_type' => 'cluster',
-                'platform' => 'Website',
-                'length_preset' => 'outline',
-                'word_count' => 900,
-                'tone' => 'strategic, organized, practical',
-                'audience' => 'site owners planning topical authority',
-                'goal' => 'plan a topical cluster with internal links',
-                'research_mode' => 'SERP-style clustering from supplied topic and common search intent',
-                'citation_count' => 2,
-                'internal_link_count' => 6,
-                'external_link_count' => 2,
-                'schema_type' => 'ItemList',
-                'image_style' => 'realistic topic scene',
-                'cta_style' => 'next-step content planning CTA',
-                'prompt_instructions' => 'Create a pillar topic, supporting article topics, table of contents, semantic keyword clusters, internal linking structure, external citation ideas, recommended next topics, and a realistic image prompt.',
-                'is_default' => 0,
-            ],
-            [
-                'title' => 'SEO Article - Medium',
+                'title' => 'Hot Tech & Dev Blog Article',
                 'content_type' => 'seo_article',
                 'platform' => 'Website',
+                'generation_profile' => 'hot_tech_dev_article',
                 'length_preset' => 'medium',
                 'word_count' => 1200,
-                'tone' => 'friendly, educational, concise',
-                'audience' => 'local businesses and service providers',
+                'tone' => 'direct, technical, evidence-based',
+                'audience' => 'developers and technical buyers',
                 'goal' => 'answer buyer questions and reduce objections',
                 'research_mode' => 'cite credible sources and include proof points',
                 'citation_count' => 3,
                 'internal_link_count' => 2,
                 'external_link_count' => 2,
                 'schema_type' => 'BlogPosting',
-                'image_style' => 'realistic editorial photo',
+                'image_style' => 'realistic technical workspace',
                 'cta_style' => 'read related article',
-                'prompt_instructions' => 'Create a focused SEO blog post package around one clear search intent. Include headline options, intro, outline, keywords, citation ideas, internal links, external references, and a practical image prompt.',
-                'is_default' => 0,
-            ],
-            [
-                'title' => 'Pillar Guide',
-                'content_type' => 'seo_article',
-                'platform' => 'Website',
-                'length_preset' => 'pillar',
-                'word_count' => 2500,
-                'tone' => 'expert, clear, practical',
-                'audience' => 'business owners, founders, and technical decision makers',
-                'goal' => 'rank in Google and LLM answers while converting readers into qualified leads',
-                'research_mode' => 'cite credible sources and include proof points',
-                'citation_count' => 6,
-                'internal_link_count' => 5,
-                'external_link_count' => 5,
-                'schema_type' => 'Article',
-                'image_style' => 'realistic topic scene',
-                'cta_style' => 'soft consultation CTA',
-                'prompt_instructions' => 'Create a definitive pillar guide package with sections, subtopics, entity coverage, FAQs, citations, internal link opportunities, JSON-LD recommendations, and a realistic topic image prompt.',
+                'prompt_instructions' => self::HOT_TECH_NEW_INSTRUCTIONS,
                 'is_default' => 0,
             ],
             [
                 'title' => 'How-To Tutorial',
                 'content_type' => 'seo_article',
                 'platform' => 'Website',
+                'generation_profile' => 'howto_tutorial',
                 'length_preset' => 'long',
                 'word_count' => 1800,
                 'tone' => 'direct, technical, evidence-based',
@@ -257,85 +214,10 @@ class TemplateManager
                 'is_default' => 0,
             ],
             [
-                'title' => 'FAQ Answer Page',
-                'content_type' => 'faq',
-                'platform' => 'Website',
-                'length_preset' => 'medium',
-                'word_count' => 900,
-                'tone' => 'friendly, educational, concise',
-                'audience' => 'local businesses and service providers',
-                'goal' => 'answer buyer questions and reduce objections',
-                'research_mode' => 'use only supplied brand/site context',
-                'citation_count' => 1,
-                'internal_link_count' => 3,
-                'external_link_count' => 1,
-                'schema_type' => 'FAQPage',
-                'image_style' => 'realistic topic scene',
-                'cta_style' => 'read related article',
-                'prompt_instructions' => 'Create an FAQ-style page package with concise answers, objection handling, FAQPage schema suggestions, internal links, and a simple realistic image prompt.',
-                'is_default' => 0,
-            ],
-            [
-                'title' => 'Technical SEO Audit Summary',
-                'content_type' => 'technical_audit',
-                'platform' => 'Website',
-                'length_preset' => 'outline',
-                'word_count' => 900,
-                'tone' => 'direct, technical, evidence-based',
-                'audience' => 'developers and technical buyers',
-                'goal' => 'answer buyer questions and reduce objections',
-                'research_mode' => 'technical checklist with issue, impact, and fix framing',
-                'citation_count' => 2,
-                'internal_link_count' => 2,
-                'external_link_count' => 2,
-                'schema_type' => 'Article',
-                'image_style' => 'realistic technical workspace',
-                'cta_style' => 'book a call',
-                'prompt_instructions' => 'Create a technical SEO audit content package. Frame each issue as problem, ranking/LLM impact, evidence to collect, recommended fix, and priority. Include schema ideas and realistic technical image direction.',
-                'is_default' => 0,
-            ],
-            [
-                'title' => 'LinkedIn Founder Story',
-                'content_type' => 'social_post',
-                'platform' => 'LinkedIn',
-                'length_preset' => 'short',
-                'word_count' => 300,
-                'tone' => 'thoughtful, founder-led, conversational',
-                'audience' => 'founders, marketers, and web teams',
-                'goal' => 'build authority and start conversations',
-                'research_mode' => 'use only supplied brand/site context',
-                'citation_count' => 0,
-                'internal_link_count' => 0,
-                'external_link_count' => 0,
-                'schema_type' => 'None',
-                'image_style' => 'realistic portrait-style scene',
-                'cta_style' => 'conversation starter',
-                'prompt_instructions' => 'Create a concise founder-led LinkedIn post with a personal observation, lesson learned, practical takeaway, natural CTA question, and a realistic portrait-style image prompt.',
-                'is_default' => 0,
-            ],
-            [
-                'title' => 'X Thread',
-                'content_type' => 'social_post',
-                'platform' => 'X / Twitter',
-                'length_preset' => 'medium',
-                'word_count' => 600,
-                'tone' => 'confident, human, useful',
-                'audience' => 'founders, marketers, and web teams',
-                'goal' => 'drive newsletter or social engagement',
-                'research_mode' => 'light research with one credible external reference',
-                'citation_count' => 1,
-                'internal_link_count' => 1,
-                'external_link_count' => 1,
-                'schema_type' => 'None',
-                'image_style' => 'realistic workplace scene',
-                'cta_style' => 'newsletter signup',
-                'prompt_instructions' => 'Create an X thread package with a strong first post, 6 to 8 short thread posts, a final CTA, SEO keywords, link ideas, and one realistic image prompt.',
-                'is_default' => 0,
-            ],
-            [
                 'title' => 'Instagram Carousel',
                 'content_type' => 'social_post',
                 'platform' => 'Instagram',
+                'generation_profile' => 'instagram_carousel',
                 'length_preset' => 'medium',
                 'word_count' => 600,
                 'tone' => 'friendly, educational, concise',
@@ -352,98 +234,23 @@ class TemplateManager
                 'is_default' => 0,
             ],
             [
-                'title' => 'Reddit Helpful Answer',
-                'content_type' => 'reddit_answer',
-                'platform' => 'Reddit',
-                'length_preset' => 'medium',
-                'word_count' => 600,
-                'tone' => 'friendly, educational, concise',
-                'audience' => 'founders, marketers, and web teams',
-                'goal' => 'build authority and start conversations',
-                'research_mode' => 'use only supplied brand/site context',
-                'citation_count' => 1,
-                'internal_link_count' => 0,
-                'external_link_count' => 1,
-                'schema_type' => 'QAPage',
-                'image_style' => 'realistic topic scene',
-                'cta_style' => 'no CTA',
-                'prompt_instructions' => 'Create a helpful Reddit-style answer that avoids sounding promotional. Include direct advice, caveats, optional resource suggestions, and a subtle brand-authority angle without hard selling.',
-                'is_default' => 0,
-            ],
-            [
-                'title' => 'Newsletter Brief',
-                'content_type' => 'newsletter',
-                'platform' => 'Newsletter',
-                'length_preset' => 'medium',
-                'word_count' => 900,
-                'tone' => 'thoughtful, founder-led, conversational',
-                'audience' => 'agency clients and marketing managers',
-                'goal' => 'drive newsletter or social engagement',
-                'research_mode' => 'light research with one credible external reference',
-                'citation_count' => 1,
-                'internal_link_count' => 2,
-                'external_link_count' => 1,
-                'schema_type' => 'None',
-                'image_style' => 'realistic editorial photo',
-                'cta_style' => 'newsletter signup',
-                'prompt_instructions' => 'Create a newsletter package with subject line options, preview text, opening hook, main sections, link recommendations, CTA, and a newsletter header image prompt.',
-                'is_default' => 0,
-            ],
-            [
-                'title' => 'Comparison Page',
-                'content_type' => 'comparison',
-                'platform' => 'Website',
-                'length_preset' => 'long',
-                'word_count' => 1800,
-                'tone' => 'direct, technical, evidence-based',
-                'audience' => 'business owners, founders, and technical decision makers',
-                'goal' => 'answer buyer questions and reduce objections',
-                'research_mode' => 'compare options, pros, cons, and decision criteria',
-                'citation_count' => 4,
-                'internal_link_count' => 3,
-                'external_link_count' => 3,
-                'schema_type' => 'Review',
-                'image_style' => 'realistic case-study scene',
-                'cta_style' => 'book a call',
-                'prompt_instructions' => 'Create a comparison page package with decision criteria, pros/cons, ideal users, objection handling, FAQ ideas, schema suggestions, and a realistic comparison image prompt.',
-                'is_default' => 0,
-            ],
-            [
-                'title' => 'Case Study Story',
-                'content_type' => 'case_study',
-                'platform' => 'Website',
-                'length_preset' => 'long',
-                'word_count' => 1800,
-                'tone' => 'expert, clear, practical',
-                'audience' => 'agency clients and marketing managers',
-                'goal' => 'rank in Google and LLM answers while converting readers into qualified leads',
-                'research_mode' => 'use only supplied brand/site context',
-                'citation_count' => 0,
-                'internal_link_count' => 3,
-                'external_link_count' => 0,
-                'schema_type' => 'Article',
-                'image_style' => 'realistic case-study scene',
-                'cta_style' => 'soft consultation CTA',
-                'prompt_instructions' => 'Create a case study content package with challenge, constraints, approach, solution, result metrics placeholders, client-facing summary, social version, and a realistic case-study image prompt.',
-                'is_default' => 0,
-            ],
-            [
-                'title' => 'Backlink Outreach Pitch',
-                'content_type' => 'outreach',
-                'platform' => 'Multi-platform',
+                'title' => 'Facebook Short Post',
+                'content_type' => 'social_post',
+                'platform' => 'Facebook',
+                'generation_profile' => 'facebook_short_post',
                 'length_preset' => 'short',
                 'word_count' => 300,
                 'tone' => 'confident, human, useful',
-                'audience' => 'agency clients and marketing managers',
-                'goal' => 'earn citations, shares, and backlinks',
-                'research_mode' => 'compare options, pros, cons, and decision criteria',
+                'audience' => 'founders, marketers, and web teams',
+                'goal' => 'drive newsletter or social engagement',
+                'research_mode' => 'use only supplied brand/site context',
                 'citation_count' => 0,
-                'internal_link_count' => 1,
-                'external_link_count' => 1,
+                'internal_link_count' => 0,
+                'external_link_count' => 0,
                 'schema_type' => 'None',
-                'image_style' => 'realistic portrait-style scene',
+                'image_style' => 'realistic workplace scene',
                 'cta_style' => 'conversation starter',
-                'prompt_instructions' => 'Create an outreach package with a short pitch email, subject lines, value angle, suggested resource to offer, follow-up message, and social proof bullets.',
+                'prompt_instructions' => 'Create a short Facebook post that feels natural in-feed, easy to skim, and worth reacting to. Lead with a clear hook in the first line, keep the body concise, avoid long article-style explanations, and focus on one practical point, lesson, update, or opinion only. Use short paragraphs or compact line breaks instead of dense blocks. The post should feel human, conversational, and useful, not corporate or overly polished. Include a simple engagement CTA such as a question, opinion prompt, or invitation to share experience. If a link is useful, suggest it lightly instead of making the post feel like a blog summary. Also provide a realistic image prompt that fits a professional Facebook post.',
                 'is_default' => 0,
             ],
         ];
@@ -457,11 +264,14 @@ class TemplateManager
 
         $this->seedDefaults();
 
-        return ee()->db
+        $this->resetQueryBuilder();
+        $templates = ee()->db
             ->order_by('is_default', 'DESC')
             ->order_by('title', 'ASC')
             ->get('socialposter_templates')
             ->result_array();
+
+        return $this->visibleTemplates($templates);
     }
 
     public function forPage(string $page = 'general'): array
@@ -621,6 +431,51 @@ class TemplateManager
             ];
         }
 
+        if (str_contains($title, 'facebook short post') || $platform === 'facebook') {
+            return [
+                [
+                    'label' => 'Quick insight post',
+                    'prompt' => 'Create a short Facebook post about [topic] for founders, marketers, and web teams. Lead with a simple hook, make one practical point only, keep it brief and conversational, and end with a question CTA that encourages comments.',
+                    'image_brief' => 'Realistic professional workspace image with laptop, notes, and subtle social-media-friendly energy, natural lighting, no readable text, no logos.',
+                ],
+                [
+                    'label' => 'Myth vs reality',
+                    'prompt' => 'Create a short Facebook post about a common misconception around [topic]. Open with the myth, correct it in plain language, give one useful takeaway, and end with a comment-starting question.',
+                    'image_brief' => 'Clean realistic consulting or tech workspace scene, modern but casual, no text, no logos, friendly professional mood.',
+                ],
+                [
+                    'label' => 'Small update post',
+                    'prompt' => 'Create a short Facebook update post about [topic]. Make it feel like a useful observation or update someone would actually stop to read in-feed. Keep it under a few short paragraphs and end with a low-pressure engagement CTA.',
+                    'image_brief' => 'Realistic desk or studio scene with subtle professional tools, warm natural light, uncluttered composition, no readable text, no logos.',
+                ],
+            ];
+        }
+
+        if (str_contains($title, 'hot tech') || str_contains($title, 'dev blog')) {
+            return [
+                [
+                    'label' => 'AI/dev tooling trend',
+                    'prompt' => 'Create a timely blog article about a hot AI or developer tooling topic. Explain what changed, why developers and technical buyers should care, practical implementation takeaways, risks/tradeoffs, citations, keywords, internal links, and follow-up topics.',
+                    'image_brief' => 'Realistic technical workspace with laptop, code editor glow, documentation notes, subtle AI/dev tooling atmosphere, modern professional lighting, no visible text, no logos.',
+                ],
+                [
+                    'label' => 'Web framework change',
+                    'prompt' => 'Create a blog article about a recent or emerging web framework change. Cover the context, what changed, migration or implementation guidance, performance/maintainability implications, risks, citations, and a practical CTA.',
+                    'image_brief' => 'Realistic developer desk with multiple browser/code windows abstracted on screens, clean modern workspace, subtle technical mood, no readable text, no logos.',
+                ],
+                [
+                    'label' => 'ExpressionEngine dev angle',
+                    'prompt' => 'Create a blog article connecting a hot CMS, PHP, or developer workflow topic to ExpressionEngine development. Include practical examples, implementation guidance, risks, source ideas, internal links, and follow-up article topics.',
+                    'image_brief' => 'Realistic CMS developer workspace with laptop, notebook, terminal-like screen reflections, calm technical editorial composition, no readable text, no logos.',
+                ],
+                [
+                    'label' => 'AI visibility topic',
+                    'prompt' => 'Create a blog article about a hot technical SEO or AI visibility topic for developers and technical buyers. Explain what changed in search/AI answers, implementation takeaways, risks, citations, internal links, and next-step topics.',
+                    'image_brief' => 'Realistic technical SEO workspace with laptop, analytics-style screen glow, structured notes, subtle search and AI signal mood, no readable text, no logos.',
+                ],
+            ];
+        }
+
         if ($type === 'seo_article' || $platform === 'website') {
             return [
                 [
@@ -651,6 +506,7 @@ class TemplateManager
             return null;
         }
 
+        $this->resetQueryBuilder();
         $row = ee()->db->where('id', $id)->get('socialposter_templates')->row_array();
         return $row ?: null;
     }
@@ -667,6 +523,7 @@ class TemplateManager
             'title' => trim((string) ($input['title'] ?? '')),
             'content_type' => trim((string) ($input['content_type'] ?? 'social_post')),
             'platform' => trim((string) ($input['platform'] ?? 'Website')),
+            'generation_profile' => trim((string) ($input['generation_profile'] ?? '')),
             'length_preset' => trim((string) ($input['length_preset'] ?? 'medium')),
             'word_count' => max(0, (int) ($input['word_count'] ?? 0)),
             'tone' => trim((string) ($input['tone'] ?? '')),
@@ -694,13 +551,17 @@ class TemplateManager
 
         if ($id > 0 && $this->find($id)) {
             ee()->db->where('id', $id)->update('socialposter_templates', $row);
+            $this->clearTemplateScaffoldCache($id);
             return $id;
         }
 
         $row['created_at'] = $now;
         ee()->db->insert('socialposter_templates', $row);
 
-        return (int) ee()->db->insert_id();
+        $newId = (int) ee()->db->insert_id();
+        $this->clearTemplateScaffoldCache($newId);
+
+        return $newId;
     }
 
     public function delete(int $id): bool
@@ -713,6 +574,7 @@ class TemplateManager
             ee()->db->where('template_id', $id)->update('socialposter_schedules', ['template_id' => 0]);
         }
         ee()->db->where('id', $id)->delete('socialposter_templates');
+        $this->clearTemplateScaffoldCache($id);
 
         return ee()->db->affected_rows() > 0;
     }
@@ -724,11 +586,17 @@ class TemplateManager
             return '';
         }
 
+        $cached = $this->cachedScaffoldFor($template);
+        if ($cached !== null) {
+            return $cached;
+        }
+
         $lines = [
             'Use this generation template:',
             'Template: ' . $template['title'],
             'Content type: ' . $template['content_type'],
             'Platform: ' . $template['platform'],
+            'Behavior profile: ' . $this->generationProfileLabel((string) ($template['generation_profile'] ?? '')),
             'Length preset: ' . $template['length_preset'],
             'Target word count: ' . (int) $template['word_count'],
             'Tone: ' . $template['tone'],
@@ -742,6 +610,7 @@ class TemplateManager
             'Image style: ' . $template['image_style'],
             'CTA style: ' . $template['cta_style'],
             'Instructions: ' . $template['prompt_instructions'],
+            $this->profileContractFor($template),
             $this->platformContractFor($template),
             'Content structure: ' . $this->articleStructureFor($template),
             'Image generation requirements: image_prompt must describe a realistic, photorealistic scene. Do not create infographic, diagram, quote-card, vector, illustration, text-heavy, or branded graphic prompts unless the user explicitly asks for visible text.',
@@ -749,7 +618,10 @@ class TemplateManager
             'Internal link requirements: use only relative internal URLs beginning with /, or exact site URLs supplied by the user. Do not invent placeholder domains.',
         ];
 
-        return implode("\n", array_filter($lines, fn($line) => trim($line) !== ''));
+        $instructions = implode("\n", array_filter($lines, fn($line) => trim($line) !== ''));
+        $this->storeCachedScaffold($template, $instructions);
+
+        return $instructions;
     }
 
     private function platformContractFor(array $template): string
@@ -759,6 +631,18 @@ class TemplateManager
         }
 
         return 'Instagram carousel contract: Generate carousel-ready social content, not a blog post. post_text must contain at least 6 slide blocks plus an Instagram Caption block. Slide 1 is the cover hook. Each remaining slide should teach one idea only, stay short enough to fit on a designed Instagram slide, and use concise scannable bullets or support lines. Each slide block should also include one short "Visual Direction:" line for that slide. table_of_contents should contain slide titles only for internal structure. The system currently generates one image, so image_brief and image_prompt must describe a single square carousel cover / visual system, not separate images for every slide.';
+    }
+
+    private function profileContractFor(array $template): string
+    {
+        return match ((string) ($template['generation_profile'] ?? '')) {
+            'website_seo_article' => 'Behavior contract: Prioritize search-intent alignment, clear article hierarchy, semantic keyword coverage, citations when available, and publish-ready Markdown body quality.',
+            'hot_tech_dev_article' => 'Behavior contract: Treat freshness as part of the value. Focus on what changed, what is signal versus hype, implementation implications, technical credibility, and practical decision support.',
+            'howto_tutorial' => 'Behavior contract: Teach in a step-by-step way. Favor prerequisites, ordered actions, warnings, validation steps, and operational clarity over broad commentary.',
+            'instagram_carousel' => 'Behavior contract: Optimize for short, slide-native teaching. Keep copy scannable, visual-system aware, and caption-ready rather than article-like.',
+            'facebook_short_post' => 'Behavior contract: Optimize for in-feed reading. Keep one clear point, short paragraphs, human tone, and a comment-friendly CTA.',
+            default => '',
+        };
     }
 
     private function bodyRequirementsFor(array $template): string
@@ -786,8 +670,24 @@ class TemplateManager
 
     public function articleStructureFor(array $template): string
     {
+        $profile = (string) ($template['generation_profile'] ?? '');
         $title = strtolower((string) ($template['title'] ?? ''));
         $type = (string) ($template['content_type'] ?? '');
+
+        if ($profile !== '') {
+            $profileStructure = match ($profile) {
+                'website_seo_article' => 'search-intent intro, table of contents, explanatory sections, examples/proof points, practical steps, FAQ, conclusion with CTA.',
+                'hot_tech_dev_article' => 'timely hook, technical context, what changed, why it matters, practical developer and buyer implications, implementation guidance, risks and tradeoffs, next steps, FAQ or key takeaway, CTA.',
+                'howto_tutorial' => 'problem statement, prerequisites, step-by-step process, warnings/common mistakes, validation checklist, next steps, CTA.',
+                'instagram_carousel' => 'carousel hook, slide-by-slide teaching points, caption, hashtags, CTA, visual direction.',
+                'facebook_short_post' => 'opening hook, one clear practical point, short supporting context or example, concise takeaway, comment-friendly CTA.',
+                default => '',
+            };
+
+            if ($profileStructure !== '') {
+                return $profileStructure;
+            }
+        }
 
         if (str_contains($title, 'linkedin authority')) {
             return 'hook, context/problem, practical insight, example or proof point, concise takeaway, conversation-starting CTA.';
@@ -803,6 +703,10 @@ class TemplateManager
 
         if (str_contains($title, 'how-to')) {
             return 'problem statement, prerequisites, step-by-step process, warnings/common mistakes, validation checklist, next steps, CTA.';
+        }
+
+        if (str_contains($title, 'hot tech') || str_contains($title, 'dev blog')) {
+            return 'timely hook, technical context, what changed, why it matters, practical developer and buyer implications, implementation guidance, risks and tradeoffs, next steps, FAQ or key takeaway, CTA.';
         }
 
         if (str_contains($title, 'faq')) {
@@ -823,6 +727,10 @@ class TemplateManager
 
         if (str_contains($title, 'instagram carousel')) {
             return 'carousel hook, slide-by-slide teaching points, caption, hashtags, CTA, visual direction.';
+        }
+
+        if (str_contains($title, 'facebook short post')) {
+            return 'opening hook, one clear practical point, short supporting context or example, concise takeaway, comment-friendly CTA.';
         }
 
         if (str_contains($title, 'reddit')) {
@@ -866,15 +774,212 @@ class TemplateManager
         }
 
         foreach ($this->defaults() as $default) {
-            $exists = ee()->db
+            $this->resetQueryBuilder();
+            $existing = ee()->db
                 ->where('title', $default['title'])
-                ->count_all_results('socialposter_templates') > 0;
+                ->get('socialposter_templates')
+                ->row_array();
 
-            if ($exists) {
+            if ($existing) {
+                $this->syncDefaultTemplate($existing, $default);
                 continue;
             }
 
             $this->save($default);
+        }
+    }
+
+    private function visibleTemplates(array $templates): array
+    {
+        if ($templates === []) {
+            return [];
+        }
+
+        $legacyDefaults = $this->legacyDefaultPromptMap();
+        $usageById = $this->templateUsageById();
+
+        return array_values(array_filter($templates, function (array $template) use ($legacyDefaults, $usageById): bool {
+            $id = (int) ($template['id'] ?? 0);
+            $title = trim((string) ($template['title'] ?? ''));
+            $instructions = trim((string) ($template['prompt_instructions'] ?? ''));
+
+            if (! isset($legacyDefaults[$title])) {
+                return true;
+            }
+
+            if ($instructions !== trim((string) $legacyDefaults[$title])) {
+                return true;
+            }
+
+            return (($usageById[$id] ?? 0) > 0);
+        }));
+    }
+
+    private function templateUsageById(): array
+    {
+        $usage = [];
+
+        if (ee()->db->table_exists('socialposter_generations') && ee()->db->field_exists('template_id', 'socialposter_generations')) {
+            foreach (ee()->db->select('template_id, COUNT(*) AS count', false)->group_by('template_id')->get('socialposter_generations')->result_array() as $row) {
+                $templateId = (int) ($row['template_id'] ?? 0);
+                if ($templateId > 0) {
+                    $usage[$templateId] = ($usage[$templateId] ?? 0) + (int) ($row['count'] ?? 0);
+                }
+            }
+        }
+
+        if (ee()->db->table_exists('socialposter_instagram_posts') && ee()->db->field_exists('template_id', 'socialposter_instagram_posts')) {
+            foreach (ee()->db->select('template_id, COUNT(*) AS count', false)->group_by('template_id')->get('socialposter_instagram_posts')->result_array() as $row) {
+                $templateId = (int) ($row['template_id'] ?? 0);
+                if ($templateId > 0) {
+                    $usage[$templateId] = ($usage[$templateId] ?? 0) + (int) ($row['count'] ?? 0);
+                }
+            }
+        }
+
+        if (ee()->db->table_exists('socialposter_schedules') && ee()->db->field_exists('template_id', 'socialposter_schedules')) {
+            foreach (ee()->db->select('template_id, COUNT(*) AS count', false)->group_by('template_id')->get('socialposter_schedules')->result_array() as $row) {
+                $templateId = (int) ($row['template_id'] ?? 0);
+                if ($templateId > 0) {
+                    $usage[$templateId] = ($usage[$templateId] ?? 0) + (int) ($row['count'] ?? 0);
+                }
+            }
+        }
+
+        return $usage;
+    }
+
+    private function legacyDefaultPromptMap(): array
+    {
+        return [
+            'LinkedIn Authority Post' => 'Create a platform-neutral social package with a hook, concise post text, SEO keywords, one external link idea, one internal link idea, recommended follow-up topics, and a realistic social image prompt.',
+            'Content Cluster Plan' => 'Create a pillar topic, supporting article topics, table of contents, semantic keyword clusters, internal linking structure, external citation ideas, recommended next topics, and a realistic image prompt.',
+            'SEO Article - Medium' => 'Create a focused SEO blog post package around one clear search intent. Include headline options, intro, outline, keywords, citation ideas, internal links, external references, and a practical image prompt.',
+            'Pillar Guide' => 'Create a definitive pillar guide package with sections, subtopics, entity coverage, FAQs, citations, internal link opportunities, JSON-LD recommendations, and a realistic topic image prompt.',
+            'FAQ Answer Page' => 'Create an FAQ-style page package with concise answers, objection handling, FAQPage schema suggestions, internal links, and a simple realistic image prompt.',
+            'Technical SEO Audit Summary' => 'Create a technical SEO audit content package. Frame each issue as problem, ranking/LLM impact, evidence to collect, recommended fix, and priority. Include schema ideas and realistic technical image direction.',
+            'LinkedIn Founder Story' => 'Create a concise founder-led LinkedIn post with a personal observation, lesson learned, practical takeaway, natural CTA question, and a realistic portrait-style image prompt.',
+            'X Thread' => 'Create an X thread package with a strong first post, 6 to 8 short thread posts, a final CTA, SEO keywords, link ideas, and one realistic image prompt.',
+            'Reddit Helpful Answer' => 'Create a helpful Reddit-style answer that avoids sounding promotional. Include direct advice, caveats, optional resource suggestions, and a subtle brand-authority angle without hard selling.',
+            'Newsletter Brief' => 'Create a newsletter package with subject line options, preview text, opening hook, main sections, link recommendations, CTA, and a newsletter header image prompt.',
+            'Comparison Page' => 'Create a comparison page package with decision criteria, pros/cons, ideal users, objection handling, FAQ ideas, schema suggestions, and a realistic comparison image prompt.',
+            'Case Study Story' => 'Create a case study content package with challenge, constraints, approach, solution, result metrics placeholders, client-facing summary, social version, and a realistic case-study image prompt.',
+            'Backlink Outreach Pitch' => 'Create an outreach package with a short pitch email, subject lines, value angle, suggested resource to offer, follow-up message, and social proof bullets.',
+        ];
+    }
+
+    public function generationProfileLabel(string $profile): string
+    {
+        $profile = trim($profile);
+        if ($profile === '') {
+            return 'Generic / custom behavior';
+        }
+
+        return (string) ($this->fieldOptions()['generation_profile'][$profile] ?? $profile);
+    }
+
+    public function generationProfileForTemplate(?array $template): string
+    {
+        if (! is_array($template)) {
+            return '';
+        }
+
+        $profile = trim((string) ($template['generation_profile'] ?? ''));
+        if ($profile !== '') {
+            return $profile;
+        }
+
+        $title = strtolower((string) ($template['title'] ?? ''));
+        $platform = strtolower((string) ($template['platform'] ?? ''));
+        $type = strtolower((string) ($template['content_type'] ?? ''));
+
+        return match (true) {
+            str_contains($title, 'hot tech') || str_contains($title, 'dev blog') => 'hot_tech_dev_article',
+            str_contains($title, 'how-to') => 'howto_tutorial',
+            str_contains($title, 'instagram carousel') || $platform === 'instagram' => 'instagram_carousel',
+            str_contains($title, 'facebook short post') || $platform === 'facebook' => 'facebook_short_post',
+            $platform === 'website' && $type === 'seo_article' => 'website_seo_article',
+            default => '',
+        };
+    }
+
+    public function profileRequiresFreshness(string $profile): bool
+    {
+        return trim($profile) === 'hot_tech_dev_article';
+    }
+
+    public function profileFreshnessContract(string $profile): string
+    {
+        return match (trim($profile)) {
+            'hot_tech_dev_article' => 'Freshness requirement: prioritize current, time-aware framing. If the topic involves a release, change, announcement, model, framework, or platform shift, anchor the piece in what changed now and avoid presenting old developments as current.',
+            default => '',
+        };
+    }
+
+    public function profilePlanningContract(string $profile): string
+    {
+        return match (trim($profile)) {
+            'website_seo_article' => 'Planning guidance: shape this as a search-intent aware website article with a clear title, buyer-useful brief, semantic keywords, and realistic editorial image direction.',
+            'hot_tech_dev_article' => 'Planning guidance: shape this as a timely technical article. Prefer current changes, concrete product/framework names, implementation consequences, and angles that help developers or technical buyers decide what matters.',
+            'howto_tutorial' => 'Planning guidance: shape this as a task-oriented tutorial. Favor prerequisites, ordered steps, warnings, validation, and practical clarity over broad positioning.',
+            'instagram_carousel' => 'Planning guidance: shape this as a carousel plan with a clear topic, slide arc, cover-hook direction, caption direction, and concise visual system.',
+            'facebook_short_post' => 'Planning guidance: shape this as a short in-feed Facebook post with one clear point, easy skim value, and a comment-friendly CTA.',
+            default => '',
+        };
+    }
+
+    public function templateIdsForProfile(string $profile): array
+    {
+        $profile = trim($profile);
+        if ($profile === '') {
+            return [];
+        }
+
+        $ids = [];
+        foreach ($this->all() as $template) {
+            if ($this->generationProfileForTemplate($template) === $profile) {
+                $ids[] = (int) ($template['id'] ?? 0);
+            }
+        }
+
+        return array_values(array_filter(array_unique($ids)));
+    }
+
+    private function syncDefaultTemplate(array $existing, array $default): void
+    {
+        $title = trim((string) ($existing['title'] ?? ''));
+        $updates = [];
+
+        if (ee()->db->field_exists('generation_profile', 'socialposter_templates')) {
+            $currentProfile = trim((string) ($existing['generation_profile'] ?? ''));
+            $defaultProfile = trim((string) ($default['generation_profile'] ?? ''));
+            if ($currentProfile === '' && $defaultProfile !== '') {
+                $updates['generation_profile'] = $defaultProfile;
+            }
+        }
+
+        if ($title === 'Hot Tech & Dev Blog Article') {
+            $currentInstructions = trim((string) ($existing['prompt_instructions'] ?? ''));
+            if ($currentInstructions === '' || $currentInstructions === self::HOT_TECH_OLD_INSTRUCTIONS) {
+                $updates['prompt_instructions'] = (string) ($default['prompt_instructions'] ?? self::HOT_TECH_NEW_INSTRUCTIONS);
+            }
+        }
+
+        if ($updates === []) {
+            return;
+        }
+
+        $this->resetQueryBuilder();
+        ee()->db
+            ->where('id', (int) ($existing['id'] ?? 0))
+            ->update('socialposter_templates', $updates);
+        $this->clearTemplateScaffoldCache((int) ($existing['id'] ?? 0));
+    }
+
+    private function resetQueryBuilder(): void
+    {
+        if (method_exists(ee()->db, 'reset_query')) {
+            ee()->db->reset_query();
         }
     }
 
@@ -885,5 +990,91 @@ class TemplateManager
             $template['id'] = $id++;
             return $template;
         }, $this->defaults());
+    }
+
+    private function cachedScaffoldFor(array $template): ?string
+    {
+        $path = $this->scaffoldCachePath($template);
+        if (! is_file($path)) {
+            return null;
+        }
+
+        $content = @file_get_contents($path);
+        if (! is_string($content) || trim($content) === '') {
+            return null;
+        }
+
+        return $content;
+    }
+
+    private function storeCachedScaffold(array $template, string $instructions): void
+    {
+        $instructions = trim($instructions);
+        if ($instructions === '') {
+            return;
+        }
+
+        $directory = $this->scaffoldCacheDirectory();
+        if (! is_dir($directory) && ! @mkdir($directory, 0775, true) && ! is_dir($directory)) {
+            return;
+        }
+
+        @file_put_contents($this->scaffoldCachePath($template), $instructions);
+    }
+
+    private function clearTemplateScaffoldCache(int $id): void
+    {
+        if ($id < 1) {
+            return;
+        }
+
+        foreach (glob($this->scaffoldCacheDirectory() . '/template_' . $id . '_*.txt') ?: [] as $path) {
+            if (is_file($path)) {
+                @unlink($path);
+            }
+        }
+    }
+
+    private function scaffoldCachePath(array $template): string
+    {
+        $id = max(0, (int) ($template['id'] ?? 0));
+        $hash = $this->scaffoldCacheHash($template);
+
+        return $this->scaffoldCacheDirectory() . '/template_' . $id . '_' . $hash . '.txt';
+    }
+
+    private function scaffoldCacheHash(array $template): string
+    {
+        $payload = [
+            'version' => self::TEMPLATE_SCAFFOLD_CACHE_VERSION,
+            'title' => (string) ($template['title'] ?? ''),
+            'content_type' => (string) ($template['content_type'] ?? ''),
+            'platform' => (string) ($template['platform'] ?? ''),
+            'generation_profile' => (string) ($template['generation_profile'] ?? ''),
+            'length_preset' => (string) ($template['length_preset'] ?? ''),
+            'word_count' => (int) ($template['word_count'] ?? 0),
+            'tone' => (string) ($template['tone'] ?? ''),
+            'audience' => (string) ($template['audience'] ?? ''),
+            'goal' => (string) ($template['goal'] ?? ''),
+            'research_mode' => (string) ($template['research_mode'] ?? ''),
+            'citation_count' => (int) ($template['citation_count'] ?? 0),
+            'internal_link_count' => (int) ($template['internal_link_count'] ?? 0),
+            'external_link_count' => (int) ($template['external_link_count'] ?? 0),
+            'schema_type' => (string) ($template['schema_type'] ?? ''),
+            'image_style' => (string) ($template['image_style'] ?? ''),
+            'cta_style' => (string) ($template['cta_style'] ?? ''),
+            'prompt_instructions' => (string) ($template['prompt_instructions'] ?? ''),
+            'profile_contract' => $this->profileContractFor($template),
+            'platform_contract' => $this->platformContractFor($template),
+            'content_structure' => $this->articleStructureFor($template),
+            'body_requirements' => $this->bodyRequirementsFor($template),
+        ];
+
+        return sha1(json_encode($payload, JSON_UNESCAPED_UNICODE));
+    }
+
+    private function scaffoldCacheDirectory(): string
+    {
+        return dirname(__DIR__, 3) . '/cache/socialposter/template_scaffolds';
     }
 }

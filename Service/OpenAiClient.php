@@ -218,6 +218,218 @@ class OpenAiClient
         return $data;
     }
 
+    public function generateSingleImageAssist(string $apiKey, string $model, string $prompt): array
+    {
+        $payload = [
+            'model' => $model,
+            'input' => [
+                [
+                    'role' => 'system',
+                    'content' => implode("\n", [
+                        'You help plan professional Instagram single-image posts from recent news-source context.',
+                        'Suggest one specific, timely topic, practical caption instructions, and production-ready image instructions.',
+                        'The topic should be clear enough to generate a post directly, not a vague category.',
+                        'Caption instructions should guide tone, angle, audience value, CTA, and any useful constraints.',
+                        'Image instructions should describe a square Instagram image with no logos, watermarks, or readable text unless explicitly requested.',
+                        'Use only the supplied source context. Do not invent article facts.',
+                        'Return only valid structured data.',
+                    ]),
+                ],
+                [
+                    'role' => 'user',
+                    'content' => $prompt,
+                ],
+            ],
+            'text' => [
+                'format' => [
+                    'type'   => 'json_schema',
+                    'name'   => 'single_image_assist',
+                    'strict' => true,
+                    'schema' => [
+                        'type'                 => 'object',
+                        'additionalProperties' => false,
+                        'required'             => ['topic', 'caption_prompt', 'image_prompt'],
+                        'properties'           => [
+                            'topic'          => ['type' => 'string'],
+                            'caption_prompt' => ['type' => 'string'],
+                            'image_prompt'   => ['type' => 'string'],
+                        ],
+                    ],
+                ],
+            ],
+        ];
+
+        $response = $this->postJson('/responses', $apiKey, $payload);
+        $data = json_decode($this->extractOutputText($response), true);
+
+        if (! is_array($data)) {
+            throw new \RuntimeException('OpenAI returned an invalid single-image assist response.');
+        }
+
+        return $data;
+    }
+
+    public function generateCarouselAssist(string $apiKey, string $model, string $prompt): array
+    {
+        $payload = [
+            'model' => $model,
+            'input' => [
+                [
+                    'role' => 'system',
+                    'content' => implode("\n", [
+                        'You help plan professional Instagram carousels from recent news-source context.',
+                        'Suggest one specific, timely carousel topic, the best audience wording, practical slide/content instructions, and visual/design instructions.',
+                        'The topic should be clear enough to generate the carousel directly, not a vague category.',
+                        'Content instructions should guide hook, slide arc, evidence boundaries, caption direction, and CTA.',
+                        'Design instructions should describe a clean carousel visual system that fits a professional technical brand.',
+                        'Use only the supplied source context. Do not invent article facts.',
+                        'Return only valid structured data.',
+                    ]),
+                ],
+                [
+                    'role' => 'user',
+                    'content' => $prompt,
+                ],
+            ],
+            'text' => [
+                'format' => [
+                    'type'   => 'json_schema',
+                    'name'   => 'carousel_assist',
+                    'strict' => true,
+                    'schema' => [
+                        'type'                 => 'object',
+                        'additionalProperties' => false,
+                        'required'             => ['topic', 'audience', 'content_prompt', 'design_prompt'],
+                        'properties'           => [
+                            'topic'          => ['type' => 'string'],
+                            'audience'       => ['type' => 'string'],
+                            'content_prompt' => ['type' => 'string'],
+                            'design_prompt'  => ['type' => 'string'],
+                        ],
+                    ],
+                ],
+            ],
+        ];
+
+        $response = $this->postJson('/responses', $apiKey, $payload);
+        $data = json_decode($this->extractOutputText($response), true);
+
+        if (! is_array($data)) {
+            throw new \RuntimeException('OpenAI returned an invalid carousel assist response.');
+        }
+
+        return $data;
+    }
+
+    public function generateCarouselTemplatePackage(string $apiKey, string $model, string $prompt): array
+    {
+        $payload = [
+            'model' => $model,
+            'input' => [
+                [
+                    'role' => 'system',
+                    'content' => implode("\n", [
+                        'You generate reusable Instagram carousel visual templates for an automated rendering pipeline.',
+                        'Return a complete self-contained HTML renderer, complete example data, and metadata.',
+                        'Return only valid structured data. No markdown, no commentary, no code fences.',
+                    ]),
+                ],
+                [
+                    'role' => 'user',
+                    'content' => $prompt,
+                ],
+            ],
+            'text' => [
+                'format' => [
+                    'type' => 'json_schema',
+                    'name' => 'carousel_template_package',
+                    'strict' => true,
+                    'schema' => [
+                        'type' => 'object',
+                        'additionalProperties' => false,
+                        'required' => ['html', 'schema', 'example', 'meta'],
+                        'properties' => [
+                            'html' => ['type' => 'string'],
+                            'schema' => [
+                                'type' => 'object',
+                                'additionalProperties' => false,
+                                'required' => [],
+                                'properties' => [],
+                            ],
+                            'example' => [
+                                'type' => 'object',
+                                'additionalProperties' => false,
+                                'required' => ['brand', 'accent', 'series', 'template', 'style', 'caption', 'hashtags', 'slides'],
+                                'properties' => [
+                                    'brand' => ['type' => 'string'],
+                                    'accent' => ['type' => 'string'],
+                                    'series' => ['type' => 'string'],
+                                    'template' => ['type' => 'string'],
+                                    'style' => ['type' => 'string'],
+                                    'caption' => ['type' => 'string'],
+                                    'hashtags' => ['type' => 'array', 'items' => ['type' => 'string']],
+                                    'slides' => [
+                                        'type' => 'array',
+                                        'minItems' => 6,
+                                        'maxItems' => 6,
+                                        'items' => [
+                                            'type' => 'object',
+                                            'additionalProperties' => false,
+                                            'required' => ['type', 'title', 'subtitle', 'category', 'slide_num', 'items', 'cta'],
+                                            'properties' => [
+                                                'type' => ['type' => 'string', 'enum' => ['cover', 'content', 'outro']],
+                                                'title' => ['type' => 'string'],
+                                                'subtitle' => ['type' => 'string'],
+                                                'category' => ['type' => 'string'],
+                                                'slide_num' => ['type' => 'string'],
+                                                'items' => [
+                                                    'type' => 'array',
+                                                    'items' => [
+                                                        'type' => 'object',
+                                                        'additionalProperties' => false,
+                                                        'required' => ['title', 'text'],
+                                                        'properties' => [
+                                                            'title' => ['type' => 'string'],
+                                                            'text' => ['type' => 'string'],
+                                                        ],
+                                                    ],
+                                                ],
+                                                'cta' => ['type' => 'string'],
+                                            ],
+                                        ],
+                                    ],
+                                ],
+                            ],
+                            'meta' => [
+                                'type' => 'object',
+                                'additionalProperties' => false,
+                                'required' => ['name', 'description', 'style', 'best_for', 'density', 'tone', 'tags'],
+                                'properties' => [
+                                    'name' => ['type' => 'string'],
+                                    'description' => ['type' => 'string'],
+                                    'style' => ['type' => 'array', 'items' => ['type' => 'string']],
+                                    'best_for' => ['type' => 'array', 'items' => ['type' => 'string']],
+                                    'density' => ['type' => 'string'],
+                                    'tone' => ['type' => 'string'],
+                                    'tags' => ['type' => 'array', 'items' => ['type' => 'string']],
+                                ],
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+        ];
+
+        $response = $this->postJson('/responses', $apiKey, $payload);
+        $data = json_decode($this->extractOutputText($response), true);
+
+        if (! is_array($data)) {
+            throw new \RuntimeException('OpenAI returned an invalid carousel template response.');
+        }
+
+        return $data;
+    }
+
     public function generateCarouselContent(string $apiKey, string $model, string $systemPrompt, string $userPrompt, array $schema): array
     {
         $payload = [

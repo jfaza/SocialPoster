@@ -3,11 +3,13 @@
 namespace JavidFazaeli\SocialPoster\ControlPanel\Routes\Instagram;
 
 use ExpressionEngine\Service\Addon\Controllers\Mcp\AbstractRoute;
+use JavidFazaeli\SocialPoster\ControlPanel\Routes\BuildsRouteContext;
 use JavidFazaeli\SocialPoster\ControlPanel\Routes\LoadsStyle;
 
 class Carousel extends AbstractRoute
 {
     use LoadsStyle;
+    use BuildsRouteContext;
 
     protected $route_path = 'instagram/carousel';
     protected $cp_page_title = 'Instagram Carousel';
@@ -20,6 +22,7 @@ class Carousel extends AbstractRoute
         $this->loadStyle();
 
         $carousel = ee('socialposter:carousel');
+        $instagramUrls = $this->instagramRouteContext();
 
         // EE's buildObject() corrupts $id for nested sub-routes; fall back to URI
         $id = (int) $id;
@@ -43,6 +46,7 @@ class Carousel extends AbstractRoute
         if ($id > 0 && ee('Request')->post('save_carousel')) {
             try {
                 $carousel->update($id, [
+                    'topic'    => ee()->input->post('topic', true),
                     'caption'  => ee()->input->post('caption', false),
                     'hashtags' => ee()->input->post('hashtags', true),
                     'slides'   => $this->decodePostedSlides(),
@@ -74,14 +78,20 @@ class Carousel extends AbstractRoute
                 'mode'             => 'edit',
                 'post'             => $post,
                 'templates'        => $carousel->listTemplates(),
+                'news_sources'     => ee('socialposter:newsFeed')->allSources(),
+                'news_sources_url' => $instagramUrls['instagram_news_sources_url'],
                 'action_url'       => ee('socialposter:generator')->actionUrl(),
                 'csrf_token'       => ee('socialposter:generator')->csrfToken(),
                 'save_url'         => ee('CP/URL')->make('addons/settings/socialposter/instagram/carousel/' . $id)->compile(),
-                'index_url'        => ee('CP/URL')->make('addons/settings/socialposter/instagram/carousel')->compile(),
-                'instagram_url'    => ee('CP/URL')->make('addons/settings/socialposter/instagram')->compile(),
-                'publish_url'      => ee('CP/URL')->make('addons/settings/socialposter/publish')->compile(),
-                'delete_url'       => ee('CP/URL')->make('addons/settings/socialposter/instagram/carousel')->compile(),
-                'item_url_pattern' => ee('CP/URL')->make('addons/settings/socialposter/instagram/carousel/__ID__')->compile(),
+                'index_url'        => $instagramUrls['instagram_carousel_url'],
+                'general_url'      => $instagramUrls['general_url'],
+                'instagram_create_url' => $instagramUrls['instagram_create_url'],
+                'instagram_history_url' => $instagramUrls['instagram_history_url'],
+                'instagram_url'    => $instagramUrls['instagram_settings_url'],
+                'templates_url'    => $this->cpUrl('templates'),
+                'publish_url'      => $instagramUrls['publish_instagram_url'],
+                'delete_url'       => $instagramUrls['instagram_carousel_url'],
+                'item_url_pattern' => $this->cpUrl('instagram/carousel/__ID__'),
             ]);
 
             return $this;
@@ -94,12 +104,18 @@ class Carousel extends AbstractRoute
             'mode'             => 'generate',
             'rows'             => $rows,
             'templates'        => $carousel->listTemplates(),
+            'news_sources'     => ee('socialposter:newsFeed')->allSources(),
+            'news_sources_url' => $instagramUrls['instagram_news_sources_url'],
             'action_url'       => ee('socialposter:generator')->actionUrl(),
             'csrf_token'       => ee('socialposter:generator')->csrfToken(),
-            'index_url'        => ee('CP/URL')->make('addons/settings/socialposter/instagram/carousel')->compile(),
-            'instagram_url'    => ee('CP/URL')->make('addons/settings/socialposter/instagram')->compile(),
-            'publish_url'      => ee('CP/URL')->make('addons/settings/socialposter/publish')->compile(),
-            'item_url_pattern' => ee('CP/URL')->make('addons/settings/socialposter/instagram/carousel/__ID__')->compile(),
+            'index_url'        => $instagramUrls['instagram_carousel_url'],
+            'general_url'      => $instagramUrls['general_url'],
+            'instagram_create_url' => $instagramUrls['instagram_create_url'],
+            'instagram_history_url' => $instagramUrls['instagram_history_url'],
+            'instagram_url'    => $instagramUrls['instagram_settings_url'],
+            'templates_url'    => $this->cpUrl('templates'),
+            'publish_url'      => $instagramUrls['publish_instagram_url'],
+            'item_url_pattern' => $this->cpUrl('instagram/carousel/__ID__'),
         ]);
 
         return $this;

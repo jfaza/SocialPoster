@@ -7,6 +7,7 @@ use ExpressionEngine\Service\Addon\Controllers\Mcp\AbstractRoute;
 class Instagram extends AbstractRoute
 {
     use LoadsStyle;
+    use BuildsRouteContext;
 
     protected $route_path = 'instagram';
     protected $cp_page_title = 'SocialPoster Instagram';
@@ -18,8 +19,10 @@ class Instagram extends AbstractRoute
         $this->loadStyle();
 
         $generator  = ee('socialposter:generator');
-        $baseUrl    = ee('CP/URL')->make('addons/settings/socialposter/instagram');
+$baseUrl    = ee('CP/URL')->make('addons/settings/socialposter/instagram');
         $activeTab  = 'credentials';
+        $coreUrls = $this->coreRouteContext();
+        $instagramUrls = $this->instagramRouteContext();
 
         if (ee('Request')->post('save_instagram_settings')) {
             try {
@@ -142,6 +145,7 @@ class Instagram extends AbstractRoute
                     'instagram_cover_provider' => ee()->input->post('instagram_cover_provider', true),
                     'instagram_slide_provider' => ee()->input->post('instagram_slide_provider', true),
                     'ideogram_api_key'         => ee()->input->post('ideogram_api_key', false),
+                    'carousel_slides'          => ee()->input->post('carousel_slides', true),
                 ]);
 
                 ee('CP/Alert')->makeBanner('socialposter-instagram-image-settings')
@@ -169,10 +173,12 @@ class Instagram extends AbstractRoute
         $this->setBody('Instagram', [
             'save_url'                    => $baseUrl->compile(),
             'save_image_settings_url'     => $baseUrl->compile(),
-            'general_url'                 => ee('CP/URL')->make('addons/settings/socialposter')->compile(),
-            'generate_url'                => ee('CP/URL')->make('addons/settings/socialposter/instagram/generate')->compile(),
-            'settings_url'                => ee('CP/URL')->make('addons/settings/socialposter/settings')->compile(),
-            'publish_url'                 => ee('CP/URL')->make('addons/settings/socialposter/publish/instagram')->compile(),
+            'general_url'                 => $instagramUrls['general_url'],
+            'generate_url'                => $instagramUrls['instagram_generate_url'],
+            'instagram_history_url'       => $instagramUrls['instagram_history_url'],
+            'instagram_carousel_url'      => $instagramUrls['instagram_carousel_url'],
+            'settings_url'                => $coreUrls['settings_url'],
+            'publish_url'                 => $instagramUrls['publish_instagram_url'],
             'settings'                    => $settings,
             'token_status'                => $tokenStatus,
             'pages'                       => $pages,
