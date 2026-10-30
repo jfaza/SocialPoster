@@ -1,0 +1,226 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "slides",
+    "brand",
+    "series",
+    "accent",
+    "template",
+    "style",
+    "caption",
+    "hashtags"
+  ],
+  "properties": {
+    "slides": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "type",
+          "badge",
+          "kicker",
+          "title",
+          "subtitle",
+          "kpis",
+          "panel_title",
+          "panel_rows",
+          "badges",
+          "id",
+          "slide_num",
+          "category",
+          "cta",
+          "cta_action",
+          "items",
+          "metric",
+          "description",
+          "meter_label",
+          "meter_value",
+          "meter_percent",
+          "footer_tags",
+          "footer_left"
+        ],
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "cover",
+              "content",
+              "list",
+              "outro"
+            ]
+          },
+          "badge": {
+            "type": "string"
+          },
+          "kicker": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "subtitle": {
+            "type": "string"
+          },
+          "kpis": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "value",
+                "label"
+              ],
+              "properties": {
+                "value": {
+                  "type": "string"
+                },
+                "label": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "panel_title": {
+            "type": "string"
+          },
+          "panel_rows": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "label",
+                "value"
+              ],
+              "properties": {
+                "label": {
+                  "type": "string"
+                },
+                "value": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "badges": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "text",
+                "variant"
+              ],
+              "properties": {
+                "text": {
+                  "type": "string"
+                },
+                "variant": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "id": {
+            "type": "string"
+          },
+          "slide_num": {
+            "type": "integer"
+          },
+          "category": {
+            "type": "string"
+          },
+          "cta": {
+            "type": "string"
+          },
+          "cta_action": {
+            "type": "string"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "tag",
+                "title",
+                "text",
+                "badge"
+              ],
+              "properties": {
+                "tag": {
+                  "type": "string"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "text": {
+                  "type": "string"
+                },
+                "badge": {
+                  "type": "string"
+                }
+              }
+            },
+            "minItems": 0,
+            "maxItems": 3
+          },
+          "metric": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "meter_label": {
+            "type": "string"
+          },
+          "meter_value": {
+            "type": "string"
+          },
+          "meter_percent": {
+            "type": "integer"
+          },
+          "footer_tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "footer_left": {
+            "type": "string"
+          }
+        }
+      },
+      "minItems": 6,
+      "maxItems": 6
+    },
+    "brand": {
+      "type": "string"
+    },
+    "series": {
+      "type": "string"
+    },
+    "accent": {
+      "type": "string"
+    },
+    "template": {
+      "type": "string"
+    },
+    "style": {
+      "type": "string"
+    },
+    "caption": {
+      "type": "string"
+    },
+    "hashtags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 5,
+      "maxItems": 15
+    }
+  }
+}

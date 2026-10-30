@@ -1,0 +1,256 @@
+{
+  "slides": [
+    {
+      "type": "cover",
+      "badge": "SYSTEM ONLINE",
+      "kicker": "AI TOOLS // DEV WORKFLOW",
+      "title": "Build faster\nwith AI tools that actually help",
+      "subtitle": "A practical command-center guide to modern AI tooling for developers:\nshipping code, reviewing changes, automating ops, and reducing context switching.",
+      "kpis": [
+        {
+          "value": "12x",
+          "label": "faster prototype loops"
+        },
+        {
+          "value": "34%",
+          "label": "less manual toil"
+        }
+      ],
+      "panel_title": "OPS SIGNALS",
+      "panel_rows": [
+        {
+          "label": "Repo intelligence",
+          "value": "Indexed\n14 services"
+        },
+        {
+          "label": "Automation queue",
+          "value": "28 tasks\nrouted"
+        },
+        {
+          "label": "Risk score",
+          "value": "Low\n3 blocked items"
+        }
+      ],
+      "badges": [
+        {
+          "text": "LLM routing",
+          "variant": "cyan"
+        },
+        {
+          "text": "CI assistant",
+          "variant": "violet"
+        },
+        {
+          "text": "secure by default",
+          "variant": "orange"
+        }
+      ],
+      "id": "slide-1",
+      "slide_num": 1,
+      "category": "",
+      "cta": "",
+      "cta_action": "",
+      "items": []
+    },
+    {
+      "type": "content",
+      "badge": "MODULE 01",
+      "kicker": "CONTEXT ENGINE",
+      "metric": "01 / 06",
+      "description": "The best AI developer tools reduce context drift.\nThey connect code, docs, tickets, and logs into one working surface.",
+      "meter_label": "Context coverage",
+      "meter_value": "88% indexed",
+      "meter_percent": 88,
+      "items": [
+        {
+          "tag": "signal",
+          "title": "Source-aware search",
+          "text": "Find relevant functions, tickets, and design notes without leaving the editor.",
+          "badge": "fast"
+        },
+        {
+          "tag": "signal",
+          "title": "Live repo map",
+          "text": "See services, dependencies, and ownership before you ask the model to change code.",
+          "badge": "graph"
+        },
+        {
+          "tag": "signal",
+          "title": "Prompt memory",
+          "text": "Reuse project-specific instructions so every run starts closer to the target.",
+          "badge": "sticky"
+        }
+      ],
+      "footer_tags": [
+        "codebase graph",
+        "docs sync",
+        "semantic search"
+      ],
+      "id": "slide-2",
+      "slide_num": 2,
+      "category": "",
+      "title": "",
+      "subtitle": "",
+      "cta": "",
+      "cta_action": ""
+    },
+    {
+      "type": "content",
+      "badge": "MODULE 02",
+      "kicker": "PAIR PROGRAMMING",
+      "metric": "02 / 06",
+      "description": "Use AI as a structured collaborator.\nDraft, critique, and refine changes in tight loops instead of one-shot prompting.",
+      "meter_label": "Iteration speed",
+      "meter_value": "3 review passes",
+      "meter_percent": 71,
+      "items": [
+        {
+          "tag": "workflow",
+          "title": "Generate a first draft",
+          "text": "Ask for a minimal patch before expanding the scope or abstractions.",
+          "badge": "draft"
+        },
+        {
+          "tag": "workflow",
+          "title": "Review like a senior",
+          "text": "Request edge cases, naming fixes, and architecture tradeoffs in the same pass.",
+          "badge": "audit"
+        },
+        {
+          "tag": "workflow",
+          "title": "Lock the final diff",
+          "text": "Convert accepted suggestions into a clean patch and keep the rest in notes.",
+          "badge": "merge"
+        }
+      ],
+      "footer_tags": [
+        "patch-first",
+        "review loops",
+        "diff safety"
+      ],
+      "id": "slide-3",
+      "slide_num": 3,
+      "category": "",
+      "title": "",
+      "subtitle": "",
+      "cta": "",
+      "cta_action": ""
+    },
+    {
+      "type": "content",
+      "badge": "MODULE 03",
+      "kicker": "QUALITY GATES",
+      "metric": "03 / 06",
+      "description": "AI tools work best when they are paired with objective checks.\nTests, linting, and type checks keep the assistant honest.",
+      "meter_label": "Automated checks",
+      "meter_value": "96% pass rate",
+      "meter_percent": 96,
+      "items": [
+        {
+          "tag": "guardrail",
+          "title": "Pre-flight tests",
+          "text": "Run unit and integration checks before accepting generated changes.",
+          "badge": "tests"
+        },
+        {
+          "tag": "guardrail",
+          "title": "Type-safe output",
+          "text": "Use schemas and static typing to catch malformed responses early.",
+          "badge": "types"
+        },
+        {
+          "tag": "guardrail",
+          "title": "Explain failures",
+          "text": "Have the assistant summarize why a check failed and what to do next.",
+          "badge": "debug"
+        }
+      ],
+      "footer_tags": [
+        "lint",
+        "tests",
+        "schema validation"
+      ],
+      "id": "slide-4",
+      "slide_num": 4,
+      "category": "",
+      "title": "",
+      "subtitle": "",
+      "cta": "",
+      "cta_action": ""
+    },
+    {
+      "type": "content",
+      "badge": "MODULE 04",
+      "kicker": "AUTOMATION LAYER",
+      "metric": "04 / 06",
+      "description": "The most useful AI workflows are repeatable.\nAutomation turns one-off prompts into reliable team habits.",
+      "meter_label": "Workflow automation",
+      "meter_value": "18 flows live",
+      "meter_percent": 62,
+      "items": [
+        {
+          "tag": "ops",
+          "title": "Release notes bot",
+          "text": "Summarize merged changes and draft release notes from the pull request.",
+          "badge": "ship"
+        },
+        {
+          "tag": "ops",
+          "title": "Incident helper",
+          "text": "Cluster logs, highlight anomalies, and suggest likely next steps during outages.",
+          "badge": "respond"
+        },
+        {
+          "tag": "ops",
+          "title": "Task router",
+          "text": "Send the right request to the right agent, tool, or teammate automatically.",
+          "badge": "route"
+        }
+      ],
+      "footer_tags": [
+        "webhooks",
+        "agents",
+        "runbooks"
+      ],
+      "id": "slide-5",
+      "slide_num": 5,
+      "category": "",
+      "title": "",
+      "subtitle": "",
+      "cta": "",
+      "cta_action": ""
+    },
+    {
+      "type": "outro",
+      "badge": "READY FOR DEPLOYMENT",
+      "kicker": "NEXT STEP",
+      "title": "Turn AI tools\ninto a calmer dev stack",
+      "subtitle": "Pick one workflow, instrument it, and make it repeatable.\nThat is how the best teams turn AI into leverage instead of noise.",
+      "footer_left": "ai.tools.daily.lab // daily developer AI systems",
+      "footer_tags": [
+        "start small",
+        "measure impact",
+        "repeat weekly"
+      ],
+      "id": "slide-6",
+      "slide_num": 6,
+      "category": "",
+      "cta": "",
+      "cta_action": "",
+      "items": []
+    }
+  ],
+  "brand": "ai.tools.daily.lab",
+  "series": "Developer Edition",
+  "accent": "#C65A2E",
+  "template": "neon-command-center",
+  "style": "base",
+  "caption": "A carousel generated with the neon-command-center template.",
+  "hashtags": [
+    "#aitools",
+    "#artificialintelligence",
+    "#developers",
+    "#productivity",
+    "#tech"
+  ]
+}

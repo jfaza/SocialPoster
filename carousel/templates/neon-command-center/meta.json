@@ -1,0 +1,29 @@
+{
+  "name": "neon-command-center",
+  "description": "A futuristic dark Instagram carousel template styled like an AI developer command center with terminal panels, neon accents, and stacked insight cards.",
+  "style": [
+    "futuristic",
+    "dark",
+    "glassmorphism",
+    "terminal-ui",
+    "developer-dashboard"
+  ],
+  "best_for": [
+    "AI tooling explainers",
+    "developer productivity tips",
+    "SaaS feature breakdowns",
+    "workflow tutorials"
+  ],
+  "density": "medium",
+  "tone": "premium",
+  "tags": [
+    "AI tools",
+    "developers",
+    "dashboard",
+    "terminal",
+    "neon",
+    "cyber",
+    "SaaS",
+    "command center"
+  ]
+}
