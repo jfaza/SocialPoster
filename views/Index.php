@@ -154,7 +154,14 @@ $hotArticlesMeta = $hot_articles_meta ?? [];
             </div>
 
             <div id="sp-general-fields" class="<?= $h($generalFieldsClass) ?> sp-panel-section">
-              <h3>3. Optional Request Override</h3>
+              <h3>3. Your Notes and Experience</h3>
+              <div class="sp-field">
+                <label for="sp-author-notes">What do you know about this that others don't?</label>
+                <p class="sp-muted">Recommended. Two or three sentences of your own view, a real example from your work, a mistake you've seen, or what you'd tell a client. The article is built around these and never invents experience beyond them.</p>
+                <textarea id="sp-author-notes" rows="5" placeholder="Example: On a recent ExpressionEngine project, moving image processing to a queue cut page saves from 8 seconds to under 1. Most teams I talk to optimize the database first, but here it barely mattered."></textarea>
+              </div>
+
+              <h3>4. Optional Request Override</h3>
               <div class="sp-field">
                 <label for="socialposter-prompt">Additional Instructions</label>
                 <p class="sp-muted">Leave this blank to generate from the plan above. Use it only when you want to add extra context, constraints, or a custom angle.</p>
@@ -249,6 +256,7 @@ $hotArticlesMeta = $hot_articles_meta ?? [];
   const output = document.getElementById('socialposter-output');
   const message = document.getElementById('sp-message');
   const prompt = document.getElementById('socialposter-prompt');
+  const authorNotes = document.getElementById('sp-author-notes');
   const imageBrief = document.getElementById('socialposter-image-brief');
   const template = document.getElementById('socialposter-template');
   const starter = document.getElementById('socialposter-starter');
@@ -667,6 +675,7 @@ $hotArticlesMeta = $hot_articles_meta ?? [];
     const brief = planBrief.value.trim();
     const keywords = planKeywords.value.trim();
     const extra = prompt.value.trim();
+    const notes = authorNotes ? authorNotes.value.trim() : '';
 
     if (title) {
       sections.push('Working title: ' + title);
@@ -676,6 +685,9 @@ $hotArticlesMeta = $hot_articles_meta ?? [];
     }
     if (keywords) {
       sections.push('Keywords: ' + keywords);
+    }
+    if (notes) {
+      sections.push('Author notes and experience:\n' + notes);
     }
     if (extra) {
       sections.push('User prompt:\n' + extra);
