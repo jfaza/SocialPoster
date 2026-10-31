@@ -1260,13 +1260,87 @@ class Publisher
             [, $internalUrl] = $this->splitLinkLabel('Internal: ' . $internal);
             $internalUrl = $internalUrl !== '' ? $internalUrl : $internal;
             $body = implode("\n", $html);
-            if (strpos($body, $this->href($internalUrl)) === false && strpos($body, $internalUrl) === false) {
+            $internalPath = $this->sitePath($this->href($internalUrl));
+            $internalIsLive = $internalPath !== null && $this->sitePathExists($internalPath);
+            if ($internalIsLive && strpos($body, $this->href($internalUrl)) === false && strpos($body, $internalUrl) === false) {
                 $linkText = $this->internalLinkTitle($internalUrl) ?: $internalUrl;
                 $html[] = '<p>Related reading: <a href="' . $this->escapeAttr($this->href($internalUrl)) . '">' . $this->escapeHtml($linkText) . '</a></p>';
             }
         }
 
-        return implode("\n\n", array_filter($html));
+        return $this->cleanBlogHtml(implode("\n\n", array_filter($html)), (string) ($post['title'] ?? ''));
+    }
+
+    /**
+     * The page template already prints the title as the H1, so a heading-1 in
+     * the body is dropped when it repeats the title and demoted otherwise.
+     * Links to pages on this site that don't exist keep their text but lose
+     * the link.
+     */
+    private function cleanBlogHtml(string $html, string $title): string
+    {
+        $titleKey = $this->headingKey($title);
+        $html = preg_replace_callback('~<h1\b[^>]*>(.*?)</h1>~is', function ($match) use ($titleKey) {
+            if ($this->headingKey(strip_tags($match[1])) === $titleKey) {
+                return '';
+            }
+            return '<h2>' . $match[1] . '</h2>';
+        }, $html);
+
+        return (string) preg_replace_callback('~<a\b[^>]*href="([^"]+)"[^>]*>(.*?)</a>~is', function ($match) {
+            $path = $this->sitePath($match[1]);
+            if ($path === null || $this->sitePathExists($path)) {
+                return $match[0];
+            }
+            return $match[2];
+        }, (string) $html);
+    }
+
+    /** Path of a link on this site (relative or absolute), or null for external links and anchors. */
+    private function sitePath(string $href): ?string
+    {
+        $href = html_entity_decode(trim($href));
+        if ($href === '' || $href[0] === '#' || preg_match('~^(mailto|tel):~i', $href)) {
+            return null;
+        }
+
+        if (preg_match('~^https?://~i', $href)) {
+            $host = strtolower((string) parse_url($href, PHP_URL_HOST));
+            $siteHost = strtolower((string) parse_url((string) ee()->config->item('site_url'), PHP_URL_HOST));
+            if ($host === '' || $host !== $siteHost) {
+                return null;
+            }
+        } elseif ($href[0] !== '/') {
+            return null;
+        }
+
+        return '/' . trim((string) parse_url($href, PHP_URL_PATH), '/');
+    }
+
+    private function sitePathExists(string $path): bool
+    {
+        if (in_array($path, ['/', '/blog', '/projects', '/about', '/contact', '/support'], true) || str_starts_with($path, '/legal/')) {
+            return true;
+        }
+
+        $routes = ['/blog/article/' => 'blog', '/projects/details/' => 'projects'];
+        foreach ($routes as $prefix => $channelName) {
+            if (str_starts_with($path, $prefix)) {
+                $slug = substr($path, strlen($prefix));
+                return ee()->db
+                    ->select('t.entry_id')
+                    ->from('channel_titles t')
+                    ->join('channels c', 'c.channel_id = t.channel_id')
+                    ->where('c.channel_name', $channelName)
+                    ->where('t.url_title', $slug)
+                    ->where('t.status', 'open')
+                    ->limit(1)
+                    ->get()
+                    ->num_rows() > 0;
+            }
+        }
+
+        return false;
     }
 
     private function blogChannel()
@@ -1334,6 +1408,16 @@ class Publisher
 
     private function validatePublishableBlogPost(array $post): void
     {
+        $text = implode("\n", [
+            (string) ($post['title'] ?? ''),
+            (string) ($post['intro_text'] ?? ''),
+            (string) ($post['post_text'] ?? ''),
+        ]);
+        if (preg_match_all('/\[(?:x\b[^\]]{0,40}|insert[^\]]{0,40}|[^\]]{0,40}placeholder[^\]]{0,40}|tbd|tk)\]|\bTBD\b/i', $text, $found)) {
+            $examples = array_slice(array_unique($found[0]), 0, 3);
+            throw new \RuntimeException('Generated post is not publishable: it contains placeholder text (' . implode(', ', $examples) . '). Replace the placeholders with real figures or remove them, then publish.');
+        }
+
         $tocItems = $this->cleanList((array) ($post['table_of_contents'] ?? []));
         if (! $tocItems) {
             return;

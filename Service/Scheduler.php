@@ -516,6 +516,7 @@ class Scheduler
                 ? $gen->recentGenerationMemory([
                     'template_id' => (int) ($row['template_id'] ?? 0),
                     'limit' => 18,
+                    'include_published' => true,
                 ])
                 : [];
             $result = $gen->generate($prompt, [

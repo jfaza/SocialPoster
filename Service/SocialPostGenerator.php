@@ -376,6 +376,7 @@ class SocialPostGenerator
                 'generation_profile' => $templateProfile,
                 'limit' => 18,
                 'source' => (string) ($meta['source'] ?? ''),
+                'include_published' => ($meta['topic_source'] ?? '') === 'fresh',
             ]);
         }
         $maxTopicAttempts = max(1, min(3, (int) ($meta['max_topic_attempts'] ?? 1)));
@@ -566,7 +567,34 @@ class SocialPostGenerator
             ->get($this->table)
             ->result_array();
 
+        // When the generator picks its own topic for a website article, it also
+        // avoids topics already published on the blog, not just recent drafts.
+        // Topics a person chose (manual or planned) are never rejected for this.
+        $template = $templateId > 0 ? $templates->find($templateId) : null;
+        if (! empty($options['include_published']) && $template && strtolower(trim((string) ($template['platform'] ?? ''))) === 'website') {
+            foreach ($this->publishedBlogTitles() as $title) {
+                $rows[] = ['id' => 0, 'title' => $title, 'prompt' => '', 'created_at' => 0, 'published' => true];
+            }
+        }
+
         return $this->normalizeRecentGenerationMemory($rows);
+    }
+
+    /** Titles of open blog entries, newest first. */
+    private function publishedBlogTitles(int $limit = 60): array
+    {
+        $rows = ee()->db
+            ->select('t.title')
+            ->from('channel_titles t')
+            ->join('channels c', 'c.channel_id = t.channel_id')
+            ->where('c.channel_name', 'blog')
+            ->where('t.status', 'open')
+            ->order_by('t.entry_date', 'DESC')
+            ->limit($limit)
+            ->get()
+            ->result_array();
+
+        return array_values(array_filter(array_map(fn($row) => trim((string) ($row['title'] ?? '')), $rows)));
     }
 
     public function recentTopicGuardText(array $recentGenerations, int $attempt = 1): string
@@ -1459,6 +1487,7 @@ class SocialPostGenerator
                 'title' => $title,
                 'prompt' => $prompt,
                 'created_at' => (int) ($row['created_at'] ?? 0),
+                'published' => ! empty($row['published']),
             ];
         }, $rows)));
     }
@@ -1469,8 +1498,11 @@ class SocialPostGenerator
             return '';
         }
 
+        $drafts = array_values(array_filter($recentGenerations, fn($row) => empty($row['published'])));
+        $published = array_values(array_filter($recentGenerations, fn($row) => ! empty($row['published'])));
+
         $lines = [];
-        foreach (array_slice($recentGenerations, 0, 12) as $row) {
+        foreach (array_slice($drafts, 0, 12) as $row) {
             $title = trim((string) ($row['title'] ?? ''));
             $prompt = trim((string) ($row['prompt'] ?? ''));
             $parts = [];
@@ -1485,7 +1517,9 @@ class SocialPostGenerator
             }
         }
 
-        if (! $lines) {
+        $publishedLines = array_map(fn($row) => '- ' . $row['title'], $published);
+
+        if (! $lines && ! $publishedLines) {
             return '';
         }
 
@@ -1495,9 +1529,9 @@ class SocialPostGenerator
 
         return "\n\nRecent topic guard:\n"
             . $instruction . "\n"
-            . "Avoid these recent topics:\n"
-            . implode("\n", $lines)
-            . "\nReturn a meaningfully different topic with a fresh angle.";
+            . ($lines ? "Avoid these recent topics:\n" . implode("\n", $lines) . "\n" : '')
+            . ($publishedLines ? "Already published on the blog (do not cover the same topic again):\n" . implode("\n", $publishedLines) . "\n" : '')
+            . "Return a meaningfully different topic with a fresh angle.";
     }
 
     private function duplicateTopicMatch(array $content, array $recentGenerations): ?array
