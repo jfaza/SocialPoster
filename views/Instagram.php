@@ -35,12 +35,6 @@ $paneClass   = fn(int $i) => 'tab t-' . $i . ($activeIndex === $i ? ' tab-open' 
       <h1>Settings</h1>
       <p class="sp-muted">Manage channel credentials, token tools, and image-generation settings for Instagram publishing.</p>
     </div>
-    <nav class="sp-channel-nav">
-      <a class="button button--default" href="<?= $h($generate_url) ?>">Create</a>
-      <a class="button button--default" href="<?= $h($instagram_history_url) ?>">History</a>
-      <a class="button button--default" href="<?= $h($instagram_carousel_url) ?>">Carousels</a>
-      <a class="button button--default" href="<?= $h($publish_url) ?>">Publish</a>
-    </nav>
   </header>
 
   <div class="tab-wrap sp-channel-tabs">

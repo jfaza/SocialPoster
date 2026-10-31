@@ -58,12 +58,6 @@ $defaultCarouselTemplate = ! empty($templates[0]['folder']) ? (string) $template
       <h1><?= $mode === 'edit' ? 'Carousel Editor' : 'Carousels' ?></h1>
       <p class="sp-muted"><?= $mode === 'edit' ? 'Refine slide structure, caption, and visuals for a saved carousel.' : 'Generate and manage Instagram carousel drafts from one place.' ?></p>
     </div>
-    <nav class="sp-channel-nav">
-      <a class="button button--default" href="<?= $h($instagram_create_url) ?>">Create</a>
-      <a class="button button--default" href="<?= $h($instagram_history_url) ?>">History</a>
-      <a class="button button--default" href="<?= $h($publish_url) ?>">Publish</a>
-      <a class="button button--default" href="<?= $h($instagram_url) ?>">Settings</a>
-    </nav>
   </header>
 
   <?php /* ============================================================
@@ -377,7 +371,6 @@ $defaultCarouselTemplate = ! empty($templates[0]['folder']) ? (string) $template
     </div><!-- /.sp-carousel-layout -->
 
   <?php endif; /* mode === edit */ ?>
-
 
   <?php /* ============================================================
      GENERATE MODE — new carousel + recent list

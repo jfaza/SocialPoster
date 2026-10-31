@@ -11,12 +11,11 @@ $hotArticles = is_array($hot_articles ?? null) ? $hot_articles : [];
 $hotArticlesMeta = is_array($hot_articles_meta ?? null) ? $hot_articles_meta : [];
 ?>
 <div class="sp-wrap">
-
+  <?php if ($backUrl !== ''): ?>
   <p class="sp-toolbar">
-    <?php if ($backUrl !== ''): ?>
-      <a class="button button--default" href="<?= $h($backUrl) ?>">← <?= $h($backLabel) ?></a>
-    <?php endif; ?>
+    <a class="button button--default" href="<?= $h($backUrl) ?>">← <?= $h($backLabel) ?></a>
   </p>
+  <?php endif; ?>
 
   <!-- Add source -->
   <div class="sp-card">

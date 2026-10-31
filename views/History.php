@@ -16,20 +16,6 @@ $templateMeta = is_array($template_meta ?? null) ? $template_meta : [];
 $historyItemUrlPattern = (string) ($history_item_url_pattern ?? '');
 ?>
 <div class="sp-wrap">
-  <?php if ($isInstagramPage && ! empty($instagram_nav)): ?>
-  <p class="sp-toolbar">
-    <a class="button button--default" href="<?= $h($instagram_nav['create']) ?>">Create</a>
-    <a class="button button--default" href="<?= $h($instagram_nav['carousels']) ?>">Carousels</a>
-    <a class="button button--default" href="<?= $h($instagram_nav['publish']) ?>">Publish</a>
-    <a class="button button--default" href="<?= $h($instagram_nav['settings']) ?>">Settings</a>
-  </p>
-  <?php else: ?>
-  <p class="sp-toolbar">
-    <a class="button button--default" href="<?= $h($index_url) ?>"><?= $isNewsPage ? 'Create Post' : 'Create' ?></a>
-    <a class="button button--default" href="<?= $h($publish_url) ?>">Publish</a>
-    <a class="button button--default" href="<?= $h($published_url) ?>">Published</a>
-  </p>
-  <?php endif; ?>
 
   <?php if (($mode ?? 'list') === 'edit' && ! empty($post)): ?>
     <?php

@@ -19,11 +19,6 @@ $allTextModels   = array_merge(...array_values($textModelGroups));
 $currentModelValid = array_key_exists($textModel, $allTextModels);
 ?>
 <div class="sp-wrap">
-  <p class="sp-toolbar">
-    <a class="button button--default" href="<?= $h($index_url) ?>">Create</a>
-    <a class="button button--default" href="<?= $h($templates_url) ?>">Template Library</a>
-    <a class="button button--default" href="<?= $h($usage_url) ?>">Usage</a>
-  </p>
 
   <?= form_open($save_url, ['class' => 'sp-settings-form']) ?>
     <input type="hidden" name="save_settings" value="1">

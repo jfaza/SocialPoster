@@ -10,12 +10,6 @@ $h = fn($value) => htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
       <h1>Publish to Instagram</h1>
       <p class="sp-muted">Review your generated Instagram posts and push them live. Posts without an image are disabled until you generate or attach one.</p>
     </div>
-    <nav class="sp-pubig-nav">
-      <a class="button button--default" href="<?= $h($instagram_create_url) ?>">Create</a>
-      <a class="button button--default" href="<?= $h($instagram_history_url) ?>">History</a>
-      <a class="button button--default" href="<?= $h($instagram_carousel_url) ?>">Carousels</a>
-      <a class="button button--default" href="<?= $h($instagram_settings_url) ?>">Settings</a>
-    </nav>
   </header>
 
   <?php if (empty($instagram_posts)): ?>

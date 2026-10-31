@@ -75,8 +75,6 @@ $profileDescriptions = [
 ?>
 <div class="sp-wrap">
   <div class="sp-toolbar">
-    <a class="button button--default" href="<?= $h($index_url) ?>">Create</a>
-    <a class="button button--default" href="<?= $h($calendar_url) ?>">Calendar</a>
     <a class="button button--primary" href="<?= $h($new_template_url) ?>">New Content Template</a>
   </div>
 

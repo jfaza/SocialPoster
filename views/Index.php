@@ -10,16 +10,6 @@ $hotArticles = $hot_articles ?? [];
 $hotArticlesMeta = $hot_articles_meta ?? [];
 ?>
 <div class="sp-wrap">
-  <div class="sp-toolbar sp-toolbar--generator">
-    <?php if ($isInstagramPage): ?>
-      <a class="button button--default" href="<?= $h($history_url) ?>">History</a>
-      <a class="button button--default" href="<?= $h($templates_url) ?>">Template Library</a>
-    <?php else: ?>
-      <a class="button button--default" href="<?= $h($history_url) ?>">History</a>
-      <a class="button button--default" href="<?= $h($news_sources_url) ?>">News Sources</a>
-      <a class="button button--default" href="<?= $h($templates_url) ?>">Template Library</a>
-    <?php endif; ?>
-  </div>
 
   <section class="sp-card sp-generator-shell">
       <div class="sp-generator-intro">

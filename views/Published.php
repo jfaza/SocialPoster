@@ -12,10 +12,6 @@ $facebookCount  = is_array($published_facebooks ?? null) ? count($published_face
 ?>
 <div class="sp-wrap">
 
-  <div class="sp-toolbar">
-    <a class="button button--default" href="<?= $h($history_url) ?>">History</a>
-    <a class="button button--default" href="<?= $h($publish_url) ?>">Publish</a>
-  </div>
 
   <section class="sp-card">
     <h2>Published Output</h2>
@@ -212,7 +208,6 @@ $facebookCount  = is_array($published_facebooks ?? null) ? count($published_face
   </section>
 
 </div>
-
 
 <script>
 (function () {

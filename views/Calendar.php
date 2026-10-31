@@ -24,8 +24,6 @@ $calendarItemUrlPattern = (string) ($calendar_item_url_pattern ?? '');
 ?>
 <div class="sp-wrap">
   <div class="sp-toolbar">
-    <a class="button button--default" href="<?= $h($history_url) ?>">History</a>
-    <a class="button button--default" href="<?= $h($templates_url) ?>">Template Library</a>
     <?= form_open($calendar_url, ['class' => 'sp-inline-form']) ?>
       <input type="hidden" name="run_due" value="1">
       <button type="submit" class="button button--primary">Run Due Now</button>

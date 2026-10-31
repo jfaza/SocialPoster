@@ -17,98 +17,81 @@ class Sidebar extends AbstractSidebar
         $current = ee()->uri->uri_string;
 
         $mk         = fn($suffix) => ee('CP/URL')->make($this->base . $suffix);
-        $mkHash     = fn($suffix, $hash) => $mk($suffix)->compile() . $hash;
         $path       = fn($suffix) => $this->base . $suffix;
         $isExact    = fn($suffix) => rtrim($current, '/') === rtrim($path($suffix), '/');
         $startsWith = fn($suffix) => strpos($current, $path($suffix)) === 0;
 
-        // ── Create ──────────────────────────────────────────────
-        $create = $sidebar->addHeader('Create')->addBasicList();
+        // ── Write ───────────────────────────────────────────────
+        $write = $sidebar->addHeader('Write')->addBasicList();
 
-        $create->addItem('New Post', $mk('index'))
+        $write->addItem('New post', $mk('index'))
             ->withIcon('pencil')
             ->isActive(
                 $startsWith('index')
                 || rtrim($current, '/') === rtrim($this->base, '/')
             );
 
-        $create->addItem('Carousel', $mk('instagram/carousel'))
+        $write->addItem('Instagram post', $mk('instagram/create'))
+            ->withIcon('instagram')
+            ->isActive($startsWith('instagram/create') || $startsWith('instagram/generate') || $startsWith('instagram/news-sources'));
+
+        $write->addItem('Instagram carousel', $mk('instagram/carousel'))
             ->withIcon('images')
             ->isActive($startsWith('instagram/carousel'));
 
-        // ── Manage ─────────────────────────────────────────────
-        $manage = $sidebar->addHeader('Manage')->addBasicList();
+        // ── Review ──────────────────────────────────────────────
+        $review = $sidebar->addHeader('Review')->addBasicList();
 
-        $manage->addItem('Calendar', $mk('calendar'))
+        $review->addItem('Drafts', $mk('history'))
+            ->withIcon('file')
+            ->isActive($startsWith('history') || $isExact('publish'));
+
+        $review->addItem('Instagram drafts', $mk('instagram/history'))
+            ->withIcon('file')
+            ->isActive($startsWith('instagram/history'));
+
+        $review->addItem('Calendar', $mk('calendar'))
             ->withIcon('calendar')
             ->isActive($startsWith('calendar'));
 
-        // No dedicated drafts screen exists yet, so map "Drafts" to the existing history page.
-        $manage->addItem('Drafts', $mk('history'))
-            ->withIcon('file')
-            ->isActive(false);
+        $review->addItem('Facebook queue', $mk('publish/facebook'))
+            ->withIcon('facebook')
+            ->isActive($startsWith('publish/facebook'));
 
-        $manage->addItem('History', $mk('history'))
-            ->withIcon('list')
-            ->isActive($startsWith('history'));
+        $review->addItem('Instagram queue', $mk('publish/instagram'))
+            ->withIcon('instagram')
+            ->isActive($startsWith('publish/instagram'));
 
-        $manage->addItem('Published', $mk('published'))
+        $review->addItem('Published', $mk('published'))
             ->withIcon('check')
             ->isActive($isExact('published'));
 
-        // ── Resources ─────────────────────────────────────────
-        $resources = $sidebar->addHeader('Resources')->addBasicList();
+        // ── Setup ───────────────────────────────────────────────
+        $setup = $sidebar->addHeader('Setup')->addBasicList();
 
-        $resources->addItem('News Sources', $mk('news-sources'))
-            ->withIcon('rss')
-            ->isActive($startsWith('news-sources'));
-
-        $resources->addItem('Content Templates', $mkHash('templates', '#tab=t-1'))
+        $setup->addItem('Templates', $mk('templates'))
             ->withIcon('layer-group')
             ->isActive($startsWith('templates'));
 
-        $resources->addItem('Carousel Templates', $mkHash('templates', '#tab=t-2'))
-            ->withIcon('images')
-            ->isActive($startsWith('templates'));
+        $setup->addItem('News sources', $mk('news-sources'))
+            ->withIcon('rss')
+            ->isActive($startsWith('news-sources'));
 
-        // ── Channels ───────────────────────────────────────────
-        $channels = $sidebar->addHeader('Channels')->addBasicList();
-
-        $channels->addItem('Instagram', $mk('instagram/create'))
-            ->withIcon('instagram')
-            ->isActive(
-                $startsWith('instagram/create')
-                || $startsWith('instagram/history')
-                || $startsWith('instagram/carousel')
-                || $startsWith('publish/instagram')
-                || $isExact('instagram')
-            );
-
-        $channels->addItem('Facebook', $mk('publish/facebook'))
-            ->withIcon('facebook')
-            ->isActive(
-                $startsWith('publish/facebook')
-                || $isExact('facebook')
-            );
-
-        // ── Settings (admin / config) ───────────────────────────
-        $settings = $sidebar->addHeader('Settings')->addBasicList();
-
-        $settings->addItem('OpenAI', $mk('settings'))
+        $setup->addItem('OpenAI & models', $mk('settings'))
             ->withIcon('key')
             ->isActive($startsWith('settings'));
 
-        $settings->addItem('Token Usage', $mk('usage'))
-            ->withIcon('chart-line')
-            ->isActive($startsWith('usage'));
-
-        $settings->addItem('Instagram', $mk('instagram'))
+        $setup->addItem('Instagram account', $mk('instagram'))
             ->withIcon('instagram')
             ->isActive($isExact('instagram'));
 
-        $settings->addItem('Facebook', $mk('facebook'))
+        $setup->addItem('Facebook account', $mk('facebook'))
             ->withIcon('facebook')
             ->isActive($isExact('facebook'));
+
+        $setup->addItem('Usage & costs', $mk('usage'))
+            ->withIcon('chart-line')
+            ->isActive($startsWith('usage'));
 
         ee()->view->sidebar = $sidebar->render();
     }

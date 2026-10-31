@@ -25,11 +25,6 @@ $paneClass = fn(int $i) => 'tab t-' . $i . ($activeIndex === $i ? ' tab-open' : 
       <h1>Settings</h1>
       <p class="sp-muted">Manage Facebook Page credentials, token tools, and the publishing connection used by SocialPoster.</p>
     </div>
-    <nav class="sp-channel-nav">
-      <a class="button button--default" href="<?= $h($general_url) ?>">Create</a>
-      <a class="button button--default" href="<?= $h($history_url) ?>">History</a>
-      <a class="button button--default" href="<?= $h($publish_url) ?>">Publish</a>
-    </nav>
   </header>
 
   <div class="tab-wrap">

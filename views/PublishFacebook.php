@@ -10,11 +10,6 @@ $h = fn($value) => htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
       <h1>Publish to Facebook</h1>
       <p class="sp-muted">Review generated posts and publish them to the configured Facebook Page. Posts with images are published as Page photo posts.</p>
     </div>
-    <nav class="sp-pubig-nav">
-      <a class="button button--default" href="<?= $h($generate_url) ?>">Create</a>
-      <a class="button button--default" href="<?= $h($history_url) ?>">History</a>
-      <a class="button button--default" href="<?= $h($published_url) ?>">Published</a>
-    </nav>
   </header>
 
   <?php if (empty($facebook_posts)): ?>

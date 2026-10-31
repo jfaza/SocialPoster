@@ -16,12 +16,6 @@ $styleOptions = [
       <h1>Create</h1>
       <p class="sp-muted">Build news posts, single-image posts, or carousels from the same channel workspace.</p>
     </div>
-    <nav class="sp-channel-nav">
-      <a class="button button--default" href="<?= $h($instagram_history_url) ?>">History</a>
-      <a class="button button--default" href="<?= $h($instagram_carousel_url) ?>">Carousels</a>
-      <a class="button button--default" href="<?= $h($publish_instagram_url) ?>">Publish</a>
-      <a class="button button--default" href="<?= $h($instagram_url) ?>">Settings</a>
-    </nav>
   </header>
 
   <!-- Mode toggle -->

@@ -24,11 +24,6 @@ if (! empty($selected['category']) && ! empty($category_options)) {
 $templateMeta = is_array($template_meta ?? null) ? $template_meta : [];
 ?>
 <div class="sp-wrap">
-  <div class="sp-toolbar">
-    <a class="button button--default" href="<?= $h($index_url) ?>">Create</a>
-    <a class="button button--default" href="<?= $h($history_url) ?>">History</a>
-    <a class="button button--default" href="<?= $h($published_url) ?>">Published</a>
-  </div>
 
   <?php if (! empty($result)): ?>
     <section class="sp-card sp-result-card">

@@ -9,10 +9,6 @@ $sourceBreakdown = is_array($source_breakdown ?? null) ? $source_breakdown : [];
 $topRows = is_array($top_rows ?? null) ? $top_rows : [];
 ?>
 <div class="sp-wrap sp-usage-page">
-  <p class="sp-toolbar">
-    <a class="button button--default" href="<?= $h($history_url) ?>">History</a>
-    <a class="button button--default" href="<?= $h($settings_url) ?>">Settings</a>
-  </p>
 
   <section class="sp-card sp-usage-hero">
     <div class="sp-usage-hero__intro">
