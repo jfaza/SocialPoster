@@ -197,8 +197,16 @@ $historyItemUrlPattern = (string) ($history_item_url_pattern ?? '');
         <?php if (! empty($post['image_url'])): ?>
           <img src="<?= $h($post['image_url']) ?>" alt="" class="sp-preview">
         <?php endif; ?>
-        <details class="sp-draft-details"<?= empty($post['image_url']) ? ' open' : '' ?>>
+        <details id="sp-image-idea" class="sp-draft-details"<?= empty($post['image_url']) ? ' open' : '' ?>>
           <summary>Image prompt and regenerate</summary>
+          <script>if (location.hash === '#sp-image-idea') { document.getElementById('sp-image-idea').open = true; }</script>
+          <?= form_open($save_url, ['class' => 'sp-inline-form']) ?>
+            <input type="hidden" name="suggest_image_idea" value="1">
+            <div class="sp-actions sp-actions--compact">
+              <button type="submit" class="button button--default">Suggest new image idea</button>
+              <span class="sp-muted">Fills in the subject from the article. Then click Regenerate Image.</span>
+            </div>
+          <?= form_close() ?>
           <?= form_open($save_url) ?>
             <input type="hidden" name="regenerate_image" value="1">
             <p class="sp-muted">Describe one concrete object, material or scene that stands for the article. The house art direction (light, palette, no text, no stock clichés) is added automatically.</p>

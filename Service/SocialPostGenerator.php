@@ -1103,6 +1103,39 @@ class SocialPostGenerator
         return true;
     }
 
+    /**
+     * Replaces a draft's image subject and brief with a fresh editorial-photo
+     * idea from its title and intro. The image itself is not regenerated.
+     */
+    public function suggestImageIdea(int $id): ?array
+    {
+        $row = ee()->db->where('id', $id)->get($this->table)->row_array();
+        if (! $row) {
+            return null;
+        }
+
+        $settings = $this->getSettings();
+        if (trim($settings['api_key']) === '') {
+            throw new \RuntimeException('OpenAI API key is not configured.');
+        }
+
+        $avoid = array_values(array_filter(array_map(
+            fn($recent) => mb_strimwidth(trim((string) ($recent['image_brief'] ?? '')), 0, 160, '...'),
+            ee()->db->select('image_brief')->where('id !=', $id)->order_by('id', 'DESC')->limit(8)->get($this->table)->result_array()
+        )));
+
+        $post = "Title: " . trim((string) ($row['title'] ?? '')) . "\n\nIntro: " . trim((string) ($row['intro_text'] ?? ''))
+            . "\n\nOpening of the post:\n" . mb_substr(trim((string) ($row['post_text'] ?? '')), 0, 1500);
+        $idea = $this->openai->suggestImageIdea($settings['api_key'], 'gpt-6.1-terra', $post, $avoid);
+
+        ee()->db->where('id', $id)->update($this->table, [
+            'image_prompt' => trim((string) $idea['image_subject']),
+            'image_brief' => trim((string) ($idea['image_brief'] ?? '')),
+        ]);
+
+        return $this->find($id);
+    }
+
     public function regenerateImage(int $id, array $input): ?array
     {
         $row = ee()->db->where('id', $id)->get($this->table)->row_array();

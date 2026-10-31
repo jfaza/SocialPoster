@@ -4324,3 +4324,9 @@
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+.sp-draft-details .sp-actions--compact {
+  margin: 14px 0 0;
+  padding: 0;
+  border: 0;
+}

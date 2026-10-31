@@ -70,6 +70,25 @@ class History extends AbstractRoute
             ee()->functions->redirect(ee('CP/URL')->make('addons/settings/socialposter/history/' . $id));
         }
 
+        if ($id > 0 && ee('Request')->post('suggest_image_idea')) {
+            try {
+                $generator->suggestImageIdea($id);
+                ee('CP/Alert')->makeBanner('socialposter-history')
+                    ->asSuccess()
+                    ->withTitle('New image idea')
+                    ->addToBody('Review the image subject below, then click Regenerate Image.')
+                    ->defer();
+            } catch (\Throwable $e) {
+                ee('CP/Alert')->makeBanner('socialposter-history')
+                    ->asIssue()
+                    ->withTitle('No image idea')
+                    ->addToBody($e->getMessage())
+                    ->defer();
+            }
+
+            ee()->functions->redirect(ee('CP/URL')->make('addons/settings/socialposter/history/' . $id) . '#sp-image-idea');
+        }
+
         if ($id > 0 && ee('Request')->post('run_review')) {
             try {
                 ee('socialposter:review')->review($id);

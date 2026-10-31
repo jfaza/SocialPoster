@@ -562,6 +562,54 @@ class OpenAiClient
         return $data;
     }
 
+    /** A concrete editorial-photo idea for an existing post. */
+    public function suggestImageIdea(string $apiKey, string $model, string $post, array $avoid = []): array
+    {
+        $response = $this->postJson('/responses', $apiKey, [
+            'model' => $model,
+            'input' => [
+                [
+                    'role' => 'system',
+                    'content' => implode("\n", [
+                        'You are a photo editor choosing the hero image for a blog or social post.',
+                        'Propose one concrete visual idea for an editorial photograph: a specific object, material, place, or physical metaphor that stands for the post\'s main point.',
+                        'Never a generic office, desk, laptop, screen, meeting, handshake, robot, glowing brain, or hologram. People only if essential, and never posed.',
+                        'image_subject: one or two sentences describing exactly what is in the frame and how it is arranged, as a real photograph. No text, letters, logos, or readable screens.',
+                        'image_brief: one sentence explaining what the image stands for.',
+                        $avoid ? 'Use a different metaphor from these recent images: ' . implode(' | ', $avoid) : '',
+                    ]),
+                ],
+                [
+                    'role' => 'user',
+                    'content' => $post,
+                ],
+            ],
+            'text' => [
+                'format' => [
+                    'type' => 'json_schema',
+                    'name' => 'socialposter_image_idea',
+                    'strict' => true,
+                    'schema' => [
+                        'type' => 'object',
+                        'additionalProperties' => false,
+                        'required' => ['image_subject', 'image_brief'],
+                        'properties' => [
+                            'image_subject' => ['type' => 'string'],
+                            'image_brief' => ['type' => 'string'],
+                        ],
+                    ],
+                ],
+            ],
+        ]);
+
+        $data = json_decode($this->extractOutputText($response), true);
+        if (! is_array($data) || trim((string) ($data['image_subject'] ?? '')) === '') {
+            throw new \RuntimeException('OpenAI returned no image idea.');
+        }
+
+        return $data;
+    }
+
     public function generatePlan(string $apiKey, string $model, string $prompt): array
     {
         $response = $this->postJson('/responses', $apiKey, [
