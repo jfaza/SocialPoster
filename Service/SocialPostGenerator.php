@@ -1924,10 +1924,16 @@ class SocialPostGenerator
             ]);
             $imagePrompt = trim($instagramDirection . "\n\nSubject and composition:\n" . $imagePrompt);
         } else {
+            // House art direction: editorial photography, not stock.
             $realisticDirection = implode("\n", [
-                'Generate a realistic, photorealistic image suitable for a professional social post or blog hero.',
-                'Use natural lighting, believable materials, authentic environments, and real-world perspective.',
-                'Avoid illustrations, vector art, infographics, diagrams, quote cards, UI mockups, rendered text, logos, watermarks, and decorative typography unless the user explicitly requests visible text.',
+                'Art direction: an editorial photograph for a thoughtful technology publication, not stock photography.',
+                'Build the image around one concrete visual idea taken from the subject below: a specific object, material, place, or physical metaphor. Not a generic office.',
+                'Do not show people typing at laptops or desks, coffee mugs, notebooks with pens, people pointing at screens, handshakes, posed smiling teams, glowing brains, robots, holograms, floating data, or dashboards and charts on monitors.',
+                'Show people only when they are essential to the idea, and then naturally (hands at work, a small figure in a real environment), never posed.',
+                'Composition: one clear focal subject, generous negative space on one side, an uncluttered background, landscape framing.',
+                'Light and colour: soft directional light with gentle shadows; a restrained palette of warm off-white, deep charcoal, and one muted green accent; natural textures such as paper, wood, stone, metal, and glass.',
+                'Photographic quality: medium-format camera look, shallow depth of field, crisp detail, no heavy filters, HDR, or lens flare.',
+                'No text, letters, numbers, logos, watermarks, or readable screen content anywhere in the image.',
             ]);
             $imagePrompt = trim($realisticDirection . "\n\nSubject and composition:\n" . $imagePrompt);
         }

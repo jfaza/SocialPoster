@@ -7,7 +7,7 @@ class TemplateManager
     private const TEMPLATE_SCAFFOLD_CACHE_VERSION = 'v1';
     private const INSTAGRAM_CAROUSEL_INSTRUCTIONS = 'You are an expert Instagram carousel creator and visual content strategist. Generate a complete Instagram carousel package with 6 to 8 slides minimum. Do not stop at slide 1. Every slide must include both text content and a unique image brief. post_text must be formatted slide by slide using labels such as "Slide 1 - Cover", "Slide 2 - ...", and so on. For each slide, include a heading plus concise bullets or short support lines, then add a short "Visual Direction:" line for that slide. Slide 1 must be a cover with a strong hook of 10 words or fewer and a subtitle if needed. Slides 2 through the next-to-last slide must teach one idea only, use 3 to 5 bullets maximum, and keep each bullet under 10 words. The final slide must reinforce value and include a CTA such as follow, save, comment, or DM. Tone must be clear, sharp, slightly bold, and free of fluff. Design direction should feel premium, modern, minimal, editorial, and AI-tech oriented with clean composition, no people, no logos, no readable text inside images, and strong 1:1 carousel aesthetics. Include one Instagram Caption section at the end with a publish-ready caption and hashtags. table_of_contents should contain slide titles only for internal structure. The system currently generates one image only, so image_brief and image_prompt must describe the main cover / visual system for the carousel, while the per-slide visual directions live inside post_text. Do not write a blog article, long paragraphs, FAQ sections, citations, internal links, external links, recommended topics, or generic advice.';
     private const HOT_TECH_OLD_INSTRUCTIONS = 'Create a timely Website blog article from a supplied or hot technology/developer topic. Cover what changed, why it matters, practical implications for developers and technical buyers, implementation takeaways, risks and tradeoffs, citation/source ideas, semantic keywords, internal link suggestions, external reference ideas, recommended follow-up topics, and a realistic technical workspace image prompt.';
-    private const HOT_TECH_NEW_INSTRUCTIONS = 'Write a technically credible blog article for a developer and technical-buyer audience. If the topic is a news-feed item published in the last 3 days, lead with what changed, explain why it matters now, and separate signal from hype. Otherwise, write an evergreen how-to or explainer with no news framing (no "what changed", "now", "new", or "this quarter"). Make the piece useful to someone deciding whether to pay attention, evaluate, or implement: cover the context, who it affects, practical implementation takeaways, engineering and business tradeoffs, risks or limitations, and clear next steps. Prefer concrete examples, version names, product names, and source-backed claims over vague commentary. Include semantic SEO keywords, real and specific sources, and at most one inline link to a related post on this site. Stay within about 10% of the target word count. The image prompt should show a realistic technical workspace or product context, with no text in the image. Avoid filler, generic futurism, and outdated trend framing.';
+    private const HOT_TECH_NEW_INSTRUCTIONS = 'Write a technically credible blog article for a developer and technical-buyer audience. If the topic is a news-feed item published in the last 3 days, lead with what changed, explain why it matters now, and separate signal from hype. Otherwise, write an evergreen how-to or explainer with no news framing (no "what changed", "now", "new", or "this quarter"). Make the piece useful to someone deciding whether to pay attention, evaluate, or implement: cover the context, who it affects, practical implementation takeaways, engineering and business tradeoffs, risks or limitations, and clear next steps. Prefer concrete examples, version names, product names, and source-backed claims over vague commentary. Include semantic SEO keywords, real and specific sources, and at most one inline link to a related post on this site. Stay within about 10% of the target word count. The image prompt should describe an editorial concept photo: one concrete object, material or physical metaphor from the topic, with no text in the image. Avoid filler, generic futurism, and outdated trend framing.';
 
     public function fieldOptions(): array
     {
@@ -125,6 +125,7 @@ class TemplateManager
                 'QAPage' => 'QAPage',
             ],
             'image_style' => [
+                'editorial concept photo' => 'Editorial concept photo (recommended)',
                 'realistic editorial photo' => 'Realistic editorial photo',
                 'realistic workplace scene' => 'Realistic workplace scene',
                 'realistic topic scene' => 'Realistic topic scene',
@@ -188,7 +189,7 @@ class TemplateManager
                 'internal_link_count' => 2,
                 'external_link_count' => 2,
                 'schema_type' => 'BlogPosting',
-                'image_style' => 'realistic technical workspace',
+                'image_style' => 'editorial concept photo',
                 'cta_style' => 'read related article',
                 'prompt_instructions' => self::HOT_TECH_NEW_INSTRUCTIONS,
                 'is_default' => 0,
@@ -208,7 +209,7 @@ class TemplateManager
                 'internal_link_count' => 3,
                 'external_link_count' => 2,
                 'schema_type' => 'HowTo',
-                'image_style' => 'realistic technical workspace',
+                'image_style' => 'editorial concept photo',
                 'cta_style' => 'book a call',
                 'prompt_instructions' => 'Create a step-by-step how-to content package with prerequisites, process outline, warnings, validation checklist, SEO keywords, HowTo schema ideas, and a realistic technical workspace image prompt.',
                 'is_default' => 0,
@@ -248,7 +249,7 @@ class TemplateManager
                 'internal_link_count' => 0,
                 'external_link_count' => 0,
                 'schema_type' => 'None',
-                'image_style' => 'realistic workplace scene',
+                'image_style' => 'editorial concept photo',
                 'cta_style' => 'conversation starter',
                 'prompt_instructions' => 'Create a short Facebook post that feels natural in-feed, easy to skim, and worth reacting to. Lead with a clear hook in the first line, keep the body concise, avoid long article-style explanations, and focus on one practical point, lesson, update, or opinion only. Use short paragraphs or compact line breaks instead of dense blocks. The post should feel human, conversational, and useful, not corporate or overly polished. Include a simple engagement CTA such as a question, opinion prompt, or invitation to share experience. If a link is useful, suggest it lightly instead of making the post feel like a blog summary. Also provide a realistic image prompt that fits a professional Facebook post.',
                 'is_default' => 0,
