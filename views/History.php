@@ -201,13 +201,14 @@ $historyItemUrlPattern = (string) ($history_item_url_pattern ?? '');
           <summary>Image prompt and regenerate</summary>
           <?= form_open($save_url) ?>
             <input type="hidden" name="regenerate_image" value="1">
+            <p class="sp-muted">Describe one concrete object, material or scene that stands for the article. The house art direction (light, palette, no text, no stock clichés) is added automatically.</p>
             <div class="sp-field">
-              <label for="sp-image-prompt">Image Prompt</label>
-              <textarea id="sp-image-prompt" name="image_prompt" rows="6"><?= $h($post['image_prompt'] ?? '') ?></textarea>
+              <label for="sp-image-prompt">Image Subject</label>
+              <textarea id="sp-image-prompt" name="image_prompt" rows="4"><?= $h(ee('socialposter:generator')->imageSubject((string) ($post['image_prompt'] ?? ''))) ?></textarea>
             </div>
             <div class="sp-field">
               <label for="sp-image-brief">Image Brief</label>
-              <textarea id="sp-image-brief" name="image_brief" rows="4"><?= $h($post['image_brief'] ?? '') ?></textarea>
+              <textarea id="sp-image-brief" name="image_brief" rows="3"><?= $h($post['image_brief'] ?? '') ?></textarea>
             </div>
             <div class="sp-actions">
               <button type="submit" class="button button--default">Regenerate Image</button>

@@ -1971,8 +1971,23 @@ class SocialPostGenerator
 
     private function baseImagePrompt(string $imagePrompt): string
     {
+        return $this->imageSubject($imagePrompt);
+    }
+
+    /**
+     * The subject part of a saved image prompt: drops the house art direction
+     * that was composed in front of it (old or current) and the brief after it,
+     * so regenerating always applies the current direction once.
+     */
+    public function imageSubject(string $imagePrompt): string
+    {
         $parts = preg_split('/\R\RImage brief:\R/', $imagePrompt, 2);
-        return trim((string) ($parts[0] ?? $imagePrompt));
+        $subject = (string) ($parts[0] ?? $imagePrompt);
+        $marker = strrpos($subject, "Subject and composition:");
+        if ($marker !== false) {
+            $subject = substr($subject, $marker + strlen("Subject and composition:"));
+        }
+        return trim($subject);
     }
 
     private function memberId(): int
