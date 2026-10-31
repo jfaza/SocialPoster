@@ -1205,6 +1205,11 @@
   padding-left: 20px;
 }
 
+.sp-review-issues {
+  list-style: none;
+  padding-left: 0;
+}
+
 .sp-review-issues li {
   margin: 0 0 10px;
 }
@@ -4200,5 +4205,122 @@
   .sp-image-settings-form .sp-actions {
     margin: 18px -16px -16px;
     padding: 14px 16px;
+  }
+}
+
+/* ── Draft page (blog / Facebook) ─────────────────────────── */
+.sp-draft-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  align-items: flex-start;
+  padding-bottom: 16px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid var(--sp-border-soft);
+}
+
+.sp-card .sp-draft-head h2 {
+  margin: 4px 0 8px;
+  padding: 0;
+  border: 0;
+  font-size: 22px;
+  line-height: 1.25;
+}
+
+.sp-draft-head .sp-review-statuses {
+  justify-content: flex-start;
+}
+
+.sp-draft-head__actions.sp-actions {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.sp-draft-head__actions {
+  flex-shrink: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.sp-draft-quality {
+  margin: 10px 0 0;
+  font-size: 13px;
+}
+
+.sp-draft-quality a {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-color: var(--sp-border-soft);
+  text-underline-offset: 3px;
+}
+
+.sp-draft-image {
+  display: grid;
+  grid-template-columns: minmax(0, 320px) minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+  margin-bottom: 8px;
+}
+
+.sp-draft-image .sp-preview {
+  width: 100%;
+  margin: 0;
+}
+
+.sp-card .sp-draft-section {
+  margin: 28px 0 12px;
+  font-size: 16px;
+}
+
+.sp-draft-details {
+  margin: 0 0 12px;
+  border: 1px solid var(--sp-border-soft);
+  border-radius: var(--sp-radius-sm);
+  background: #fff;
+}
+
+.sp-draft-details > summary {
+  padding: 12px 16px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.sp-draft-details[open] > summary {
+  border-bottom: 1px solid var(--sp-border-soft);
+}
+
+.sp-draft-details > :not(summary) {
+  margin-left: 16px;
+  margin-right: 16px;
+}
+
+.sp-draft-details > form,
+.sp-draft-details > .sp-seo-checks {
+  margin-top: 14px;
+  margin-bottom: 14px;
+}
+
+.sp-draft-advanced .sp-field:first-of-type {
+  margin-top: 14px;
+}
+
+.sp-draft-advanced > .sp-actions {
+  margin-bottom: 14px;
+}
+
+@media (max-width: 900px) {
+  .sp-draft-head {
+    flex-direction: column;
+  }
+
+  .sp-draft-head__actions {
+    justify-content: flex-start;
+  }
+
+  .sp-draft-image {
+    grid-template-columns: minmax(0, 1fr);
   }
 }

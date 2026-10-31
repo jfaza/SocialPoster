@@ -126,8 +126,257 @@ $historyItemUrlPattern = (string) ($history_item_url_pattern ?? '');
       <?php endif; ?>
     </section>
 
+    <?php elseif (! $isInstagram): ?>
+    <!-- ── BLOG / FACEBOOK DRAFT ──────────────────────────── -->
+    <?php
+      $blogRecord = is_array($published_blog_record ?? null) ? $published_blog_record : null;
+      $facebookRecord = is_array($published_facebook_record ?? null) ? $published_facebook_record : null;
+      $scheduleRecord = is_array($schedule_record ?? null) ? $schedule_record : null;
+      $scheduleRunRecord = is_array($schedule_run_record ?? null) ? $schedule_run_record : null;
+      $verdictLabels = ['ready' => 'Ready to publish', 'fix_first' => 'Fix before publishing', 'rewrite' => 'Needs a rewrite'];
+      $verdictClass = ['ready' => 'is-strong', 'fix_first' => 'is-warning', 'rewrite' => 'is-weak'];
+      $categoryLabels = ['accuracy' => 'Accuracy', 'unsupported_claim' => 'Unsupported claim', 'freshness' => 'Freshness', 'title_promise' => 'Title promise', 'filler' => 'Filler', 'sources' => 'Sources', 'prompt_leak' => 'Mentions the prompt', 'placeholder' => 'Placeholder', 'other' => 'Other'];
+      $reviewVerdict = (string) ($review['verdict'] ?? '');
+      $seoValue = $isWebsiteTemplate && ! empty($seo_score) ? (int) $seo_score['score'] : null;
+    ?>
+    <section class="sp-card sp-draft">
+      <header class="sp-draft-head">
+        <div class="sp-draft-head__text">
+          <p class="sp-muted">
+            Generated <?= $h(date('M j, Y g:ia', (int) $post['created_at'])) ?>
+            <?php if ($postTemplateTitle !== ''): ?> · <?= $h($postTemplateTitle) ?><?php endif; ?>
+            <?php if ($scheduleRecord): ?> · From schedule “<?= $h((string) ($scheduleRecord['title'] ?? ('#' . (int) ($scheduleRecord['id'] ?? 0)))) ?>”<?php endif; ?>
+          </p>
+          <h2><?= $h($post['title'] ?? 'Untitled draft') ?></h2>
+          <div class="sp-review-statuses">
+            <?php if ($blogRecord): ?>
+              <?= $spView->statusBadge('Published to Blog', 'success', $h) ?>
+            <?php else: ?>
+              <?= $spView->statusBadge('Draft', 'warning', $h) ?>
+            <?php endif; ?>
+            <?php if ($facebookRecord): ?>
+              <?= $spView->statusBadge('Published to Facebook', 'info', $h) ?>
+            <?php endif; ?>
+            <?php if (! empty($post['image_missing'])): ?>
+              <?= $spView->statusBadge('Image Needs Repair', 'danger', $h) ?>
+            <?php endif; ?>
+          </div>
+          <p class="sp-draft-quality">
+            <?php if ($seoValue !== null): ?>
+              <a href="#sp-seo">SEO <?= $seoValue ?>/100</a> ·
+            <?php endif; ?>
+            <a href="#sp-editor-review">Editor: <?= $review ? $h($verdictLabels[$reviewVerdict] ?? $reviewVerdict) : 'not reviewed yet' ?></a> ·
+            <a href="#sp-duplicates"><?= empty($duplicates) ? 'No duplicates' : count($duplicates) . ' similar ' . (count($duplicates) === 1 ? 'post' : 'posts') ?></a>
+          </p>
+        </div>
+        <div class="sp-actions sp-draft-head__actions">
+          <?php if ($isWebsiteTemplate && ! $blogRecord): ?>
+            <a class="button button--primary" href="<?= $h($publish_url) ?>">Publish to Blog</a>
+          <?php elseif ($isWebsiteTemplate): ?>
+            <a class="button button--default" href="<?= $h($published_url) ?>">View Published</a>
+          <?php endif; ?>
+          <?php if ($isWebsiteTemplate || $isFacebookTemplate): ?>
+            <a class="button <?= $isFacebookTemplate && ! $facebookRecord ? 'button--primary' : 'button--default' ?>" href="<?= $h($publish_facebook_url) ?>"><?= $facebookRecord ? 'Facebook Published' : 'Publish to Facebook' ?></a>
+          <?php endif; ?>
+          <?php if ($scheduleRecord): ?>
+            <a class="button button--default" href="<?= $h(rtrim((string) $calendar_url, '/') . '/' . (int) ($scheduleRecord['id'] ?? 0)) ?>#tab=t-1">Open Schedule</a>
+          <?php endif; ?>
+        </div>
+      </header>
+      <?php if ($scheduleRunRecord && ! empty($scheduleRunRecord['message']) && ($scheduleRunRecord['status'] ?? '') !== 'success'): ?>
+        <p class="sp-muted">Schedule note: <?= $h($scheduleRunRecord['message']) ?></p>
+      <?php endif; ?>
+
+      <?php if (! empty($post['image_missing'])): ?>
+        <div class="alert inline warn">
+          <p>Image file is missing for this generated post. Use Regenerate Image to repair it before publishing.</p>
+        </div>
+      <?php endif; ?>
+
+      <div class="sp-draft-image">
+        <?php if (! empty($post['image_url'])): ?>
+          <img src="<?= $h($post['image_url']) ?>" alt="" class="sp-preview">
+        <?php endif; ?>
+        <details class="sp-draft-details"<?= empty($post['image_url']) ? ' open' : '' ?>>
+          <summary>Image prompt and regenerate</summary>
+          <?= form_open($save_url) ?>
+            <input type="hidden" name="regenerate_image" value="1">
+            <div class="sp-field">
+              <label for="sp-image-prompt">Image Prompt</label>
+              <textarea id="sp-image-prompt" name="image_prompt" rows="6"><?= $h($post['image_prompt'] ?? '') ?></textarea>
+            </div>
+            <div class="sp-field">
+              <label for="sp-image-brief">Image Brief</label>
+              <textarea id="sp-image-brief" name="image_brief" rows="4"><?= $h($post['image_brief'] ?? '') ?></textarea>
+            </div>
+            <div class="sp-actions">
+              <button type="submit" class="button button--default">Regenerate Image</button>
+            </div>
+          <?= form_close() ?>
+        </details>
+      </div>
+
+      <h3 class="sp-draft-section">Article</h3>
+      <?= form_open($save_url, ['id' => 'sp-edit-form']) ?>
+        <input type="hidden" name="save_post" value="1">
+        <div class="sp-field">
+          <label for="sp-title">Title</label>
+          <input id="sp-title" name="title" type="text" value="<?= $h($post['title'] ?? '') ?>">
+        </div>
+        <div class="sp-field">
+          <label for="sp-intro"><?= $isWebsiteTemplate ? 'Intro (also the meta description)' : 'Intro' ?></label>
+          <textarea id="sp-intro" name="intro_text" rows="3"><?= $h($post['intro_text'] ?? '') ?></textarea>
+        </div>
+        <div class="sp-field">
+          <label for="sp-post-text"><?= $isFacebookTemplate ? 'Post' : 'Article' ?></label>
+          <textarea id="sp-post-text" name="post_text" rows="<?= $isFacebookTemplate ? 10 : 26 ?>"><?= $h($post['post_text'] ?? '') ?></textarea>
+        </div>
+        <div class="sp-actions">
+          <button type="submit" class="button button--primary">Save Changes</button>
+          <a class="button button--default" href="<?= $h($history_url) ?>">Back to Drafts</a>
+        </div>
+      <?= form_close() ?>
+
+      <h3 class="sp-draft-section">Quality</h3>
+      <div id="sp-editor-review" class="sp-review-panel <?= $review ? ($verdictClass[$reviewVerdict] ?? '') : '' ?>">
+        <div class="sp-review-head">
+          <div>
+            <strong>Editor review<?= $review ? ' · ' . $h($verdictLabels[$reviewVerdict] ?? $reviewVerdict) : '' ?></strong>
+            <?php if ($review): ?>
+              <p class="sp-muted">Reviewed <?= $h(date('M j, Y g:ia', (int) $review['created_at'])) ?> by <?= $h($review['model']) ?>. Checks accuracy, freshness, sources and filler; it can't browse, so treat flags as things to verify.</p>
+            <?php else: ?>
+              <p class="sp-muted">Not reviewed yet. An AI editor checks accuracy, freshness, sources and filler (about a cent per run).</p>
+            <?php endif; ?>
+          </div>
+          <?php if (! empty($review_available)): ?>
+            <?= form_open($save_url) ?>
+              <input type="hidden" name="run_review" value="1">
+              <button type="submit" class="button button--secondary"><?= $review ? 'Re-run review' : 'Run review' ?></button>
+            <?= form_close() ?>
+          <?php endif; ?>
+        </div>
+        <?php if ($review): ?>
+          <?php if (! empty($review['summary'])): ?><p><?= $h($review['summary']) ?></p><?php endif; ?>
+          <?php if (! empty($review['issues'])): ?>
+            <ol class="sp-review-issues">
+              <?php foreach ($review['issues'] as $issue): ?>
+                <li class="is-<?= $h($issue['severity'] ?? 'low') ?>">
+                  <span class="sp-review-tag"><?= $h(ucfirst((string) ($issue['severity'] ?? ''))) ?> · <?= $h($categoryLabels[$issue['category'] ?? 'other'] ?? 'Other') ?></span>
+                  <?php if (! empty($issue['quote'])): ?><q><?= $h($issue['quote']) ?></q><?php endif; ?>
+                  <?php if (! empty($issue['fix'])): ?><p>Fix: <?= $h($issue['fix']) ?></p><?php endif; ?>
+                </li>
+              <?php endforeach; ?>
+            </ol>
+          <?php else: ?>
+            <p class="sp-muted">No issues found.</p>
+          <?php endif; ?>
+        <?php endif; ?>
+      </div>
+
+      <div id="sp-duplicates" class="sp-review-panel <?= empty($duplicates) ? 'is-strong' : 'is-warning' ?>">
+        <strong>Duplicate check · <?= empty($duplicates) ? 'No overlap found' : count($duplicates) . ' similar ' . (count($duplicates) === 1 ? 'post' : 'posts') ?></strong>
+        <?php if (empty($duplicates)): ?>
+          <p class="sp-muted">No published post or recent draft covers the same topic.</p>
+        <?php else: ?>
+          <ul class="sp-review-duplicates">
+            <?php foreach ($duplicates as $duplicate): ?>
+              <li>
+                <?php if (($duplicate['kind'] ?? '') === 'published'): ?>
+                  Published: <a href="<?= $h($duplicate['url']) ?>" target="_blank" rel="noopener"><?= $h($duplicate['title']) ?></a>
+                <?php else: ?>
+                  Draft #<?= (int) $duplicate['id'] ?>: <a href="<?= $h(str_replace('__ID__', (string) (int) $duplicate['id'], $history_item_url_pattern)) ?>"><?= $h($duplicate['title']) ?></a>
+                <?php endif; ?>
+              </li>
+            <?php endforeach; ?>
+          </ul>
+        <?php endif; ?>
+      </div>
+
+      <?php if ($seoValue !== null): ?>
+        <details id="sp-seo" class="sp-draft-details sp-seo-details"<?= $seoValue < 75 ? ' open' : '' ?>>
+          <summary>SEO score <?= $seoValue ?>/100 · <?= $h($seo_score['grade']) ?> · <?= (int) $seo_score['word_count'] ?> words · keyword: <?= $h($seo_score['primary_keyword'] ?: 'missing') ?></summary>
+          <div class="sp-seo-checks">
+            <?php foreach ($seo_score['checks'] as $check): ?>
+              <div class="sp-seo-check <?= ! empty($check['passed']) ? 'is-pass' : 'is-fail' ?>">
+                <strong><?= $h($check['label']) ?></strong>
+                <span><?= (int) $check['points'] ?>/<?= (int) $check['max'] ?></span>
+                <p><?= $h($check['detail']) ?></p>
+                <?php if (empty($check['passed'])): ?>
+                  <small><?= $h($check['recommendation']) ?></small>
+                <?php endif; ?>
+              </div>
+            <?php endforeach; ?>
+          </div>
+        </details>
+      <?php endif; ?>
+
+      <?php if ($isFacebookTemplate && ! empty($socialQuality)): ?>
+        <details class="sp-draft-details"<?= (int) $socialQuality['score'] < 60 ? ' open' : '' ?>>
+          <summary>Facebook post quality <?= (int) $socialQuality['score'] ?>/100</summary>
+          <div class="sp-seo-checks">
+            <?php foreach ($socialQuality['checks'] as $check): ?>
+              <div class="sp-seo-check <?= ! empty($check['passed']) ? 'is-pass' : 'is-fail' ?>">
+                <strong><?= $h($check['label']) ?></strong>
+                <p><?= $h($check['detail'] ?? '') ?></p>
+                <?php if (empty($check['passed']) && ! empty($check['recommendation'])): ?>
+                  <small><?= $h($check['recommendation']) ?></small>
+                <?php endif; ?>
+              </div>
+            <?php endforeach; ?>
+          </div>
+        </details>
+      <?php endif; ?>
+
+      <details class="sp-draft-details sp-draft-advanced">
+        <summary>Advanced: template, prompt, keywords, links and more</summary>
+        <div class="sp-field">
+          <label for="sp-template">Template</label>
+          <select id="sp-template" name="template_id" form="sp-edit-form">
+            <?php foreach ($template_options as $value => $label): ?>
+              <option value="<?= (int) $value ?>" <?= (int) ($post['template_id'] ?? 0) === (int) $value ? 'selected' : '' ?>><?= $h($label) ?></option>
+            <?php endforeach; ?>
+          </select>
+        </div>
+        <div class="sp-field">
+          <label for="sp-prompt">Original Prompt</label>
+          <textarea id="sp-prompt" name="prompt" rows="5" form="sp-edit-form"><?= $h($post['prompt'] ?? '') ?></textarea>
+        </div>
+        <div class="sp-field">
+          <label for="sp-toc">Table of Contents</label>
+          <textarea id="sp-toc" name="table_of_contents" rows="5" form="sp-edit-form"><?= $h(implode("\n", $post['table_of_contents'] ?? [])) ?></textarea>
+        </div>
+        <div class="sp-field">
+          <label for="sp-keywords">SEO Keywords</label>
+          <input id="sp-keywords" name="keywords" type="text" form="sp-edit-form" value="<?= $h(implode(', ', $post['keywords'] ?? [])) ?>">
+        </div>
+        <div class="sp-field">
+          <label for="sp-category">Blog Category</label>
+          <input id="sp-category" name="category" type="text" form="sp-edit-form" value="<?= $h($post['category'] ?? '') ?>">
+        </div>
+        <div class="sp-field">
+          <label for="sp-internal">Internal Link</label>
+          <input id="sp-internal" name="internal_link" type="text" form="sp-edit-form" value="<?= $h($post['internal_link'] ?? '') ?>">
+        </div>
+        <div class="sp-field">
+          <label for="sp-external">External Link</label>
+          <input id="sp-external" name="external_link" type="text" form="sp-edit-form" value="<?= $h($post['external_link'] ?? '') ?>">
+        </div>
+        <div class="sp-field">
+          <label for="sp-hashtags">Hashtags <span class="sp-muted">(social posts only)</span></label>
+          <input id="sp-hashtags" name="hashtags" type="text" form="sp-edit-form" value="<?= $h(implode(', ', $post['hashtags'] ?? [])) ?>">
+        </div>
+        <div class="sp-field">
+          <label for="sp-topics">Recommended Topics <span class="sp-muted">(ideas for future posts, not published)</span></label>
+          <textarea id="sp-topics" name="recommended_topics" rows="4" form="sp-edit-form"><?= $h(implode("\n", $post['recommended_topics'] ?? [])) ?></textarea>
+        </div>
+        <div class="sp-actions">
+          <button type="submit" class="button button--primary" form="sp-edit-form">Save Changes</button>
+        </div>
+      </details>
+    </section>
+
     <?php else: ?>
-    <!-- ── INSTAGRAM / GENERAL TEMPLATE ───────────────────── -->
+    <!-- ── INSTAGRAM TEMPLATES ─────────────────────────────── -->
     <section class="sp-card">
       <h2><?= $isInstagramCarousel ? 'Edit Instagram Carousel' : ($isInstagramSingle ? 'Edit Instagram Post' : 'Edit Generated Post') ?></h2>
       <p class="sp-muted">
