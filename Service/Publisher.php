@@ -172,9 +172,9 @@ class Publisher
 
         $entry->set($entryData);
 
-        $categoryId = $this->publishCategoryId($channel, $post, (int) ($input['category_id'] ?? 0));
-        if ($categoryId > 0) {
-            $entry->Categories = ee('Model')->get('Category')->filter('cat_id', $categoryId)->all();
+        $categoryIds = $this->publishCategoryIds($channel, $post, $input);
+        if ($categoryIds) {
+            $entry->Categories = ee('Model')->get('Category')->filter('cat_id', 'IN', $categoryIds)->all();
         }
 
         $result = $entry->validate();
@@ -189,7 +189,7 @@ class Publisher
             $this->saveGridImage((int) $entry->entry_id, $imageField, $imageFile, '');
         }
 
-        if ($categoryId > 0) {
+        foreach ($categoryIds as $categoryId) {
             $this->ensureCategoryAssigned((int) $entry->entry_id, $categoryId);
         }
 
@@ -1349,6 +1349,20 @@ class Publisher
             ->filter('channel_name', 'blog')
             ->with('CategoryGroups')
             ->first();
+    }
+
+    /** Ticked categories that belong to the blog, or the generated category if none were ticked. */
+    private function publishCategoryIds($channel, array $post, array $input): array
+    {
+        $allowed = array_map('intval', array_keys($this->categoryOptions()));
+        $requested = array_map('intval', (array) ($input['category_ids'] ?? []));
+        $ids = array_values(array_unique(array_intersect($requested, $allowed)));
+        if ($ids) {
+            return $ids;
+        }
+
+        $single = $this->publishCategoryId($channel, $post, (int) ($input['category_id'] ?? 0));
+        return $single > 0 ? [$single] : [];
     }
 
     private function publishCategoryId($channel, array $post, int $requestedCategoryId): int

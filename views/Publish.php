@@ -9,18 +9,25 @@ $categoryLabelKey = function ($value) {
     $value = preg_replace('/[^a-z0-9]+/', ' ', $value);
     return trim((string) preg_replace('/\s+/', ' ', $value));
 };
-$selectedCategoryId = 0;
-if (! empty($selected['category']) && ! empty($category_options)) {
-    $selectedKey = $categoryLabelKey($selected['category']);
+// Suggested categories for a draft: its generated category, plus any blog
+// category whose name appears as a word in the title or keywords.
+$suggestCategories = function (array $row) use ($category_options, $categoryLabelKey): array {
+    $haystack = ' ' . $categoryLabelKey(($row['title'] ?? '') . ' ' . implode(' ', (array) ($row['keywords'] ?? []))) . ' ';
+    $generated = $categoryLabelKey($row['category'] ?? '');
+    $ids = [];
     foreach ($category_options as $catId => $catLabel) {
         $labelParts = explode(':', (string) $catLabel);
-        $catName = trim((string) end($labelParts));
-        if ($categoryLabelKey($catName) === $selectedKey || $categoryLabelKey($catLabel) === $selectedKey) {
-            $selectedCategoryId = (int) $catId;
-            break;
+        $name = $categoryLabelKey(end($labelParts));
+        if ($name === '') {
+            continue;
+        }
+        if ($name === $generated || strpos($haystack, ' ' . $name . ' ') !== false) {
+            $ids[] = (int) $catId;
         }
     }
-}
+    return array_slice($ids, 0, 5);
+};
+$selectedCategoryIds = $selected ? $suggestCategories($selected) : [];
 $templateMeta = is_array($template_meta ?? null) ? $template_meta : [];
 ?>
 <div class="sp-wrap">
@@ -53,7 +60,7 @@ $templateMeta = is_array($template_meta ?? null) ? $template_meta : [];
               <option
                 value="<?= (int) $row['id'] ?>"
                 data-title="<?= $h($row['title'] ?: 'Generated social post') ?>"
-                data-category="<?= $h($row['category'] ?? '') ?>"
+                data-categories="<?= $h(implode(',', $suggestCategories($row))) ?>"
               >
                 #<?= (int) $row['id'] ?><?= $rowTemplateLabel !== '' ? ' · [' . $h($rowTemplateLabel) . ']' : '' ?> · <?= $h($row['title'] ?: 'Generated social post') ?> · <?= $h(date('M j, Y g:ia', (int) $row['created_at'])) ?>
               </option>
@@ -80,17 +87,19 @@ $templateMeta = is_array($template_meta ?? null) ? $template_meta : [];
             </select>
           </div>
           <div class="sp-field">
-            <label for="sp-category">Category</label>
-            <select id="sp-category" name="category_id">
-              <option value="0">Use generated category if matched</option>
-              <?php foreach ($category_options as $value => $label): ?>
-                <option value="<?= (int) $value ?>" <?= (int) $value === $selectedCategoryId ? 'selected' : '' ?>><?= $h($label) ?></option>
-              <?php endforeach; ?>
-            </select>
-          </div>
-          <div class="sp-field">
             <label for="sp-image">Image</label>
             <label class="sp-checkbox-label"><input id="sp-image" name="include_image" type="checkbox" value="1" checked> Save generated image to blog image field</label>
+          </div>
+        </div>
+
+        <div class="sp-field">
+          <label>Categories</label>
+          <p class="sp-muted">Suggested from the post's category, title and keywords. Tick as many as fit.</p>
+          <div id="sp-categories" class="sp-category-grid">
+            <?php foreach ($category_options as $value => $label): ?>
+              <?php $labelParts = explode(':', (string) $label); ?>
+              <label class="sp-checkbox-label"><input name="category_ids[]" type="checkbox" value="<?= (int) $value ?>" <?= in_array((int) $value, $selectedCategoryIds, true) ? 'checked' : '' ?>> <?= $h(trim((string) end($labelParts))) ?></label>
+            <?php endforeach; ?>
           </div>
         </div>
 
@@ -107,7 +116,7 @@ $templateMeta = is_array($template_meta ?? null) ? $template_meta : [];
 (function () {
   const select = document.getElementById('sp-generation');
   const title = document.getElementById('sp-title');
-  const category = document.getElementById('sp-category');
+  const categoryBoxes = document.querySelectorAll('#sp-categories input[type=checkbox]');
 
   if (!select || !title) {
     return;
@@ -116,20 +125,10 @@ $templateMeta = is_array($template_meta ?? null) ? $template_meta : [];
   select.addEventListener('change', function () {
     const option = select.options[select.selectedIndex];
     title.value = option.dataset.title || '';
-    if (category) {
-      category.value = '0';
-      const categoryKey = (option.dataset.category || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
-      if (categoryKey) {
-        Array.prototype.some.call(category.options, function (categoryOption) {
-          const label = categoryOption.textContent.split(':').pop().toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
-          if (label === categoryKey) {
-            category.value = categoryOption.value;
-            return true;
-          }
-          return false;
-        });
-      }
-    }
+    const suggested = (option.dataset.categories || '').split(',').filter(Boolean);
+    categoryBoxes.forEach(function (box) {
+      box.checked = suggested.indexOf(box.value) !== -1;
+    });
   });
 })();
 </script>

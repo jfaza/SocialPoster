@@ -4330,3 +4330,13 @@
   padding: 0;
   border: 0;
 }
+
+.sp-category-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 6px 12px;
+}
+
+.sp-category-grid .sp-checkbox-label {
+  margin: 0;
+}

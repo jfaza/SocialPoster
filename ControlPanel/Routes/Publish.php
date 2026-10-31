@@ -44,6 +44,7 @@ class Publish extends AbstractRoute
                     'title' => ee()->input->post('title', true),
                     'status' => ee()->input->post('status', true),
                     'category_id' => ee()->input->post('category_id', true),
+                    'category_ids' => (array) ee()->input->post('category_ids', true),
                     'include_image' => ee()->input->post('include_image', true),
                 ]);
 
